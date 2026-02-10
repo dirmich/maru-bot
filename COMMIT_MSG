@@ -1,8 +1,4 @@
-feat(gps): GPS 위치 정보 획득 및 드론 Waypoint 이동 기능 구현
+feat(safety): 자동 복귀(RTL) 및 긴급 정지(Emergency Disarm) 기능 구현
 
-- pkg/tools/gps.go: go-nmea를 이용한 GPS 데이터 수집 도구(get_location) 구현
-- pkg/tools/drone.go: MAVLink 'goto' 명령 추가 (SET_POSITION_TARGET_GLOBAL_INT 사용)
-- pkg/config/config.go: GPS 장치 설정을 위한 GPSConfig 추가
-- maru-config.json: GPS 기본 설정 추가
-- pkg/agent/loop.go: GPSTool 등록
-- task.md: Task 3.2 완료 업데이트
+- pkg/tools/drone.go: MAVLink 'rtl' 및 'emergency' 명령 추가
+- task.md: Phase 3 전체 작업 완료 상태 업데이트

@@ -38,8 +38,8 @@ func (t *DroneTool) Parameters() map[string]interface{} {
 		"properties": map[string]interface{}{
 			"command": map[string]interface{}{
 				"type":        "string",
-				"description": "Flight command: 'arm', 'disarm', 'takeoff', 'land', 'guided', 'goto'",
-				"enum":        []string{"arm", "disarm", "takeoff", "land", "guided", "goto"},
+				"description": "Flight command: 'arm', 'disarm', 'takeoff', 'land', 'guided', 'goto', 'rtl', 'emergency'",
+				"enum":        []string{"arm", "disarm", "takeoff", "land", "guided", "goto", "rtl", "emergency"},
 			},
 			"altitude": map[string]interface{}{
 				"type":        "number",
@@ -137,6 +137,20 @@ func (t *DroneTool) Execute(ctx context.Context, args map[string]interface{}) (s
 			LatInt:          int32(lat * 1e7),
 			LonInt:          int32(lon * 1e7),
 			Alt:             float32(altitude),
+		})
+	case "rtl":
+		err = t.sendCommand(node, &common.MessageCommandLong{
+			TargetSystem:    1,
+			TargetComponent: 1,
+			Command:         common.MAV_CMD_NAV_RETURN_TO_LAUNCH,
+		})
+	case "emergency":
+		err = t.sendCommand(node, &common.MessageCommandLong{
+			TargetSystem:    1,
+			TargetComponent: 1,
+			Command:         common.MAV_CMD_COMPONENT_ARM_DISARM,
+			Param1:          0,       // Disarm
+			Param2:          21196.0, // Force
 		})
 	default:
 		return "", fmt.Errorf("unknown drone command: %s", command)
