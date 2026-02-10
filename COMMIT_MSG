@@ -1,5 +1,5 @@
-feat(vision): 경량 시각 추적 도구(track_color) 구현
+chore: 설정 스크립트 위치 변경 및 README 업데이트
 
-- pkg/tools/vision.go: 카메라 이미지에서 특정 색상(빨강, 초록, 파랑)을 추적하는 초경량 비전 도구 구현
-- pkg/agent/loop.go: VisionTool 등록
-- task.md: Task 2.4 완료 업데이트 및 Phase 2 마감
+- scripts/setup-rpi.sh를 루트의 maru-setup.sh로 이동 및 scripts 디렉토리 제거
+- README.md의 설치 가이드 및 폴더 구조 설명을 최신 상태로 업데이트
+- task.md의 Phase 2 완료 상태 최종 반영

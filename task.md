@@ -12,7 +12,7 @@
 
 ---
 
-## 🟡 Phase 2: 모빌리티 및 공간 인지 (진행 예정)
+## � Phase 2: 모빌리티 및 공간 인지 (완료)
 - [x] **Task 2.1: PWM 기반 모터 제어 도구 구현**
     - [x] `periph.io` 기반 PWM 라이브러리 연동
     - [x] `move_forward`, `stop`, `set_speed` 등 기본 이동 API 구현

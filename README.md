@@ -14,8 +14,8 @@
 
 ## 📂 폴더 구조
 - `/config`: 마루 미니봇 전용 하드웨어 및 에이전트 설정 파일
-- `/scripts`: 라즈베리 파이 초기화 및 하드웨어 연동 자동화 스크립트
-- `/tools`: AI 에이전트가 사용할 GPIO/I2C/SPI 제어 유틸리티
+- `maru-setup.sh`: 라즈베리 파이 초기화 및 하드웨어 연동 자동화 스크립트
+- `/tools`: AI 에이전트가 사용할 GPIO/I2C/SPI 제어 유틸리티 (구현 예정)
 - `/bin`: MaruMiniBot 바이너리 링크 또는 실행 파일 보관
 
 ---
@@ -28,7 +28,7 @@ Raspberry Pi에 MaruMiniBot가 설치되어 있어야 합니다. (MaruMiniBot의
 ### 2. 마루 미니봇 초기화
 ```bash
 cd z:/work/0.project/0.ai/maruminibot
-bash scripts/setup-rpi.sh
+bash maru-setup.sh
 ```
 이 스크립트는 다음을 수행합니다:
 - Raspberry Pi GPIO 라이브러리(`/dev/gpiomem`) 권한 확인
