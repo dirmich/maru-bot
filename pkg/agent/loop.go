@@ -50,6 +50,9 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	toolsRegistry.Register(tools.NewUltrasonicTool(cfg.Hardware.GPIO.Pins))
 	toolsRegistry.Register(tools.NewIMUTool())
 	toolsRegistry.Register(tools.NewVisionTool(workspace))
+	extensionDir := filepath.Join(filepath.Dir(workspace), "extensions")
+	toolsRegistry.Register(tools.NewCreateToolTool(toolsRegistry, extensionDir))
+	tools.LoadDynamicTools(toolsRegistry, extensionDir)
 	if cfg.Drone.Enabled {
 		toolsRegistry.Register(tools.NewDroneTool(cfg.Drone.Connection, cfg.Drone.SysID, cfg.Drone.CompID))
 	}
