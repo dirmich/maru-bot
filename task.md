@@ -33,9 +33,9 @@
 - [x] **Task 3.1: MAVLink 브리지 구현**
     - [x] FC(Flight Controller)와의 시리얼 통신 연동 (Gomavlib v3 기반)
     - [x] 기본 비행 명령(이륙, 착륙, 정지비행) 도구 구현 (`drone_control`)
-- [ ] **Task 3.2: GPS 및 절대 좌표 기반 이동 구현**
-    - [ ] NMEA 데이터 파싱 및 현재 위치 도구 구현
-    - [ ] Waypoint 기반 경로 비행 API 추가
+- [x] **Task 3.2: GPS 및 절대 좌표 기반 이동 구현**
+    - [x] NMEA 데이터 파싱 및 현재 위치 도구 구현 (`get_location`)
+    - [x] Waypoint 기반 경로 비행 API 추가 (`drone_control` 내 `goto` 명령)
 - [ ] **Task 3.3: 자율 주행 및 긴급 복구 로직**
     - [ ] 배터리 잔량 감지 및 자동 복귀(RTL) 로직
     - [ ] 비상 시 하드웨어 강제 정지 시스템 구축

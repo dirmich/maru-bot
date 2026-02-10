@@ -17,6 +17,7 @@ type Config struct {
 	Tools     ToolsConfig     `json:"tools"`
 	Hardware  HardwareConfig  `json:"hardware"`
 	Drone     DroneConfig     `json:"drone"`
+	GPS       GPSConfig       `json:"gps"`
 	mu        sync.RWMutex
 }
 
@@ -123,6 +124,12 @@ type DroneConfig struct {
 	CompID     uint8  `json:"compid"`
 }
 
+type GPSConfig struct {
+	Enabled bool   `json:"enabled"`
+	Device  string `json:"device"`
+	Baud    int    `json:"baud"`
+}
+
 func DefaultConfig() *Config {
 	return &Config{
 		Agents: AgentsConfig{
@@ -202,6 +209,11 @@ func DefaultConfig() *Config {
 			Connection: "/dev/ttyAMA0:57600",
 			SysID:      1,
 			CompID:     1,
+		},
+		GPS: GPSConfig{
+			Enabled: false,
+			Device:  "/dev/ttyUSB0",
+			Baud:    9600,
 		},
 	}
 }

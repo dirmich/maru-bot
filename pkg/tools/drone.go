@@ -38,12 +38,20 @@ func (t *DroneTool) Parameters() map[string]interface{} {
 		"properties": map[string]interface{}{
 			"command": map[string]interface{}{
 				"type":        "string",
-				"description": "Flight command: 'arm', 'disarm', 'takeoff', 'land', 'guided'",
-				"enum":        []string{"arm", "disarm", "takeoff", "land", "guided"},
+				"description": "Flight command: 'arm', 'disarm', 'takeoff', 'land', 'guided', 'goto'",
+				"enum":        []string{"arm", "disarm", "takeoff", "land", "guided", "goto"},
 			},
 			"altitude": map[string]interface{}{
 				"type":        "number",
-				"description": "Target altitude in meters (for takeoff)",
+				"description": "Target altitude in meters (for takeoff/goto)",
+			},
+			"lat": map[string]interface{}{
+				"type":        "number",
+				"description": "Target latitude (for goto)",
+			},
+			"lon": map[string]interface{}{
+				"type":        "number",
+				"description": "Target longitude (for goto)",
 			},
 		},
 		"required": []string{"command"},
@@ -117,6 +125,18 @@ func (t *DroneTool) Execute(ctx context.Context, args map[string]interface{}) (s
 			TargetComponent: 1,
 			Command:         common.MAV_CMD_DO_SET_MODE,
 			Param1:          float32(common.MAV_MODE_GUIDED_ARMED),
+		})
+	case "goto":
+		lat, _ := args["lat"].(float64)
+		lon, _ := args["lon"].(float64)
+		err = t.sendCommand(node, &common.MessageSetPositionTargetGlobalInt{
+			TargetSystem:    1,
+			TargetComponent: 1,
+			CoordinateFrame: common.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
+			TypeMask:        0b0000111111111000, // Only Pos
+			LatInt:          int32(lat * 1e7),
+			LonInt:          int32(lon * 1e7),
+			Alt:             float32(altitude),
 		})
 	default:
 		return "", fmt.Errorf("unknown drone command: %s", command)

@@ -11,6 +11,7 @@ require (
 )
 
 require (
+	github.com/adrianmo/go-nmea v1.10.0 // indirect
 	github.com/bluenviron/gomavlib/v2 v2.2.1 // indirect
 	github.com/bluenviron/gomavlib/v3 v3.3.0 // indirect
 	github.com/creack/goselect v0.1.2 // indirect
