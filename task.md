@@ -9,6 +9,7 @@
 - [x] Raspberry Pi 하드웨어 설정 자동화 스크립트 작성 (`setup-rpi.sh`)
 - [x] CSI/USB 카메라 통합 지원 도구 구현 (`camera_capture`)
 - [x] 기본 설정 템플릿 및 프로젝트 구조 수립
+- [x] 원클릭 설치 스크립트 (`install.sh`) 구현
 
 ---
 

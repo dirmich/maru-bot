@@ -22,14 +22,17 @@
 
 ## 🚀 빠른 시작 (Quick Start)
 
-### 1. 설치 및 하드웨어 준비
-Raspberry Pi에 MaruMiniBot가 설치되어 있어야 합니다. (MaruMiniBot의 바이너리 환경을 환경변수로 사용)
-
-### 2. 마루 미니봇 초기화
+### 1. 원클릭 설치 (Raspberry Pi 권장)
+라즈베리 파이 터미널에서 다음 명령어를 입력하면 즉시 설치 및 설정이 진행됩니다:
 ```bash
-cd z:/work/0.project/0.ai/maruminibot
-bash maru-setup.sh
+curl -fsSL https://raw.githubusercontent.com/maru-ai/maruminibot/main/install.sh | bash
 ```
+
+### 2. 수동 설치 및 하드웨어 준비
+만약 위 명령어가 작동하지 않거나 수동 설치를 원할 경우:
+1. Go 1.24+ 및 필수 도구 설치 (`sudo apt install -y git make golang libcamera-apps`)
+2. 리포지토리 클론: `git clone https://github.com/maru-ai/maruminibot.git`
+3. 설정 스크립트 실행: `cd maruminibot && bash maru-setup.sh`
 이 스크립트는 다음을 수행합니다:
 - Raspberry Pi GPIO 라이브러리(`/dev/gpiomem`) 권한 확인
 - 카메라 및 오디오 인터페이스 활성화 여부 점유
