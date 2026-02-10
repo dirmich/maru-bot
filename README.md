@@ -1,0 +1,56 @@
+# 🤖 MaruMiniBot (마루 미니봇)
+
+**MaruMiniBot**은 MaruMiniBot의 초경량 엔진을 기반으로, Raspberry Pi와 같은 SBC(Single Board Computer)에서 하드웨어를 직접 제어하고 소통하기 위해 최적화된 **"Physical AI Assistant"**입니다.
+
+---
+
+## ✨ 핵심 컨셉
+1. **MaruMiniBot 엔진 재사용**: MaruMiniBot의 고효율 Go 바이너리를 그대로 사용하여 10MB 이하의 RAM 점유율을 유지합니다.
+2. **Raspberry Pi 최적화**: GPIO, 카메라, 마이크, 스피커 권한 설정을 자동화합니다.
+3. **하이퍼-로컬 설정**: 복잡한 JSON 편집 대신 전용 스크립트(`maru-setup.sh`)를 통해 대화형으로 설정을 완료합니다.
+4. **물리적 상호작용**: AI 에이전트가 서보 모터, LED, 각종 센서(DHT, PIR 등)를 제어할 수 있는 도구가 사전 포함되어 있습니다.
+
+---
+
+## 📂 폴더 구조
+- `/config`: 마루 미니봇 전용 하드웨어 및 에이전트 설정 파일
+- `/scripts`: 라즈베리 파이 초기화 및 하드웨어 연동 자동화 스크립트
+- `/tools`: AI 에이전트가 사용할 GPIO/I2C/SPI 제어 유틸리티
+- `/bin`: MaruMiniBot 바이너리 링크 또는 실행 파일 보관
+
+---
+
+## 🚀 빠른 시작 (Quick Start)
+
+### 1. 설치 및 하드웨어 준비
+Raspberry Pi에 MaruMiniBot가 설치되어 있어야 합니다. (MaruMiniBot의 바이너리 환경을 환경변수로 사용)
+
+### 2. 마루 미니봇 초기화
+```bash
+cd z:/work/0.project/0.ai/maruminibot
+bash scripts/setup-rpi.sh
+```
+이 스크립트는 다음을 수행합니다:
+- Raspberry Pi GPIO 라이브러리(`/dev/gpiomem`) 권한 확인
+- 카메라 및 오디오 인터페이스 활성화 여부 점유
+- 전용 대화형 설정 위저드 실행
+
+### 3. 에이전트 실행
+```bash
+./maru-run.sh
+```
+
+---
+
+## 🔧 주요 하드웨어 제어 기능
+- **GPIO**: LED 제어, 버튼 입력 감지
+- **I2C/SPI**: 온도, 습도, 조도 센서 데이터 실시간 읽기
+- **Camera**: AI가 직접 현장을 촬영하고 상황 분석 (Libcamera 연동)
+- **Audio**: 로컬 마이크를 통한 음성 명령 수신 및 스피커 출력
+
+---
+
+## 📝 라이선스
+MaruMiniBot의 철학을 계승하여 MIT License를 따릅니다.
+
+*개발 및 분석: Antigravity AI (2026-02-10)*
