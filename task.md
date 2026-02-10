@@ -13,10 +13,10 @@
 ---
 
 ## 🟡 Phase 2: 모빌리티 및 공간 인지 (진행 예정)
-- [ ] **Task 2.1: PWM 기반 모터 제어 도구 구현**
-    - [ ] `periph.io` 기반 PWM 라이브러리 연동
-    - [ ] `move_forward`, `stop`, `set_speed` 등 기본 이동 API 구현
-    - [ ] 하드웨어 연결 가이드 작성
+- [x] **Task 2.1: PWM 기반 모터 제어 도구 구현**
+    - [x] `periph.io` 기반 PWM 라이브러리 연동
+    - [x] `move_forward`, `stop`, `set_speed` 등 기본 이동 API 구현
+    - [x] 하드웨어 연결 가이드 작성 (README 및 코멘트 반영)
 - [ ] **Task 2.2: 초음파 센서(HC-SR04) 장애물 감지 도구 구현**
     - [ ] 에코/트리거 핀 제어 로직 구현
     - [ ] `get_distance` 도구 추가

@@ -15,6 +15,7 @@ type Config struct {
 	Providers ProvidersConfig `json:"providers"`
 	Gateway   GatewayConfig   `json:"gateway"`
 	Tools     ToolsConfig     `json:"tools"`
+	Hardware  HardwareConfig  `json:"hardware"`
 	mu        sync.RWMutex
 }
 
@@ -105,6 +106,15 @@ type ToolsConfig struct {
 	Web WebToolsConfig `json:"web"`
 }
 
+type HardwareConfig struct {
+	GPIO GPIOConfig `json:"gpio"`
+}
+
+type GPIOConfig struct {
+	Enabled bool                   `json:"enabled"`
+	Pins    map[string]interface{} `json:"pins"`
+}
+
 func DefaultConfig() *Config {
 	return &Config{
 		Agents: AgentsConfig{
@@ -165,6 +175,17 @@ func DefaultConfig() *Config {
 				Search: WebSearchConfig{
 					APIKey:     "",
 					MaxResults: 5,
+				},
+			},
+		},
+		Hardware: HardwareConfig{
+			GPIO: GPIOConfig{
+				Enabled: true,
+				Pins: map[string]interface{}{
+					"led_status":    18,
+					"button_action": 23,
+					"motor_a":       map[string]interface{}{"en": 12, "in1": 24, "in2": 25},
+					"motor_b":       map[string]interface{}{"en": 13, "in3": 26, "in4": 27},
 				},
 			},
 		},

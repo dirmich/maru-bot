@@ -7,7 +7,9 @@
       "enabled": true,
       "pins": {
         "led_status": 18,
-        "button_action": 23
+        "button_action": 23,
+        "motor_a": { "en": 12, "in1": 24, "in2": 25 },
+        "motor_b": { "en": 13, "in3": 26, "in4": 27 }
       }
     },
     "i2c": {

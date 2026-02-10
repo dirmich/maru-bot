@@ -46,6 +46,7 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	toolsRegistry.Register(tools.NewWebSearchTool(braveAPIKey, cfg.Tools.Web.Search.MaxResults))
 	toolsRegistry.Register(tools.NewWebFetchTool(50000))
 	toolsRegistry.Register(tools.NewCameraTool(workspace))
+	toolsRegistry.Register(tools.NewMotorTool(cfg.Hardware.GPIO.Pins))
 
 	sessionsManager := session.NewSessionManager(filepath.Join(filepath.Dir(cfg.WorkspacePath()), "sessions"))
 

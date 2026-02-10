@@ -1,0 +1,7 @@
+feat(motor): PWM 기반 모터 제어 도구 구현 및 하드웨어 설정 추가
+
+- pkg/tools/motor.go: periph.io를 사용한 DC 모터 제어 도구 구현
+- pkg/config/config.go: 하드웨어(GPIO, 모터 핀) 설정 구조체 및 기본값 추가
+- maru-config.json: L298N 드라이버 기준 기본 모터 핀 설정 추가
+- pkg/agent/loop.go: MotorTool 등록 및 사용 가능하도록 연동
+- task.md: Task 2.1 완료 업데이트
