@@ -1,6 +1,5 @@
-feat(imu): IMU 센서(MPU6050) 연동 및 오리엔테이션 도구 구현
+feat(vision): 경량 시각 추적 도구(track_color) 구현
 
-- pkg/tools/imu.go: I2C를 통한 MPU6050 데이터 읽기 및 Roll/Pitch 계산 도구(get_imu_data) 구현
-- maru-config.json: I2C 센서 목록에 MPU6050 추가
-- pkg/agent/loop.go: IMUTool 등록
-- task.md: Task 2.3 완료 업데이트
+- pkg/tools/vision.go: 카메라 이미지에서 특정 색상(빨강, 초록, 파랑)을 추적하는 초경량 비전 도구 구현
+- pkg/agent/loop.go: VisionTool 등록
+- task.md: Task 2.4 완료 업데이트 및 Phase 2 마감
