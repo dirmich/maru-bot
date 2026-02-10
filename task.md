@@ -29,10 +29,10 @@
 
 ---
 
-## 🔴 Phase 3: 공중 기동 및 자율 주행 확장 (계획)
-- [ ] **Task 3.1: MAVLink 브리지 구현**
-    - [ ] FC(Flight Controller)와의 시리얼 통신 연동
-    - [ ] 기본 비행 명령(이륙, 착륙, 정지비행) 도구 구현
+## 🔵 Phase 3: 공중 기동 및 자율 주행 확장 (진행 중)
+- [x] **Task 3.1: MAVLink 브리지 구현**
+    - [x] FC(Flight Controller)와의 시리얼 통신 연동 (Gomavlib v3 기반)
+    - [x] 기본 비행 명령(이륙, 착륙, 정지비행) 도구 구현 (`drone_control`)
 - [ ] **Task 3.2: GPS 및 절대 좌표 기반 이동 구현**
     - [ ] NMEA 데이터 파싱 및 현재 위치 도구 구현
     - [ ] Waypoint 기반 경로 비행 API 추가

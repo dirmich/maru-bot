@@ -16,6 +16,7 @@ type Config struct {
 	Gateway   GatewayConfig   `json:"gateway"`
 	Tools     ToolsConfig     `json:"tools"`
 	Hardware  HardwareConfig  `json:"hardware"`
+	Drone     DroneConfig     `json:"drone"`
 	mu        sync.RWMutex
 }
 
@@ -115,6 +116,13 @@ type GPIOConfig struct {
 	Pins    map[string]interface{} `json:"pins"`
 }
 
+type DroneConfig struct {
+	Enabled    bool   `json:"enabled"`
+	Connection string `json:"connection"`
+	SysID      uint8  `json:"sysid"`
+	CompID     uint8  `json:"compid"`
+}
+
 func DefaultConfig() *Config {
 	return &Config{
 		Agents: AgentsConfig{
@@ -188,6 +196,12 @@ func DefaultConfig() *Config {
 					"motor_b":       map[string]interface{}{"en": 13, "in3": 26, "in4": 27},
 				},
 			},
+		},
+		Drone: DroneConfig{
+			Enabled:    false,
+			Connection: "/dev/ttyAMA0:57600",
+			SysID:      1,
+			CompID:     1,
 		},
 	}
 }

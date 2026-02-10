@@ -17,6 +17,12 @@
       "enabled": true,
       "sensors": ["BME280", "LUX", "MPU6050"]
     },
+    "drone": {
+      "enabled": false,
+      "connection": "/dev/ttyAMA0:57600",
+      "sysid": 1,
+      "compid": 1
+    },
     "multimedia": {
       "camera": "libcamera",
       "audio": {
