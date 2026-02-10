@@ -15,7 +15,7 @@
     },
     "i2c": {
       "enabled": true,
-      "sensors": ["BME280", "LUX"]
+      "sensors": ["BME280", "LUX", "MPU6050"]
     },
     "multimedia": {
       "camera": "libcamera",

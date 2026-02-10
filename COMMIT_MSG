@@ -1,6 +1,6 @@
-feat(sensor): 초음파 센서(HC-SR04) 거리 측정 도구 구현
+feat(imu): IMU 센서(MPU6050) 연동 및 오리엔테이션 도구 구현
 
-- pkg/tools/ultrasonic.go: 트리거 및 에코 핀 제어를 통한 거리 측정 도구(get_distance) 구현
-- maru-config.json: 초음파 센서 기본 핀 설정 추가 (Trigger: 20, Echo: 21)
-- pkg/agent/loop.go: UltrasonicTool 등록 및 사용 가능하도록 연동
-- task.md: Task 2.2 완료 업데이트
+- pkg/tools/imu.go: I2C를 통한 MPU6050 데이터 읽기 및 Roll/Pitch 계산 도구(get_imu_data) 구현
+- maru-config.json: I2C 센서 목록에 MPU6050 추가
+- pkg/agent/loop.go: IMUTool 등록
+- task.md: Task 2.3 완료 업데이트

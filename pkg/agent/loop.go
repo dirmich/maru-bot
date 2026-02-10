@@ -48,6 +48,7 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	toolsRegistry.Register(tools.NewCameraTool(workspace))
 	toolsRegistry.Register(tools.NewMotorTool(cfg.Hardware.GPIO.Pins))
 	toolsRegistry.Register(tools.NewUltrasonicTool(cfg.Hardware.GPIO.Pins))
+	toolsRegistry.Register(tools.NewIMUTool())
 
 	sessionsManager := session.NewSessionManager(filepath.Join(filepath.Dir(cfg.WorkspacePath()), "sessions"))
 
