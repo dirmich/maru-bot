@@ -10,6 +10,8 @@ MAIN_GO=$(CMD_DIR)/main.go
 VERSION?=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_TIME=$(shell date +%FT%T%z)
 LDFLAGS=-ldflags "-X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME)"
+CGO_ENABLED=0
+export CGO_ENABLED
 
 # Go variables
 GO?=go
@@ -36,11 +38,15 @@ ifeq ($(UNAME_S),Linux)
 	ifeq ($(UNAME_M),x86_64)
 		ARCH=amd64
 	else ifeq ($(UNAME_M),aarch64)
-		ARCH=arm64
+		ifeq ($(shell getconf LONG_BIT),64)
+			ARCH=arm64
+		else
+			ARCH=arm
+		endif
 	else ifeq ($(UNAME_M),riscv64)
 		ARCH=riscv64
 	else
-		ARCH=$(UNAME_M)
+		ARCH=arm
 	endif
 else ifeq ($(UNAME_S),Darwin)
 	PLATFORM=darwin
