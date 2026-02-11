@@ -26,8 +26,8 @@
 가장 빠르고 간편한 설치 방법입니다. 본인의 Gist에서 **Raw** 버튼을 눌러 얻은 URL을 사용하세요:
 
 ```bash
-# ⚠️ 주의: <USER>와 <GIST_ID>는 본인의 GitHub 계정 및 생성한 Gist ID로 변경하세요.
-curl -fsSL https://gist.githubusercontent.com/<USER>/<GIST_ID>/raw/install.sh | bash
+# Official MaruBot One-Line Installer
+curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc55f7d5/raw/install.sh | bash
 ```
 
 #### 💡 나만의 설치 Gist 만드는 법:

@@ -26,8 +26,8 @@
 最も速く簡単なインストール方法です。自身の Gist で **Raw** ボタンを押して取得した URL を使用してください：
 
 ```bash
-# ⚠️ 注意: <GIST_ID> は Gist ページのアドレスバーの最後の文字列です。
-curl -fsSL https://gist.githubusercontent.com/<USER>/<GIST_ID>/raw/install.sh | bash
+# MaruBot 公式ワンクリックインストーラー
+curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc55f7d5/raw/install.sh | bash
 ```
 
 ---
