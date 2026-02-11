@@ -1,7 +1,6 @@
-feat(config): 사용자 설정 분리 및 관리 도구 구현 (usersetting.json)
+feat(deploy): 공개 배포 자동화를 위한 make public 타겟 구현 및 라이선스 추가
 
-- pkg/config/config.go: usersetting.json 오버라이드 로직 추가
-- pkg/tools/config.go: 에이전트용 config 관리 도구 구현 (get/set action)
-- pkg/agent/loop.go: 에이전트에 ConfigTool 등록
-- cmd/maruminibot/main.go: CLI용 config 서브커맨드(show, set, reset) 구현
-- task.md: Phase 5(맞춤형 설정 및 사용자 편의성) 완료 반영
+- Makefile: 공개 배포용 파일만 선별하여 ../marubot 디렉토리로 동기화하는 public 타겟 추가
+- LICENSE: MIT 라이선스 파일 추가
+- task.md: 공개 배포 자동화 구축 완료 반영
+- README.md: 라이선스 관련 언급 업데이트 (필요 시)
