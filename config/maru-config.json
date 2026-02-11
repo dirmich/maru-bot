@@ -38,17 +38,32 @@
   },
   "agents": {
     "defaults": {
-      "model": "glm-4.7",
+      "model": "gpt-4o-mini",
       "workspace": "./workspace",
       "max_tool_iterations": 25
     }
   },
   "providers": {
-    "openai": { "api_key": "" },
-    "gemini": { "api_key": "" },
+    "openai": { "api_key": "YOUR_OPENAI_API_KEY" },
+    "gemini": { 
+      "api_key": "YOUR_GEMINI_API_KEY",
+      "api_base": "https://generativelanguage.googleapis.com/v1beta/openai" 
+    },
     "openrouter": { "api_key": "" },
     "groq": { "api_key": "" },
     "zhipu": { "api_key": "" }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "token": "YOUR_TELEGRAM_BOT_TOKEN",
+      "allow_from": []
+    },
+    "discord": {
+      "enabled": false,
+      "token": "YOUR_DISCORD_BOT_TOKEN",
+      "allow_from": []
+    }
   },
   "tools": {
     "enabled": ["shell", "filesystem", "web", "gpio", "camera"]
