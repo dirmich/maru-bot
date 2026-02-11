@@ -1,0 +1,49 @@
+{
+  "project": "MaruBot",
+  "version": "1.0.0",
+  "engine": "marubot",
+  "hardware": {
+    "gpio": {
+      "enabled": true,
+      "pins": {
+        "led_status": 18,
+        "button_action": 23,
+        "motor_a": { "en": 12, "in1": 24, "in2": 25 },
+        "motor_b": { "en": 13, "in3": 26, "in4": 27 },
+        "ultrasonic": { "trigger": 20, "echo": 21 }
+      }
+    },
+    "i2c": {
+      "enabled": true,
+      "sensors": ["BME280", "LUX", "MPU6050"]
+    },
+    "drone": {
+      "enabled": false,
+      "connection": "/dev/ttyAMA0:57600",
+      "sysid": 1,
+      "compid": 1
+    },
+    "gps": {
+      "enabled": false,
+      "device": "/dev/ttyUSB0",
+      "baud": 9600
+    },
+    "multimedia": {
+      "camera": "libcamera",
+      "audio": {
+        "input": "alsa",
+        "output": "alsa"
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": "glm-4.7",
+      "workspace": "./workspace",
+      "max_tool_iterations": 25
+    }
+  },
+  "tools": {
+    "enabled": ["shell", "filesystem", "web", "gpio", "camera"]
+  }
+}

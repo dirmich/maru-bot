@@ -1,0 +1,15 @@
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+.maruminibot/
+config.json
+sessions/
+coverage.txt
+coverage.html
+.DS_Store
+build
+
