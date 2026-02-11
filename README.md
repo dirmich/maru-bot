@@ -25,6 +25,7 @@
 ### 1. 원클릭 설치 (GitHub Gist 권장)
 가장 빠르고 간편한 설치 방법입니다. 아래 커맨드를 라즈베리 파이 터미널에 붙여넣으세요:
 ```bash
+# curl -fsSL https://raw.githubusercontent.com/maru-ai/maruminibot/main/install.sh | bash
 # 공식 Gist 또는 본인의 Gist Raw URL을 사용하세요.
 curl -fsSL https://gist.githubusercontent.com/<USER>/<GIST_ID>/raw/install.sh | bash
 ```
