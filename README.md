@@ -23,19 +23,18 @@
 ## 🚀 빠른 시작 (Quick Start)
 
 ### 1. 원클릭 설치 (GitHub Gist 권장)
-가장 빠르고 간편한 설치 방법입니다. 아래 커맨드를 라즈베리 파이 터미널에 붙여넣으세요:
+가장 빠르고 간편한 설치 방법입니다. 본인의 Gist에서 **Raw** 버튼을 눌러 얻은 URL을 사용하세요:
+
 ```bash
-# curl -fsSL https://raw.githubusercontent.com/maru-ai/maruminibot/main/install.sh | bash
-# 공식 Gist 또는 본인의 Gist Raw URL을 사용하세요.
-curl -fsSL https://gist.githubusercontent.com/dirmich/0e24c4025e80bdb1849d46bb8efbd4de42bc2df5/raw/install.sh | bash
+# ⚠️ 주의: <GIST_ID>는 본인 Gist 페이지 주소창의 마지막 문자열입니다.
+curl -fsSL https://gist.githubusercontent.com/<USER>/<GIST_ID>/raw/install.sh | bash
 ```
-> **Tip:** 개인화된 설정이 포함된 `install.sh`를 Gist로 관리하면 여러 대의 라즈베리 파이에 동일한 환경을 즉시 구축할 수 있습니다.
 
 #### 💡 나만의 설치 Gist 만드는 법:
-1. [gist.github.com](https://gist.github.com/) 접속
-2. 파일명을 `install.sh`로 입력하고 `install.sh` 내용 붙여넣기
-3. **Create public gist** 클릭 후, 우측 상단 **Raw** 버튼을 눌러 URL 복사
-4. 복사한 URL을 `curl -fsSL <복사한_URL> | bash` 형식으로 사용
+1. [gist.github.com](https://gist.github.com/) 접속 (Secret/Public 상관 없음)
+2. 파일명을 `install.sh`로 입력하고 본 프로젝트의 `install.sh` 내용 붙여넣기
+3. 생성 후 페이지 우측 상단의 **Raw** 버튼 클릭
+4. 이동된 페이지의 주소(URL)를 복사하여 `curl -fsSL <복사한_URL> | bash` 명령어로 사용
 
 ### 2. 수동 설치 및 하드웨어 준비
 만약 위 명령어가 작동하지 않거나 수동 설치를 원할 경우:
