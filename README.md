@@ -53,6 +53,19 @@ marubot agent
 
 ---
 
+## ⚙️ 설정 (Configuration)
+
+설치가 완료되면 AI 모델을 사용하기 위해 API 키를 설정해야 합니다.
+
+1. **설정 파일 열기**:
+   ```bash
+   nano ~/.marubot/config.json
+   ```
+2. **API 키 입력**: `providers` 섹션에서 사용할 서비스(openai, gemini 등)의 `api_key` 아래에 본인의 키를 입력합니다.
+3. **모델 설정**: `agents` -> `defaults` -> `model` 항목에 사용할 모델명(예: `gpt-4o`, `gemini-1.5-flash`)을 입력합니다.
+
+---
+
 ## 🔧 주요 하드웨어 제어 기능
 - **GPIO**: LED 제어, 버튼 입력 감지
 - **I2C/SPI**: 온도, 습도, 조도 센서 데이터 실시간 읽기

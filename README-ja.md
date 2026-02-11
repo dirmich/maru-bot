@@ -32,6 +32,19 @@ curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc
 
 ---
 
+## ⚙️ 設定 (Configuration)
+
+インストール完了後、AIモデルを使用するためにAPIキーを設定する必要があります。
+
+1. **設定ファイルを開く**:
+   ```bash
+   nano ~/.marubot/config.json
+   ```
+2. **APIキーの入力**: `providers` セクションでお使いのサービス（openai, gemini など）の `api_key` 欄に自身のキーを入力します。
+3. **モデルの設定**: `agents` -> `defaults` -> `model` 項目に使用するモデル名（例: `gpt-4o`, `gemini-1.5-flash`）を入力します。
+
+---
+
 ## 📝 ライセンス
 MIT License。
 
