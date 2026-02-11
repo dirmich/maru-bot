@@ -89,6 +89,8 @@ chmod +x maru-setup.sh
 
 # 6. 하드웨어 설정 스크립트 실행
 echo -e "${BLUE}⚙️ 하드웨어 초기 설정을 시작합니다...${NC}"
+# 현재 세션에서 방금 빌드된 바이너리를 인식할 수 있도록 PATH 일시적 추가
+export PATH="$PWD/build:$PATH"
 ./maru-setup.sh
 
 # 7. 환경 변수 등록 (.bashrc)

@@ -6,10 +6,11 @@
 echo "🚀 MaruMiniBot 설정을 시작합니다..."
 
 # 1. MaruMiniBot 엔진 확인
-if command -v maruminibot > /dev/null; then
+# 시스템 PATH 또는 로컬 build 폴더에서 확인
+if command -v maruminibot > /dev/null || [ -f "./build/maruminibot" ] || [ -f "./build/marubot" ]; then
     echo "✅ MaruMiniBot 엔진이 감지되었습니다."
 else
-    echo "❌ MaruMiniBot 엔진을 찾을 수 없습니다. MaruMiniBot 설치 후 다시 시도해주세요."
+    echo "❌ MaruMiniBot 엔진을 찾을 수 없습니다. 빌드(make build)를 먼저 완료해주세요."
     exit 1
 fi
 
