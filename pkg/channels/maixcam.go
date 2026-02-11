@@ -7,9 +7,9 @@ import (
 	"net"
 	"sync"
 
-	"marubot/pkg/bus"
-	"marubot/pkg/config"
-	"marubot/pkg/logger"
+	"maru-bot/pkg/bus"
+	"maru-bot/pkg/config"
+	"maru-bot/pkg/logger"
 )
 
 type MaixCamChannel struct {

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"marubot/pkg/providers"
-	"marubot/pkg/skills"
+	"maru-bot/pkg/providers"
+	"maru-bot/pkg/skills"
 )
 
 type ContextBuilder struct {
@@ -16,7 +16,7 @@ type ContextBuilder struct {
 }
 
 func NewContextBuilder(workspace string) *ContextBuilder {
-	builtinSkillsDir := filepath.Join(filepath.Dir(workspace), "marubot", "skills")
+	builtinSkillsDir := filepath.Join(filepath.Dir(workspace), "maru-bot", "skills")
 	return &ContextBuilder{
 		workspace:    workspace,
 		skillsLoader: skills.NewSkillsLoader(workspace, builtinSkillsDir),
@@ -27,9 +27,9 @@ func (cb *ContextBuilder) BuildSystemPrompt() string {
 	now := time.Now().Format("2006-01-02 15:04 (Monday)")
 	workspacePath, _ := filepath.Abs(filepath.Join(cb.workspace))
 
-	return fmt.Sprintf(`# marubot 🦞
+	return fmt.Sprintf(`# maru-bot 🦞
 
-You are marubot, a helpful AI assistant. You have access to tools that allow you to:
+You are maru-bot, a helpful AI assistant. You have access to tools that allow you to:
 - Read, write, and edit files
 - Execute shell commands
 - Search the web and fetch web pages

@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
-	"marubot/pkg/bus"
-	"marubot/pkg/config"
-	"marubot/pkg/logger"
+	"maru-bot/pkg/bus"
+	"maru-bot/pkg/config"
+	"maru-bot/pkg/logger"
 )
 
 type DiscordChannel struct {

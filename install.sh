@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # MaruBot One-Line Installer for Raspberry Pi
-# Usage: curl -fsSL https://raw.githubusercontent.com/maru-ai/marubot/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/maru-ai/maru-bot/main/install.sh | bash
 # Usage: curl -fsSL https://gist.githubusercontent.com/<USER>/<GIST_ID>/raw/install.sh | bash
 set -e
 
@@ -24,14 +24,14 @@ sudo apt update
 sudo apt install -y git make golang libcamera-apps alsa-utils vlc-plugin-base
 
 # 3. 소스 코드 클론
-INSTALL_DIR="$HOME/marubot"
+INSTALL_DIR="$HOME/maru-bot"
 if [ -d "$INSTALL_DIR" ]; then
     echo -e "${BLUE}🔄 기존 설치 폴더가 발견되어 업데이트를 진행합니다...${NC}"
     cd "$INSTALL_DIR"
     git pull
 else
     echo -e "${BLUE}📂 GitHub에서 소스 코드를 가져옵니다...${NC}"
-    git clone https://github.com/maru-ai/marubot.git "$INSTALL_DIR"
+    git clone https://github.com/maru-ai/maru-bot.git "$INSTALL_DIR"
     cd "$INSTALL_DIR"
 fi
 
@@ -40,7 +40,7 @@ echo -e "${BLUE}🛠️ MaruBot 엔진을 빌드합니다...${NC}"
 make build
 
 # 5. 실행 권한 부여 및 시스템 경로 등록
-chmod +x build/marubot
+chmod +x build/maru-bot
 chmod +x maru-setup.sh
 
 # 6. 하드웨어 설정 스크립트 실행
@@ -48,11 +48,11 @@ echo -e "${BLUE}⚙️ 하드웨어 초기 설정을 시작합니다...${NC}"
 ./maru-setup.sh
 
 # 7. 환경 변수 등록 (.bashrc)
-if ! grep -q "marubot" ~/.bashrc; then
-    echo 'export PATH="$HOME/marubot/build:$PATH"' >> ~/.bashrc
-    echo -e "${GREEN}✅ PATH에 marubot이 등록되었습니다. (새 터미널에서 적용)${NC}"
+if ! grep -q "maru-bot" ~/.bashrc; then
+    echo 'export PATH="$HOME/maru-bot/build:$PATH"' >> ~/.bashrc
+    echo -e "${GREEN}✅ PATH에 maru-bot이 등록되었습니다. (새 터미널에서 적용)${NC}"
 fi
 
 echo -e "\n${GREEN}🎉 MaruBot 설치가 완료되었습니다!${NC}"
-echo -e "명령어: ${BLUE}marubot agent${NC} 를 입력하여 AI 에이전트를 실행하세요."
-echo -e "설정 파일 위치: ${BLUE}~/.marubot/config.json${NC}"
+echo -e "명령어: ${BLUE}maru-bot agent${NC} 를 입력하여 AI 에이전트를 실행하세요."
+echo -e "설정 파일 위치: ${BLUE}~/.maru-bot/config.json${NC}"

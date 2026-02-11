@@ -3,7 +3,7 @@ package channels
 import (
 	"context"
 
-	"marubot/pkg/bus"
+	"maru-bot/pkg/bus"
 )
 
 type Channel interface {

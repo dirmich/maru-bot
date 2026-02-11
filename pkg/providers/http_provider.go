@@ -15,7 +15,7 @@ import (
 	"net/http"
 	"strings"
 
-	"marubot/pkg/config"
+	"maru-bot/pkg/config"
 )
 
 type HTTPProvider struct {

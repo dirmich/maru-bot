@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"marubot/pkg/config"
+	"maru-bot/pkg/config"
 )
 
 type ConfigTool struct {
@@ -27,7 +27,7 @@ func (t *ConfigTool) Name() string {
 }
 
 func (t *ConfigTool) Description() string {
-	return "Check or modify marubot configuration like GPIO pins, sensor settings, etc."
+	return "Check or modify maru-bot configuration like GPIO pins, sensor settings, etc."
 }
 
 func (t *ConfigTool) Parameters() map[string]interface{} {

@@ -134,7 +134,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		Agents: AgentsConfig{
 			Defaults: AgentDefaults{
-				Workspace:         "~/.marubot/workspace",
+				Workspace:         "~/.maru-bot/workspace",
 				Model:             "glm-4.7",
 				MaxTokens:         8192,
 				Temperature:       0.7,
