@@ -1,4 +1,0 @@
-[fix] OpenAI API 도구 호출 오류 수정 및 설정 템플릿 업데이트
-
-- pkg/tools/config.go: OpenAI에서 지원하지 않는 'any' 타입을 'string'으로 변경하여 함수 호출 오류 해결
-- config/maru-config.json: 설정 템플릿 구조 개선 및 채널(Telegram, Discord) 설정 섹션 추가
