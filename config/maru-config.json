@@ -1,7 +1,7 @@
 {
-  "project": "MaruMiniBot",
+  "project": "MaruBot",
   "version": "1.0.0",
-  "engine": "maruminibot",
+  "engine": "marubot",
   "hardware": {
     "gpio": {
       "enabled": true,
@@ -42,6 +42,13 @@
       "workspace": "./workspace",
       "max_tool_iterations": 25
     }
+  },
+  "providers": {
+    "openai": { "api_key": "" },
+    "gemini": { "api_key": "" },
+    "openrouter": { "api_key": "" },
+    "groq": { "api_key": "" },
+    "zhipu": { "api_key": "" }
   },
   "tools": {
     "enabled": ["shell", "filesystem", "web", "gpio", "camera"]
