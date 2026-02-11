@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # MaruMiniBot One-Line Installer for Raspberry Pi
-# Usage: curl -fsSL https://raw.githubusercontent.com/maru-ai/maruminibot/main/install.sh | bash
+# Usage: curl -fsSL https://gist.githubusercontent.com/<USER>/<GIST_ID>/raw/install.sh | bash
 
 set -e
 

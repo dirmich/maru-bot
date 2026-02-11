@@ -1,5 +1,5 @@
-feat(evolution): 에이전트 자기 진화 가틍(실시간 도구 생성) 기능 구현
+docs: GitHub Gist 기반 설치 스크립트 가이드 추가
 
-- pkg/tools/dynamic.go: AI가 스스로 스크립트를 작성하여 도구로 등록하는 create_custom_tool 구현
-- pkg/agent/loop.go: 동적 도구 로더 및 확장 시스템 통합 (/extensions 디렉토리 활용)
-- task.md: Phase 4(자기 진화 및 동적 확장) 완료 반영
+- install.sh: GitHub Gist Raw URL을 통한 설치 Usage로 헤더 업데이트
+- README.md: Gist를 활용한 원클릭 설치 안내 추가 및 커맨드 템플릿 제공
+- task.md: Gist 기반 설치 가이드 개선 로그 추가
