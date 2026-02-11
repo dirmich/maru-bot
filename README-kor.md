@@ -1,11 +1,11 @@
-# 🤖 MaruBot (마루 미니봇)
+# 🤖 MaruMiniBot (마루 미니봇)
 
-**MaruBot**은 MaruBot의 초경량 엔진을 기반으로, Raspberry Pi와 같은 SBC(Single Board Computer)에서 하드웨어를 직접 제어하고 소통하기 위해 최적화된 **"Physical AI Assistant"**입니다.
+**MaruMiniBot**은 MaruMiniBot의 초경량 엔진을 기반으로, Raspberry Pi와 같은 SBC(Single Board Computer)에서 하드웨어를 직접 제어하고 소통하기 위해 최적화된 **"Physical AI Assistant"**입니다.
 
 ---
 
 ## ✨ 핵심 컨셉
-1. **MaruBot 엔진 재사용**: MaruBot의 고효율 Go 바이너리를 그대로 사용하여 10MB 이하의 RAM 점유율을 유지합니다.
+1. **MaruMiniBot 엔진 재사용**: MaruMiniBot의 고효율 Go 바이너리를 그대로 사용하여 10MB 이하의 RAM 점유율을 유지합니다.
 2. **Raspberry Pi 최적화**: GPIO, 카메라, 마이크, 스피커 권한 설정을 자동화합니다.
 3. **하이퍼-로컬 설정**: 복잡한 JSON 편집 대신 전용 스크립트(`maru-setup.sh`)를 통해 대화형으로 설정을 완료합니다.
 4. **물리적 상호작용**: AI 에이전트가 서보 모터, LED, 각종 센서(DHT, PIR 등)를 제어할 수 있는 도구가 사전 포함되어 있습니다.
@@ -16,7 +16,7 @@
 - `/config`: 마루 미니봇 전용 하드웨어 및 에이전트 설정 파일
 - `maru-setup.sh`: 라즈베리 파이 초기화 및 하드웨어 연동 자동화 스크립트
 - `/tools`: AI 에이전트가 사용할 GPIO/I2C/SPI 제어 유틸리티 (구현 예정)
-- `/bin`: MaruBot 바이너리 링크 또는 실행 파일 보관
+- `/bin`: MaruMiniBot 바이너리 링크 또는 실행 파일 보관
 
 ---
 
@@ -62,7 +62,7 @@ curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc
 ---
 
 ## 📝 라이선스
-MaruBot의 철학을 계승하여 MIT License를 따릅니다.
+MaruMiniBot의 철학을 계승하여 MIT License를 따릅니다.
 
 MaruBot은 [picoclaw](https://github.com/sipeed/picoclaw)를 기본으로 Raspberry Pi에 맞게 기능이 추가되었습니다.
 
