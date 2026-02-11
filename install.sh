@@ -39,8 +39,14 @@ fi
 
 if [ "$INSTALL_GO" = true ]; then
     echo -e "${BLUE}🐹 MaruBot 빌드에 Go $GO_REQUIRED+ 버전이 필요합니다. 최신 버전을 설치합니다...${NC}"
+    # 아키텍처와 실제 OS 비트수(32/64)를 함께 확인
     ARCH=$(uname -m)
-    if [ "$ARCH" = "aarch64" ]; then GO_ARCH="arm64"; else GO_ARCH="armv6l"; fi
+    BITS=$(getconf LONG_BIT)
+    if [ "$ARCH" = "aarch64" ] && [ "$BITS" = "64" ]; then 
+        GO_ARCH="arm64"
+    else 
+        GO_ARCH="armv6l"
+    fi
     
     WGET_URL="https://go.dev/dl/go1.24.0.linux-$GO_ARCH.tar.gz"
     wget -O go_dist.tar.gz "$WGET_URL"
