@@ -6,7 +6,7 @@
 echo "🚀 MaruBot 설정을 시작합니다..."
 
 # 1. MaruBot 엔진 확인
-if command -v maru-bot > /dev/null; then
+if command -v marubot > /dev/null; then
     echo "✅ MaruBot 엔진이 감지되었습니다."
 else
     echo "❌ MaruBot 엔진을 찾을 수 없습니다. MaruBot 설치 후 다시 시도해주세요."
@@ -32,8 +32,8 @@ done
 
 # 4. 설정 파일 연결
 echo "📝 MaruBot 설정을 MaruBot에 적용합니다..."
-mkdir -p ~/.maru-bot
-cp ./config/maru-config.json ~/.maru-bot/config.json
-echo "✅ 설정 완료! 이제 'maru-bot agent' 또는 'maru-run.sh'로 에드워드와 소통하세요."
+mkdir -p ~/.marubot
+cp ./config/maru-config.json ~/.marubot/config.json
+echo "✅ 설정 완료! 이제 'marubot agent' 또는 'maru-run.sh'로 에드워드와 소통하세요."
 
 echo "🎉 MaruBot 준비 완료!"

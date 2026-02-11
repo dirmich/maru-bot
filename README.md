@@ -39,7 +39,7 @@ curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc
 ### 2. Manual Installation
 If the above command doesn't work or you prefer manual setup:
 1. Install Go 1.24+ and essentials: `sudo apt install -y git make golang libcamera-apps`
-2. Clone repo: `git clone https://github.com/maru-ai/marubot.git`
+2. Clone repo: `git clone https://github.com/dirmich/maru-bot.git`
 3. Run setup: `cd marubot && bash maru-setup.sh`
 This script will:
 - Check permissions for `/dev/gpiomem`.

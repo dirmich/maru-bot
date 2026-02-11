@@ -13,11 +13,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"maru-bot/pkg/bus"
-	"maru-bot/pkg/config"
-	"maru-bot/pkg/providers"
-	"maru-bot/pkg/session"
-	"maru-bot/pkg/tools"
+	"marubot/pkg/bus"
+	"marubot/pkg/config"
+	"marubot/pkg/providers"
+	"marubot/pkg/session"
+	"marubot/pkg/tools"
 )
 
 type AgentLoop struct {

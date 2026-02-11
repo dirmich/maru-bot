@@ -1,7 +1,7 @@
 {
   "project": "MaruBot",
   "version": "1.0.0",
-  "engine": "maru-bot",
+  "engine": "marubot",
   "hardware": {
     "gpio": {
       "enabled": true,

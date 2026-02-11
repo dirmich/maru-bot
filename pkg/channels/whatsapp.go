@@ -10,8 +10,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"maru-bot/pkg/bus"
-	"maru-bot/pkg/config"
+	"marubot/pkg/bus"
+	"marubot/pkg/config"
 )
 
 type WhatsAppChannel struct {

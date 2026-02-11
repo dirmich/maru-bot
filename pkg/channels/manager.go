@@ -11,9 +11,9 @@ import (
 	"fmt"
 	"sync"
 
-	"maru-bot/pkg/bus"
-	"maru-bot/pkg/config"
-	"maru-bot/pkg/logger"
+	"marubot/pkg/bus"
+	"marubot/pkg/config"
+	"marubot/pkg/logger"
 )
 
 type Manager struct {
