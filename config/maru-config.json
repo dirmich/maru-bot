@@ -43,6 +43,13 @@
       "max_tool_iterations": 25
     }
   },
+  "providers": {
+    "openai": { "api_key": "" },
+    "gemini": { "api_key": "" },
+    "openrouter": { "api_key": "" },
+    "groq": { "api_key": "" },
+    "zhipu": { "api_key": "" }
+  },
   "tools": {
     "enabled": ["shell", "filesystem", "web", "gpio", "camera"]
   }

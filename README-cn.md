@@ -32,6 +32,19 @@ curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc
 
 ---
 
+## ⚙️ 配置 (Configuration)
+
+安装完成后，您需要配置 API 密钥以使用 AI 模型。
+
+1. **打开配置文件**:
+   ```bash
+   nano ~/.marubot/config.json
+   ```
+2. **填写 API 密钥**: 在 `providers` 部分，为您要使用的服务（如 openai, gemini 等）填写 `api_key`。
+3. **设置模型**: 在 `agents` -> `defaults` -> `model` 项中，填写您想使用的模型名称（例如：`gpt-4o`, `gemini-1.5-flash`）。
+
+---
+
 ## 📝 开源协议
 遵循 MIT License。
 

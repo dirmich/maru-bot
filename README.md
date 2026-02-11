@@ -53,6 +53,19 @@ marubot agent
 
 ---
 
+## ⚙️ Configuration
+
+After installation, you must configure your API keys to use AI models.
+
+1. **Open the configuration file**:
+   ```bash
+   nano ~/.marubot/config.json
+   ```
+2. **Enter API Keys**: Locate the `providers` section and enter your key for the service you wish to use (e.g., openai, gemini).
+3. **Set Model**: Update the `agents` -> `defaults` -> `model` field with your desired model name (e.g., `gpt-4o`, `gemini-1.5-flash`).
+
+---
+
 ## 🔧 Hardware Features
 - **GPIO**: LED control, button input detection.
 - **I2C/SPI**: Real-time sensor data reading (Temp, Humidity, Light).

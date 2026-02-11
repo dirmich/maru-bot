@@ -34,7 +34,8 @@ done
 # 4. 설정 파일 연결
 echo "📝 MaruBot 설정을 MaruBot에 적용합니다..."
 mkdir -p ~/.marubot
-cp ./config/maru-config.json ~/.marubot/config.json
+# -n 옵션으로 기존 설정이 있으면 덮어씌우지 않음
+cp -n ./config/maru-config.json ~/.marubot/config.json
 echo "✅ 설정 완료! 이제 'marubot agent' 또는 'maru-run.sh'로 에드워드와 소통하세요."
 
 echo "🎉 MaruBot 준비 완료!"
