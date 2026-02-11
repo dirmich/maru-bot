@@ -1,6 +1,4 @@
-feat(deploy): 공개 배포 자동화를 위한 make public 타겟 구현 및 라이선스 추가
+feat(deploy): 공개 배포 시 프로젝트 명칭 자동 치환 기능 추가
 
-- Makefile: 공개 배포용 파일만 선별하여 ../marubot 디렉토리로 동기화하는 public 타겟 추가
-- LICENSE: MIT 라이선스 파일 추가
-- task.md: 공개 배포 자동화 구축 완료 반영
-- README.md: 라이선스 관련 언급 업데이트 (필요 시)
+- scripts/publish.sh: 'maruminibot'을 'marubot'으로 전면 치환(대소문자 포함)하는 로직 구현. Go 모듈명, 문서, 파일명 등에 자동 적용.
+- task.md: 명칭 치환 자동화 완료 보고

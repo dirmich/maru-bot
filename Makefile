@@ -118,23 +118,8 @@ install-skills:
 
 ## public: Sync public files to ../marubot (for public repo maintenance)
 public:
-	@echo "Syncing public files to ../marubot..."
-	@mkdir -p ../marubot
-	@# Clean target directory (except .git)
-	@if [ -d "../marubot/.git" ]; then \
-		find ../marubot -maxdepth 1 ! -name ".git" ! -name "marubot" ! -name ".." ! -name "." -exec rm -rf {} +; \
-	else \
-		rm -rf ../marubot/*; \
-	fi
-	@# Copy allowed files
-	@for item in cmd pkg config skills Makefile go.mod go.sum README.md .gitignore install.sh maru-setup.sh LICENSE; do \
-		if [ -e "$$item" ]; then \
-			cp -R "$$item" ../marubot/; \
-		fi; \
-	done
-	@# Clean sensitive info in the public copy
-	@rm -f ../marubot/config/usersetting.json
-	@echo "✓ Sync complete! Public files are updated in ../marubot"
+	@chmod +x scripts/publish.sh
+	@./scripts/publish.sh
 
 ## uninstall: Remove maruminibot from system
 uninstall:
