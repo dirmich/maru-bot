@@ -31,6 +31,12 @@ curl -fsSL https://gist.githubusercontent.com/<USER>/<GIST_ID>/raw/install.sh | 
 ```
 > **Tip:** 개인화된 설정이 포함된 `install.sh`를 Gist로 관리하면 여러 대의 라즈베리 파이에 동일한 환경을 즉시 구축할 수 있습니다.
 
+#### 💡 나만의 설치 Gist 만드는 법:
+1. [gist.github.com](https://gist.github.com/) 접속
+2. 파일명을 `install.sh`로 입력하고 `install.sh` 내용 붙여넣기
+3. **Create public gist** 클릭 후, 우측 상단 **Raw** 버튼을 눌러 URL 복사
+4. 복사한 URL을 `curl -fsSL <복사한_URL> | bash` 형식으로 사용
+
 ### 2. 수동 설치 및 하드웨어 준비
 만약 위 명령어가 작동하지 않거나 수동 설치를 원할 경우:
 1. Go 1.24+ 및 필수 도구 설치 (`sudo apt install -y git make golang libcamera-apps`)

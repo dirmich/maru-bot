@@ -1,5 +1,3 @@
-docs: GitHub Gist 기반 설치 스크립트 가이드 추가
+docs: README에 Gist 생성 가이드 상세화
 
-- install.sh: GitHub Gist Raw URL을 통한 설치 Usage로 헤더 업데이트
-- README.md: Gist를 활용한 원클릭 설치 안내 추가 및 커맨드 템플릿 제공
-- task.md: Gist 기반 설치 가이드 개선 로그 추가
+- README.md: 사용자가 직접 설치 스크립트 Gist를 생성하고 Raw URL을 획득하는 방법 추가
