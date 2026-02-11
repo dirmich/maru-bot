@@ -68,16 +68,22 @@ fi
 echo "🔄 프로젝트 명칭 치환 중 (maruminibot -> marubot)..."
 cd "$TARGET_DIR"
 
-# 파일 내용 치환
-# (Go 모듈명, 임포트 경로, 문서 텍스트 등)
-find . -type f -not -path '*/.*' -exec sed -i 's/maruminibot/marubot/g' {} +
-find . -type f -not -path '*/.*' -exec sed -i 's/MaruMiniBot/MaruBot/g' {} +
-find . -type f -not -path '*/.*' -exec sed -i 's/MARUMINIBOT/MARUBOT/g' {} +
+# 파일 내용 치환 (Go 모듈명, 임포트 경로, 문서 텍스트 등)
+find . -type f -not -path '*/.*' -exec sed -i 's/maruminibot/marubot/g' {} + || true
+find . -type f -not -path '*/.*' -exec sed -i 's/MaruMiniBot/MaruBot/g' {} + || true
+find . -type f -not -path '*/.*' -exec sed -i 's/MARUMINIBOT/MARUBOT/g' {} + || true
 
-# 파일/디렉토리 이름 치환
+# GitHub 레포지토리 주소만 정식 명칭(maru-bot)으로 유지/치환
+echo "🌐 GitHub 레포지토리 주소 조정 (dirmich/maru-bot)..."
+find . -type f -not -path '*/.*' -exec sed -i 's/dirmich\/marubot/dirmich\/maru-bot/g' {} + || true
+find . -type f -not -path '*/.*' -exec sed -i 's/maru-ai\/maru-bot/dirmich\/maru-bot/g' {} + || true
+
+# 파일/디렉토리 이름 치환 (maruminibot -> marubot)
 find . -depth -name "*maruminibot*" -not -path '*/.*' | while read -r file; do
-    new_file=$(echo "$file" | sed 's/maruminibot/marubot/g')
-    mv "$file" "$new_file"
+    if [ -e "$file" ]; then
+        new_file=$(echo "$file" | sed 's/maruminibot/marubot/g')
+        mv "$file" "$new_file"
+    fi
 done
 
 cd "$SOURCE_DIR"
