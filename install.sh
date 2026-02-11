@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # MaruBot One-Line Installer for Raspberry Pi
-# Usage: curl -fsSL https://raw.githubusercontent.com/dirmich/marubot/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash
 # Usage: curl -fsSL https://gist.githubusercontent.com/<USER>/<GIST_ID>/raw/install.sh | bash
 set -e
 
@@ -47,11 +47,11 @@ if [ "$INSTALL_GO" = true ]; then
     sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go_dist.tar.gz
     rm go_dist.tar.gz
     
-    # PATH 등록 (중복 방지)
+    # PATH 등록 (새 버전을 우선하도록 앞에 추가)
     if ! grep -q "/usr/local/go/bin" ~/.bashrc; then
-        echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+        echo 'export PATH=/usr/local/go/bin:$PATH' >> ~/.bashrc
     fi
-    export PATH=$PATH:/usr/local/go/bin
+    export PATH=/usr/local/go/bin:$PATH
     echo -e "${GREEN}✅ Go $(go version) 설치 완료!${NC}"
 fi
 
@@ -63,16 +63,22 @@ if [ -d "$INSTALL_DIR" ]; then
     git pull
 else
     echo -e "${BLUE}📂 GitHub에서 소스 코드를 가져옵니다...${NC}"
-    git clone https://github.com/dirmich/marubot.git "$INSTALL_DIR"
+    # --depth 1 로 최신 코드만 빠르게 가져옵니다.
+    git clone --depth 1 https://github.com/dirmich/maru-bot.git "$INSTALL_DIR"
     cd "$INSTALL_DIR"
 fi
 
 # 4. 바이너리 빌드
+if [ ! -f "Makefile" ]; then
+    echo -e "${RED}❌ Makefile을 찾을 수 없습니다. 올바른 저장소인지 확인해주세요.${NC}"
+    exit 1
+fi
+
 echo -e "${BLUE}🛠️ MaruBot 엔진을 빌드합니다...${NC}"
 make build
 
 # 5. 실행 권한 부여 및 시스템 경로 등록
-chmod +x build/marubot
+chmod +x build/marubot 2>/dev/null || true
 chmod +x maru-setup.sh
 
 # 6. 하드웨어 설정 스크립트 실행
@@ -80,8 +86,8 @@ echo -e "${BLUE}⚙️ 하드웨어 초기 설정을 시작합니다...${NC}"
 ./maru-setup.sh
 
 # 7. 환경 변수 등록 (.bashrc)
-if ! grep -q "marubot" ~/.bashrc; then
-    echo 'export PATH="$HOME/marubot/build:$PATH"' >> ~/.bashrc
+if ! grep -q "marubot/build" ~/.bashrc; then
+    echo "export PATH=\"\$HOME/marubot/build:\$PATH\"" >> ~/.bashrc
     echo -e "${GREEN}✅ PATH에 marubot이 등록되었습니다. (새 터미널에서 적용)${NC}"
 fi
 

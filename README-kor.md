@@ -39,7 +39,7 @@ curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc
 ### 2. 수동 설치 및 하드웨어 준비
 만약 위 명령어가 작동하지 않거나 수동 설치를 원할 경우:
 1. Go 1.24+ 및 필수 도구 설치 (`sudo apt install -y git make golang libcamera-apps`)
-2. 리포지토리 클론: `git clone https://github.com/dirmich/marubot.git`
+2. 리포지토리 클론: `git clone https://github.com/dirmich/maru-bot.git`
 3. 설정 스크립트 실행: `cd marubot && bash maru-setup.sh`
 이 스크립트는 다음을 수행합니다:
 - Raspberry Pi GPIO 라이브러리(`/dev/gpiomem`) 권한 확인
