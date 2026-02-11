@@ -27,7 +27,7 @@
 ```bash
 # curl -fsSL https://raw.githubusercontent.com/maru-ai/maruminibot/main/install.sh | bash
 # 공식 Gist 또는 본인의 Gist Raw URL을 사용하세요.
-curl -fsSL https://gist.githubusercontent.com/<USER>/<GIST_ID>/raw/install.sh | bash
+curl -fsSL https://gist.githubusercontent.com/dirmich/0e24c4025e80bdb1849d46bb8efbd4de42bc2df5/raw/install.sh | bash
 ```
 > **Tip:** 개인화된 설정이 포함된 `install.sh`를 Gist로 관리하면 여러 대의 라즈베리 파이에 동일한 환경을 즉시 구축할 수 있습니다.
 

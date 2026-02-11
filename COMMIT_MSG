@@ -1,3 +1,3 @@
-docs: README에 Gist 생성 가이드 상세화
+fix: README 내 Gist 설치 커맨드 오류 수정
 
-- README.md: 사용자가 직접 설치 스크립트 Gist를 생성하고 Raw URL을 획득하는 방법 추가
+- README.md: 줄바꿈으로 인해 끊어진 curl 커맨드를 한 줄로 합치고 Gist Raw URL 경로 교정 (/ID/raw/file)
