@@ -233,6 +233,12 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, err
 	}
 
+	// Load usersetting.json as override if exists
+	userSettingsPath := filepath.Join(filepath.Dir(path), "usersetting.json")
+	if userData, err := os.ReadFile(userSettingsPath); err == nil {
+		json.Unmarshal(userData, cfg)
+	}
+
 	if err := env.Parse(cfg); err != nil {
 		return nil, err
 	}

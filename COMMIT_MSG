@@ -1,3 +1,7 @@
-docs: README에 검증된 Gist 설치 커맨드 반영
+feat(config): 사용자 설정 분리 및 관리 도구 구현 (usersetting.json)
 
-- README.md: dirmich 사용자의 실제 Gist ID(f779a01b...)를 포함한 원클릭 설치 커맨드로 업데이트하여 작동을 보장함.
+- pkg/config/config.go: usersetting.json 오버라이드 로직 추가
+- pkg/tools/config.go: 에이전트용 config 관리 도구 구현 (get/set action)
+- pkg/agent/loop.go: 에이전트에 ConfigTool 등록
+- cmd/maruminibot/main.go: CLI용 config 서브커맨드(show, set, reset) 구현
+- task.md: Phase 5(맞춤형 설정 및 사용자 편의성) 완료 반영

@@ -40,6 +40,8 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	toolsRegistry.Register(&tools.ReadFileTool{})
 	toolsRegistry.Register(&tools.WriteFileTool{})
 	toolsRegistry.Register(&tools.ListDirTool{})
+	configPath := filepath.Join(filepath.Dir(cfg.WorkspacePath()), "config.json") // 추정 경로
+	toolsRegistry.Register(tools.NewConfigTool(configPath, cfg))
 	toolsRegistry.Register(tools.NewExecTool(workspace))
 
 	braveAPIKey := cfg.Tools.Web.Search.APIKey

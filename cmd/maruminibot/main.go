@@ -9,6 +9,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -17,7 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chzyer/readline"
 	"maruminibot/pkg/agent"
 	"maruminibot/pkg/bus"
 	"maruminibot/pkg/channels"
@@ -28,6 +28,8 @@ import (
 	"maruminibot/pkg/providers"
 	"maruminibot/pkg/skills"
 	"maruminibot/pkg/voice"
+
+	"github.com/chzyer/readline"
 )
 
 const version = "0.1.0"
@@ -84,6 +86,8 @@ func main() {
 		gatewayCmd()
 	case "status":
 		statusCmd()
+	case "config":
+		configCmd()
 	case "cron":
 		cronCmd()
 	case "skills":
@@ -148,6 +152,7 @@ func printHelp() {
 	fmt.Println("  agent       Interact with the agent directly")
 	fmt.Println("  gateway     Start maruminibot gateway")
 	fmt.Println("  status      Show maruminibot status")
+	fmt.Println("  config      Manage hardware/system configuration")
 	fmt.Println("  cron        Manage scheduled tasks")
 	fmt.Println("  skills      Manage skills (install, list, remove)")
 	fmt.Println("  version     Show version information")
@@ -1163,4 +1168,59 @@ func skillsShowCmd(loader *skills.SkillsLoader, skillName string) {
 	fmt.Printf("\n📦 Skill: %s\n", skillName)
 	fmt.Println("----------------------")
 	fmt.Println(content)
+}
+func configCmd() {
+	if len(os.Args) < 3 {
+		configHelp()
+		return
+	}
+
+	subcommand := os.Args[2]
+	configPath := getConfigPath()
+	userSettingsPath := filepath.Join(filepath.Dir(configPath), "usersetting.json")
+
+	switch subcommand {
+	case "show":
+		cfg, _ := loadConfig()
+		data, _ := json.MarshalIndent(cfg, "", "  ")
+		fmt.Printf("Current Configuration (including usersetting.json):\n%s\n", string(data))
+	case "set":
+		if len(os.Args) < 5 {
+			fmt.Println("Usage: maruminibot config set <key> <value>")
+			return
+		}
+		key := os.Args[3]
+		value := os.Args[4]
+
+		var settings map[string]interface{}
+		data, err := os.ReadFile(userSettingsPath)
+		if err == nil {
+			json.Unmarshal(data, &settings)
+		} else {
+			settings = make(map[string]interface{})
+		}
+
+		// Try to parse as JSON if it looks like one, otherwise keep as string
+		var val interface{}
+		if err := json.Unmarshal([]byte(value), &val); err != nil {
+			val = value // stay as string
+		}
+		settings[key] = val
+
+		newData, _ := json.MarshalIndent(settings, "", "  ")
+		os.WriteFile(userSettingsPath, newData, 0644)
+		fmt.Printf("✓ Saved '%s' = %s to %s\n", key, value, userSettingsPath)
+	case "reset":
+		os.Remove(userSettingsPath)
+		fmt.Println("✓ User settings reset to defaults.")
+	default:
+		configHelp()
+	}
+}
+
+func configHelp() {
+	fmt.Println("\nConfig commands:")
+	fmt.Println("  show              Show merged configuration")
+	fmt.Println("  set <key> <val>   Set an override in usersetting.json")
+	fmt.Println("  reset             Remove all user overrides")
 }
