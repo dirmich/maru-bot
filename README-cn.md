@@ -26,8 +26,8 @@
 最快速、最简便的安装方式。请使用在您的 Gist 中点击 **Raw** 按钮获取的 URL：
 
 ```bash
-# ⚠️ 注意: <GIST_ID> 是您 Gist 页面地址栏最后的字符串。
-curl -fsSL https://gist.githubusercontent.com/<USER>/<GIST_ID>/raw/install.sh | bash
+# MaruBot 官方一键安装程序
+curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc55f7d5/raw/install.sh | bash
 ```
 
 ---
