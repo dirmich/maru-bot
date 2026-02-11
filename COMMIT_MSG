@@ -1,4 +1,0 @@
-feat(deploy): 공개 배포 시 프로젝트 명칭 자동 치환 기능 추가
-
-- scripts/publish.sh: 'maruminibot'을 'marubot'으로 전면 치환(대소문자 포함)하는 로직 구현. Go 모듈명, 문서, 파일명 등에 자동 적용.
-- task.md: 명칭 치환 자동화 완료 보고

@@ -64,4 +64,6 @@ curl -fsSL https://gist.githubusercontent.com/dirmich/f779a01b2e824a776324e5cf2b
 ## 📝 라이선스
 MaruMiniBot의 철학을 계승하여 MIT License를 따릅니다.
 
+MaruBot은 [picoclaw](https://github.com/sipeed/picoclaw)를 기본으로 Raspberry Pi에 맞게 기능이 추가되었습니다.
+
 *개발 및 분석: Antigravity AI (2026-02-10)*

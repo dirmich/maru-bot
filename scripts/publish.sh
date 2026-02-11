@@ -33,6 +33,9 @@ ITEMS=(
     "go.mod"
     "go.sum"
     "README.md"
+    "README-en.md"
+    "README-ja.md"
+    "README-cn.md"
     ".gitignore"
     "install.sh"
     "maru-setup.sh"
@@ -48,6 +51,12 @@ for item in "${ITEMS[@]}"; do
         echo "  ⚠️ $item 을 찾을 수 없어 건너뜁니다."
     fi
 done
+
+# README 파일 재정리 (공개 레포용)
+echo "📝 README 다국어 정리 중..."
+cp "$SOURCE_DIR/README-en.md" "$TARGET_DIR/README.md"
+cp "$SOURCE_DIR/README.md" "$TARGET_DIR/README-kor.md"
+# README-ja, README-cn은 이미 ITEMS에 포함되어 복사됨
 
 # 4. 민감 정보 제거
 if [ -f "$TARGET_DIR/config/usersetting.json" ]; then
