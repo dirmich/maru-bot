@@ -27,7 +27,7 @@
 
 ```bash
 # ⚠️ 주의: <GIST_ID>는 본인 Gist 페이지 주소창의 마지막 문자열입니다.
-curl -fsSL https://gist.githubusercontent.com/<USER>/<GIST_ID>/raw/install.sh | bash
+curl -fsSL https://gist.githubusercontent.com/dirmich/f779a01b2e824a776324e5cf2b9c88f2/raw/install.sh | bash
 ```
 
 #### 💡 나만의 설치 Gist 만드는 법:
