@@ -1,0 +1,4 @@
+[fix] OpenAI API 도구 호출 오류 수정 및 설정 템플릿 업데이트
+
+- pkg/tools/config.go: OpenAI에서 지원하지 않는 'any' 타입을 'string'으로 변경하여 함수 호출 오류 해결
+- config/maru-config.json: JSON 문법 오류(쉼표 누락) 수정 및 설정 템플릿 보안 업데이트 (API 키 제거)

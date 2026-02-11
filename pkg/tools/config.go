@@ -44,8 +44,8 @@ func (t *ConfigTool) Parameters() map[string]interface{} {
 				"description": "Configuration key (e.g., 'hardware.gpio.pins.led_status', 'drone.connection')",
 			},
 			"value": map[string]interface{}{
-				"type":        "any",
-				"description": "Value to set (only for 'set' action)",
+				"type":        "string",
+				"description": "Value to set (only for 'set' action). Note: Internal values will be parsed from string.",
 			},
 		},
 		"required": []string{"action"},
