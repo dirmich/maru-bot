@@ -1,8 +1,8 @@
-// MaruMiniBot - Ultra-lightweight personal AI agent
+// MaruBot - Ultra-lightweight personal AI agent
 // Inspired by and based on nanobot: https://github.com/HKUDS/nanobot
 // License: MIT
 //
-// Copyright (c) 2026 MaruMiniBot contributors
+// Copyright (c) 2026 MaruBot contributors
 
 package agent
 
@@ -13,11 +13,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"maruminibot/pkg/bus"
-	"maruminibot/pkg/config"
-	"maruminibot/pkg/providers"
-	"maruminibot/pkg/session"
-	"maruminibot/pkg/tools"
+	"marubot/pkg/bus"
+	"marubot/pkg/config"
+	"marubot/pkg/providers"
+	"marubot/pkg/session"
+	"marubot/pkg/tools"
 )
 
 type AgentLoop struct {

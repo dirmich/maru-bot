@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-const CONFIG_PATH = path.join(os.homedir(), '.maruminibot', 'config.json');
+const CONFIG_PATH = path.join(os.homedir(), '.marubot', 'config.json');
 
 export function getConfig() {
     if (!fs.existsSync(CONFIG_PATH)) {

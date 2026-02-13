@@ -1,8 +1,8 @@
-// MaruMiniBot - Ultra-lightweight personal AI agent
+// MaruBot - Ultra-lightweight personal AI agent
 // Inspired by and based on nanobot: https://github.com/HKUDS/nanobot
 // License: MIT
 //
-// Copyright (c) 2026 MaruMiniBot contributors
+// Copyright (c) 2026 MaruBot contributors
 
 package main
 
@@ -19,16 +19,16 @@ import (
 	"strings"
 	"time"
 
-	"maruminibot/pkg/agent"
-	"maruminibot/pkg/bus"
-	"maruminibot/pkg/channels"
-	"maruminibot/pkg/config"
-	"maruminibot/pkg/cron"
-	"maruminibot/pkg/heartbeat"
-	"maruminibot/pkg/logger"
-	"maruminibot/pkg/providers"
-	"maruminibot/pkg/skills"
-	"maruminibot/pkg/voice"
+	"marubot/pkg/agent"
+	"marubot/pkg/bus"
+	"marubot/pkg/channels"
+	"marubot/pkg/config"
+	"marubot/pkg/cron"
+	"marubot/pkg/heartbeat"
+	"marubot/pkg/logger"
+	"marubot/pkg/providers"
+	"marubot/pkg/skills"
+	"marubot/pkg/voice"
 
 	"github.com/chzyer/readline"
 )
@@ -118,7 +118,7 @@ func main() {
 			skillsInstallCmd(installer)
 		case "remove", "uninstall":
 			if len(os.Args) < 4 {
-				fmt.Println("Usage: maruminibot skills remove <skill-name>")
+				fmt.Println("Usage: marubot skills remove <skill-name>")
 				return
 			}
 			skillsRemoveCmd(installer, os.Args[3])
@@ -130,7 +130,7 @@ func main() {
 			skillsSearchCmd(installer)
 		case "show":
 			if len(os.Args) < 4 {
-				fmt.Println("Usage: maruminibot skills show <skill-name>")
+				fmt.Println("Usage: marubot skills show <skill-name>")
 				return
 			}
 			skillsShowCmd(skillsLoader, os.Args[3])
@@ -139,7 +139,7 @@ func main() {
 			skillsHelp()
 		}
 	case "version", "--version", "-v":
-		fmt.Printf("%s maruminibot v%s\n", logo, version)
+		fmt.Printf("%s marubot v%s\n", logo, version)
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
 		printHelp()
@@ -148,14 +148,14 @@ func main() {
 }
 
 func printHelp() {
-	fmt.Printf("%s maruminibot - Personal AI Assistant v%s\n\n", logo, version)
-	fmt.Println("Usage: maruminibot <command>\n")
+	fmt.Printf("%s marubot - Personal AI Assistant v%s\n\n", logo, version)
+	fmt.Println("Usage: marubot <command>\n")
 	fmt.Println("Commands:")
-	fmt.Println("  onboard     Initialize maruminibot configuration and workspace")
+	fmt.Println("  onboard     Initialize marubot configuration and workspace")
 	fmt.Println("  agent       Interact with the agent directly")
-	fmt.Println("  gateway     Start maruminibot gateway")
+	fmt.Println("  gateway     Start marubot gateway")
 	fmt.Println("  dashboard   Start both gateway and web UI dashboard")
-	fmt.Println("  status      Show maruminibot status")
+	fmt.Println("  status      Show marubot status")
 	fmt.Println("  config      Manage hardware/system configuration")
 	fmt.Println("  cron        Manage scheduled tasks")
 	fmt.Println("  skills      Manage skills (install, list, remove)")
@@ -189,11 +189,11 @@ func onboard() {
 
 	createWorkspaceTemplates(workspace)
 
-	fmt.Printf("%s maruminibot is ready!\n", logo)
+	fmt.Printf("%s marubot is ready!\n", logo)
 	fmt.Println("\nNext steps:")
 	fmt.Println("  1. Add your API key to", configPath)
 	fmt.Println("     Get one at: https://openrouter.ai/keys")
-	fmt.Println("  2. Chat: maruminibot agent -m \"Hello!\"")
+	fmt.Println("  2. Chat: marubot agent -m \"Hello!\"")
 }
 
 func createWorkspaceTemplates(workspace string) {
@@ -213,7 +213,7 @@ You are a helpful AI assistant. Be concise, accurate, and friendly.
 `,
 		"SOUL.md": `# Soul
 
-I am maruminibot, a lightweight AI assistant powered by AI.
+I am marubot, a lightweight AI assistant powered by AI.
 
 ## Personality
 
@@ -253,7 +253,7 @@ Information about user goes here.
 `,
 		"TOOLS.md": `# Available Tools
 
-This document describes the tools available to maruminibot.
+This document describes the tools available to marubot.
 
 ## File Operations
 
@@ -318,7 +318,7 @@ This document describes the tools available to maruminibot.
 		"IDENTITY.md": `# Identity
 
 ## Name
-MaruMiniBot 🦞
+MaruBot 🦞
 
 ## Description
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
@@ -361,11 +361,11 @@ Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 MIT License - Free and open source
 
 ## Repository
-https://maruminibot
+https://marubot
 
 ## Contact
-Issues: https://maruminibot/issues
-Discussions: https://maruminibot/discussions
+Issues: https://marubot/issues
+Discussions: https://marubot/discussions
 
 ---
 
@@ -481,7 +481,7 @@ func interactiveMode(agentLoop *agent.AgentLoop, sessionKey string) {
 
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt:          prompt,
-		HistoryFile:     "/tmp/.maruminibot_history",
+		HistoryFile:     "/tmp/.marubot_history",
 		HistoryLimit:    100,
 		InterruptPrompt: "^C",
 		EOFPrompt:       "exit",
@@ -660,7 +660,7 @@ func statusCmd() {
 
 	configPath := getConfigPath()
 
-	fmt.Printf("%s maruminibot Status\n\n", logo)
+	fmt.Printf("%s marubot Status\n\n", logo)
 
 	if _, err := os.Stat(configPath); err == nil {
 		fmt.Println("Config:", configPath, "✓")
@@ -708,7 +708,7 @@ func statusCmd() {
 
 func getConfigPath() string {
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".maruminibot", "config.json")
+	return filepath.Join(home, ".marubot", "config.json")
 }
 
 func loadConfig() (*config.Config, error) {
@@ -733,7 +733,7 @@ func cronCmd() {
 		cronAddCmd(cronStorePath)
 	case "remove":
 		if len(os.Args) < 4 {
-			fmt.Println("Usage: maruminibot cron remove <job_id>")
+			fmt.Println("Usage: marubot cron remove <job_id>")
 			return
 		}
 		cronRemoveCmd(cronStorePath, os.Args[3])
@@ -903,7 +903,7 @@ func cronRemoveCmd(storePath, jobID string) {
 
 func cronEnableCmd(storePath string, disable bool) {
 	if len(os.Args) < 4 {
-		fmt.Println("Usage: maruminibot cron enable/disable <job_id>")
+		fmt.Println("Usage: marubot cron enable/disable <job_id>")
 		return
 	}
 
@@ -948,7 +948,7 @@ func skillsCmd() {
 		skillsInstallCmd(installer)
 	case "remove", "uninstall":
 		if len(os.Args) < 4 {
-			fmt.Println("Usage: maruminibot skills remove <skill-name>")
+			fmt.Println("Usage: marubot skills remove <skill-name>")
 			return
 		}
 		skillsRemoveCmd(installer, os.Args[3])
@@ -956,7 +956,7 @@ func skillsCmd() {
 		skillsSearchCmd(installer)
 	case "show":
 		if len(os.Args) < 4 {
-			fmt.Println("Usage: maruminibot skills show <skill-name>")
+			fmt.Println("Usage: marubot skills show <skill-name>")
 			return
 		}
 		skillsShowCmd(skillsLoader, os.Args[3])
@@ -977,11 +977,11 @@ func skillsHelp() {
 	fmt.Println("  show <name>             Show skill details")
 	fmt.Println()
 	fmt.Println("Examples:")
-	fmt.Println("  maruminibot skills list")
-	fmt.Println("  maruminibot skills install sipeed/maruminibot-skills/weather")
-	fmt.Println("  maruminibot skills install-builtin")
-	fmt.Println("  maruminibot skills list-builtin")
-	fmt.Println("  maruminibot skills remove weather")
+	fmt.Println("  marubot skills list")
+	fmt.Println("  marubot skills install sipeed/marubot-skills/weather")
+	fmt.Println("  marubot skills install-builtin")
+	fmt.Println("  marubot skills list-builtin")
+	fmt.Println("  marubot skills remove weather")
 }
 
 func skillsListCmd(loader *skills.SkillsLoader) {
@@ -1011,8 +1011,8 @@ func skillsListCmd(loader *skills.SkillsLoader) {
 
 func skillsInstallCmd(installer *skills.SkillInstaller) {
 	if len(os.Args) < 4 {
-		fmt.Println("Usage: maruminibot skills install <github-repo>")
-		fmt.Println("Example: maruminibot skills install sipeed/maruminibot-skills/weather")
+		fmt.Println("Usage: marubot skills install <github-repo>")
+		fmt.Println("Example: marubot skills install sipeed/marubot-skills/weather")
 		return
 	}
 
@@ -1042,7 +1042,7 @@ func skillsRemoveCmd(installer *skills.SkillInstaller, skillName string) {
 }
 
 func skillsInstallBuiltinCmd(workspace string) {
-	builtinSkillsDir := "./maruminibot/skills"
+	builtinSkillsDir := "./marubot/skills"
 	workspaceSkillsDir := filepath.Join(workspace, "skills")
 
 	fmt.Printf("Copying builtin skills to workspace...\n")
@@ -1083,7 +1083,7 @@ func skillsListBuiltinCmd() {
 		fmt.Printf("Error loading config: %v\n", err)
 		return
 	}
-	builtinSkillsDir := filepath.Join(filepath.Dir(cfg.WorkspacePath()), "maruminibot", "skills")
+	builtinSkillsDir := filepath.Join(filepath.Dir(cfg.WorkspacePath()), "marubot", "skills")
 
 	fmt.Println("\nAvailable Builtin Skills:")
 	fmt.Println("-----------------------")
@@ -1190,7 +1190,7 @@ func configCmd() {
 		fmt.Printf("Current Configuration (including usersetting.json):\n%s\n", string(data))
 	case "set":
 		if len(os.Args) < 5 {
-			fmt.Println("Usage: maruminibot config set <key> <value>")
+			fmt.Println("Usage: marubot config set <key> <value>")
 			return
 		}
 		key := os.Args[3]
