@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
@@ -90,6 +91,8 @@ func main() {
 		configCmd()
 	case "cron":
 		cronCmd()
+	case "dashboard":
+		dashboardCmd()
 	case "skills":
 		if len(os.Args) < 3 {
 			skillsHelp()
@@ -151,6 +154,7 @@ func printHelp() {
 	fmt.Println("  onboard     Initialize maruminibot configuration and workspace")
 	fmt.Println("  agent       Interact with the agent directly")
 	fmt.Println("  gateway     Start maruminibot gateway")
+	fmt.Println("  dashboard   Start both gateway and web UI dashboard")
 	fmt.Println("  status      Show maruminibot status")
 	fmt.Println("  config      Manage hardware/system configuration")
 	fmt.Println("  cron        Manage scheduled tasks")
@@ -1223,4 +1227,40 @@ func configHelp() {
 	fmt.Println("  show              Show merged configuration")
 	fmt.Println("  set <key> <val>   Set an override in usersetting.json")
 	fmt.Println("  reset             Remove all user overrides")
+}
+
+func dashboardCmd() {
+	fmt.Printf("%s Starting MaruBot Dashboard...\n", logo)
+
+	// Start gateway in a separate goroutine
+	go func() {
+		gatewayCmd()
+	}()
+
+	// Wait a bit for gateway to initialize
+	time.Sleep(2 * time.Second)
+
+	// Determine web project path (assumes it's in web-admin folder relative to binary or source)
+	// For development, we'll try to find it in the current or parent directories
+	webPath := "web-admin"
+	if _, err := os.Stat(webPath); os.IsNotExist(err) {
+		// Try parent
+		webPath = "../web-admin"
+		if _, err := os.Stat(webPath); os.IsNotExist(err) {
+			fmt.Println("Error: web-admin directory not found.")
+			return
+		}
+	}
+
+	fmt.Printf("✓ Starting Web UI from %s\n", webPath)
+
+	// Start Next.js (bun dev for now)
+	cmd := exec.Command("bun", "dev")
+	cmd.Dir = webPath
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("Error starting Web UI: %v\n", err)
+	}
 }
