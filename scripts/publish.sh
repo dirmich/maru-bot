@@ -15,30 +15,17 @@ mkdir -p "$TARGET_DIR"
 
 # 2. 대상 디렉토리 정리 ( .git 보존을 위한 안전한 방식 )
 echo "🧹 대상 폴더를 정리 중..."
-GIT_BACKUP_DIR="${TARGET_DIR}_git_backup.tmp"
 
-# 이전 백업이 남아있다면 삭제 (잔여 파일 정리)
-if [ -d "$GIT_BACKUP_DIR" ]; then
-    rm -rf "$GIT_BACKUP_DIR"
-fi
+# .git 폴더 이동(mv)이 윈도우 환경에서 권한 오류(Permission denied)를 일으킬 수 있으므로,
+# .git을 제외한 나머지 파일들을 하나씩 찾아서 삭제하는 방식으로 변경합니다.
 
-# .git 폴더 백업 (이동)
-if [ -d "$TARGET_DIR/.git" ]; then
-    echo "🔒 .git 폴더를 안전한 곳으로 임시 이동 중..."
-    mv "$TARGET_DIR/.git" "$GIT_BACKUP_DIR"
+if [ -d "$TARGET_DIR" ]; then
+    # .git이 아닌 모든 파일과 디렉토리를 찾아서 삭제
+    # -mindepth 1: 타겟 디렉토리 자체는 포함하지 않음
+    # -maxdepth 1: 직계 자식만 대상
+    find "$TARGET_DIR" -mindepth 1 -maxdepth 1 -not -name ".git" -exec rm -rf {} +
 else
-    echo "⚠️  주의: $TARGET_DIR/.git 폴더가 존재하지 않음 (신규 생성?)"
-fi
-
-# 대상 폴더 내용 전체 삭제
-# (이제 .git이 없으므로 안심하고 삭제 가능)
-# 단, 대상 폴더 자체는 남겨둠
-find "$TARGET_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
-
-# .git 폴더 복원 (이동)
-if [ -d "$GIT_BACKUP_DIR" ]; then
-    echo "🔓 .git 폴더 복원 중..."
-    mv "$GIT_BACKUP_DIR" "$TARGET_DIR/.git"
+    mkdir -p "$TARGET_DIR"
 fi
 
 # 3. 선별적 파일 복사
