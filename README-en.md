@@ -51,6 +51,15 @@ This script will:
 marubot agent
 ```
 
+### 4. Web Admin Dashboard
+A visual dashboard to manage configurations, install skills, and chat with the agent. Optimized for Raspberry Pi using Next.js and SQLite.
+
+```bash
+# Start both Gateway and Web Dashboard at once
+marubot dashboard
+```
+Access the dashboard via `http://localhost:3000`. Initial setup for Google SSO will be required on the first run.
+
 ---
 
 ## ⚙️ Configuration

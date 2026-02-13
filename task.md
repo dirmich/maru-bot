@@ -1,11 +1,11 @@
-# 📋 MaruMiniBot 구현 작업 리스트 (Tasks)
+# 📋 MaruBot 구현 작업 리스트 (Tasks)
 
-본 문서는 MaruMiniBot 프로젝트의 단계별 구현 상태를 추적합니다. 작업 완료 시 상태를 업데이트하고 관련 내용을 커밋합니다.
+본 문서는 MaruBot 프로젝트의 단계별 구현 상태를 추적합니다. 작업 완료 시 상태를 업데이트하고 관련 내용을 커밋합니다.
 
 ---
 
 ## 🟢 Phase 1: 기반 구축 및 기본 인터랙션 (완료 및 검증)
-- [x] PicoClaw 소스 코드 독립화 및 모듈 리팩토링 (`maruminibot` 모듈)
+- [x] PicoClaw 소스 코드 독립화 및 모듈 리팩토링 (`marubot` 모듈)
 - [x] Raspberry Pi 하드웨어 설정 자동화 스크립트 작성 (`setup-rpi.sh`)
 - [x] CSI/USB 카메라 통합 지원 도구 구현 (`camera_capture`)
 - [x] 기본 설정 템플릿 및 프로젝트 구조 수립
@@ -55,10 +55,10 @@
 - [x] **Task 5.1: 설정 파일 분리 및 관리 도구 구현**
     - [x] 사용자 설정을 기록하는 `usersetting.json` 및 오버라이드 시스템 구축
     - [x] 에이전트 내에서 설정을 조회하고 수정하는 `config` 도구 추가
-    - [x] 명령줄 인터페이스(CLI)용 `maruminibot config` 명령어 구현
+    - [x] 명령줄 인터페이스(CLI)용 `marubot config` 명령어 구현
 - [x] **Task 5.2: 공개 레포지토리 배포 자동화 구축**
     - [x] 비공개 환경에서 공개용 파일만 선별하여 동기화하는 `make public` 타겟 구현
-    - [x] 공개 배포 시 모든 명칭 자동 치환 (`maruminibot` -> `marubot`) 엔진 구축
+    - [x] 공개 배포 시 모든 명칭 자동 치환 (`marubot` -> `marubot`) 엔진 구축
     - [x] MIT 라이선스 파일 추가 및 공개 배포 가이드 수립
 
 ---

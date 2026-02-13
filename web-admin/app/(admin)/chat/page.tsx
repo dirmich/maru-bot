@@ -102,8 +102,8 @@ export default function ChatPage() {
                                 >
                                     <div
                                         className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm shadow-sm ${m.role === 'user'
-                                                ? 'bg-blue-600 text-white rounded-tr-none'
-                                                : 'bg-white dark:bg-slate-800 border rounded-tl-none text-slate-800 dark:text-slate-200'
+                                            ? 'bg-blue-600 text-white rounded-tr-none'
+                                            : 'bg-white dark:bg-slate-800 border rounded-tl-none text-slate-800 dark:text-slate-200'
                                             }`}
                                     >
                                         <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>

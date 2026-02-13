@@ -56,7 +56,7 @@ marubot agent
 
 ```bash
 # Gateway와 Web Admin을 동시에 시작
-maruminibot dashboard
+marubot dashboard
 ```
 웹 브라우저에서 `http://localhost:3000`에 접속하여 관리 도구를 사용할 수 있습니다.
 초기 접속 시 Google SSO 설정을 위한 셋업 페이지가 나타납니다.
@@ -89,4 +89,4 @@ MaruBot의 철학을 계승하여 MIT License를 따릅니다.
 
 MaruBot은 [picoclaw](https://github.com/sipeed/picoclaw)를 기본으로 Raspberry Pi에 맞게 기능이 추가되었습니다.
 
-*개발 및 분석: Antigravity AI (2026-02-10)*
+*개발 및 분석: Antigravity AI (2026-02-13)*

@@ -1,8 +1,8 @@
-// MaruMiniBot - Ultra-lightweight personal AI agent
+// MaruBot - Ultra-lightweight personal AI agent
 // Inspired by and based on nanobot: https://github.com/HKUDS/nanobot
 // License: MIT
 //
-// Copyright (c) 2026 MaruMiniBot contributors
+// Copyright (c) 2026 MaruBot contributors
 
 package providers
 
@@ -15,7 +15,7 @@ import (
 	"net/http"
 	"strings"
 
-	"maruminibot/pkg/config"
+	"marubot/pkg/config"
 )
 
 type HTTPProvider struct {

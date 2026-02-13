@@ -23,31 +23,41 @@
 ## 🚀 快速开始
 
 ### 1. 一键安装 (推荐使用 GitHub Gist)
-最快速、最简便的安装方式。请使用在您的 Gist 中点击 **Raw** 按钮获取的 URL：
-
+最快速、最简便的安装方式：
 ```bash
 # MaruBot 官方一键安装程序
 curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc55f7d5/raw/install.sh | bash
 ```
 
+### 2. 手动安装
+1. 安装 Go 1.24+ 及必要工具: `sudo apt install -y git make golang libcamera-apps`
+2. 克隆仓库: `git clone https://github.com/dirmich/maru-bot.git`
+3. 执行设置: `cd marubot && bash maru-setup.sh`
+
+### 3. 运行智能体
+```bash
+marubot agent
+```
+
+### 4. Web 管理后台 (Web Admin Dashboard)
+一个可视化的仪表板，用于管理配置、安装技能以及与智能体聊天。
+```bash
+# 同时启动网关和 Web 管理后台
+marubot dashboard
+```
+在浏览器中访问 `http://localhost:3000` 即可使用管理工具。
+
 ---
 
 ## ⚙️ 配置 (Configuration)
 
-安装完成后，您需要配置 API 密钥以使用 AI 模型。
-
-1. **打开配置文件**:
-   ```bash
-   nano ~/.marubot/config.json
-   ```
-2. **填写 API 密钥**: 在 `providers` 部分，为您要使用的服务（如 openai, gemini 等）填写 `api_key`。
-3. **设置模型**: 在 `agents` -> `defaults` -> `model` 项中，填写您想使用的模型名称（例如：`gpt-4o`, `gemini-1.5-flash`）。
+1. **打开配置文件**: `nano ~/.marubot/config.json`
+2. **填写 API 密钥**: 在 `providers` 部分填写相应服务的 `api_key`。
+3. **设置模型**: 在 `agents` -> `defaults` -> `model` 中设置。
 
 ---
 
 ## 📝 开源协议
-遵循 MIT License。
-
-MaruBot 基于 [picoclaw](https://github.com/sipeed/picoclaw) 开发，并针对树莓派 (Raspberry Pi) 进行了功能增强。
+遵循 MIT License。 MaruBot 基于 [picoclaw](https://github.com/sipeed/picoclaw) 开发。
 
 *开发与分析: Antigravity AI (2026)*

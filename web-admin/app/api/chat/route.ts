@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from 'next/server';
 import { addMessage, getMessages } from '@/lib/db';
 import { exec } from 'child_process';
@@ -5,7 +7,7 @@ import { promisify } from 'util';
 import path from 'path';
 
 const execAsync = promisify(exec);
-const MARUBOT_CMD = process.platform === 'win32' ? 'go run ..\\cmd\\maruminibot\\main.go' : 'maruminibot';
+const MARUBOT_CMD = process.platform === 'win32' ? 'go run ..\\cmd\\marubot\\main.go' : 'marubot';
 
 export async function GET() {
     const messages = getMessages();
@@ -19,7 +21,7 @@ export async function POST(request: Request) {
         // Save user message
         addMessage('user', message);
 
-        // Call maruminibot agent
+        // Call marubot agent
         // We use a single message mode
         const { stdout, stderr } = await execAsync(`${MARUBOT_CMD} agent -m "${message.replace(/"/g, '\\"')}"`, {
             cwd: path.join(process.cwd(), '..')

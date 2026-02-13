@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Sidebar } from "@/components/sidebar";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";

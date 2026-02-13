@@ -1,7 +1,7 @@
 .PHONY: all build install uninstall clean help test
 
 # Build variables
-BINARY_NAME=maruminibot
+BINARY_NAME=marubot
 BUILD_DIR=build
 CMD_DIR=cmd/$(BINARY_NAME)
 MAIN_GO=$(CMD_DIR)/main.go
@@ -23,8 +23,8 @@ INSTALL_BIN_DIR=$(INSTALL_PREFIX)/bin
 INSTALL_MAN_DIR=$(INSTALL_PREFIX)/share/man/man1
 
 # Workspace and Skills
-MARUMINIBOT_HOME?=$(HOME)/.maruminibot
-WORKSPACE_DIR?=$(MARUMINIBOT_HOME)/workspace
+MARUBOT_HOME?=$(HOME)/.marubot
+WORKSPACE_DIR?=$(MARUBOT_HOME)/workspace
 WORKSPACE_SKILLS_DIR=$(WORKSPACE_DIR)/skills
 BUILTIN_SKILLS_DIR=$(CURDIR)/skills
 
@@ -67,7 +67,7 @@ BINARY_PATH=$(BUILD_DIR)/$(BINARY_NAME)-$(PLATFORM)-$(ARCH)
 # Default target
 all: build
 
-## build: Build the maruminibot binary for current platform
+## build: Build the marubot binary for current platform
 build:
 	@echo "Building $(BINARY_NAME) for $(PLATFORM)/$(ARCH)..."
 	@mkdir -p $(BUILD_DIR)
@@ -75,7 +75,7 @@ build:
 	@echo "Build complete: $(BINARY_PATH)"
 	@ln -sf $(BINARY_NAME)-$(PLATFORM)-$(ARCH) $(BUILD_DIR)/$(BINARY_NAME)
 
-## build-all: Build maruminibot for all platforms
+## build-all: Build marubot for all platforms
 build-all:
 	@echo "Building for multiple platforms..."
 	@mkdir -p $(BUILD_DIR)
@@ -86,7 +86,7 @@ build-all:
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe ./$(CMD_DIR)
 	@echo "All builds complete"
 
-## install: Install maruminibot to system and copy builtin skills
+## install: Install marubot to system and copy builtin skills
 install: build
 	@echo "Installing $(BINARY_NAME)..."
 	@mkdir -p $(INSTALL_BIN_DIR)
@@ -127,7 +127,7 @@ public:
 	@chmod +x scripts/publish.sh
 	@./scripts/publish.sh
 
-## uninstall: Remove maruminibot from system
+## uninstall: Remove marubot from system
 uninstall:
 	@echo "Uninstalling $(BINARY_NAME)..."
 	@rm -f $(INSTALL_BIN_DIR)/$(BINARY_NAME)
@@ -135,11 +135,11 @@ uninstall:
 	@echo "Note: Only the executable file has been deleted."
 	@echo "If you need to delete all configurations (config.json, workspace, etc.), run 'make uninstall-all'"
 
-## uninstall-all: Remove maruminibot and all data
+## uninstall-all: Remove marubot and all data
 uninstall-all:
 	@echo "Removing workspace and skills..."
-	@rm -rf $(MARUMINIBOT_HOME)
-	@echo "Removed workspace: $(MARUMINIBOT_HOME)"
+	@rm -rf $(MARUBOT_HOME)
+	@echo "Removed workspace: $(MARUBOT_HOME)"
 	@echo "Complete uninstallation done!"
 
 ## clean: Remove build artifacts
@@ -157,13 +157,13 @@ deps:
 	@$(GO) get -u ./...
 	@$(GO) mod tidy
 
-## run: Build and run maruminibot
+## run: Build and run marubot
 run: build
 	@$(BUILD_DIR)/$(BINARY_NAME) $(ARGS)
 
 ## help: Show this help message
 help:
-	@echo "maruminibot Makefile"
+	@echo "marubot Makefile"
 	@echo ""
 	@echo "Usage:"
 	@echo "  make [target]"
@@ -180,7 +180,7 @@ help:
 	@echo ""
 	@echo "Environment Variables:"
 	@echo "  INSTALL_PREFIX          # Installation prefix (default: /usr/local)"
-	@echo "  WORKSPACE_DIR           # Workspace directory (default: ~/.maruminibot/workspace)"
+	@echo "  WORKSPACE_DIR           # Workspace directory (default: ~/.marubot/workspace)"
 	@echo "  VERSION                 # Version string (default: git describe)"
 	@echo ""
 	@echo "Current Configuration:"

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"maruminibot/pkg/providers"
+	"marubot/pkg/providers"
 )
 
 type Session struct {
