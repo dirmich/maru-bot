@@ -23,8 +23,20 @@ sudo apt update
 sudo apt install -y git make libcamera-apps alsa-utils vlc-plugin-base curl wget
 
 # Go 설치 (1.24+)
-if ! command -v go >/dev/null 2>&1; then
-    echo -e "${BLUE}🐹 Go 1.24+ 최신 버전을 설치합니다...${NC}"
+GO_REQUIRED="1.24"
+INSTALL_GO=false
+
+if command -v go >/dev/null 2>&1; then
+    GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//' | cut -d' ' -f1)
+    if [ "$(printf '%s\n' "$GO_REQUIRED" "$GO_VERSION" | sort -V | head -n1)" != "$GO_REQUIRED" ]; then
+        INSTALL_GO=true
+    fi
+else
+    INSTALL_GO=true
+fi
+
+if [ "$INSTALL_GO" = true ]; then
+    echo -e "${BLUE}Hamster🐹 Go $GO_REQUIRED+ 최신 버전을 설치합니다...${NC}"
     ARCH=$(uname -m)
     BITS=$(getconf LONG_BIT)
     if [ "$ARCH" = "aarch64" ] && [ "$BITS" = "64" ]; then GO_ARCH="arm64"; else GO_ARCH="armv6l"; fi
