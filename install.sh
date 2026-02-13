@@ -48,12 +48,34 @@ if [ "$INSTALL_GO" = true ]; then
     export PATH=/usr/local/go/bin:$PATH
 fi
 
-# Bun 설치 (Web Admin용)
-if ! command -v bun >/dev/null 2>&1; then
-    echo -e "${BLUE}🍞 Web Admin 실행을 위해 Bun을 설치합니다...${NC}"
-    curl -fsSL https://bun.sh/install | bash
-    export BUN_INSTALL="$HOME/.bun"
-    export PATH="$BUN_INSTALL/bin:$PATH"
+# 51. Bun 또는 Node.js 설치 (Web Admin용)
+# Bun은 ARM64만 지원하므로, ARMv7 등에서는 Node.js를 사용해야 함
+USE_BUN=false
+if [ "$(uname -m)" = "aarch64" ]; then
+    if ! command -v bun >/dev/null 2>&1; then
+        echo -e "${BLUE}🍞 Web Admin 실행을 위해 Bun을 설치합니다...${NC}"
+        curl -fsSL https://bun.sh/install | bash
+        export BUN_INSTALL="$HOME/.bun"
+        export PATH="$BUN_INSTALL/bin:$PATH"
+    fi
+    
+    # 설치 확인
+    if [ -f "$HOME/.bun/bin/bun" ]; then
+        USE_BUN=true
+    else
+        echo -e "${RED}⚠️ Bun 설치에 실패했습니다. Node.js로 전환합니다.${NC}"
+    fi
+else
+    echo -e "${BLUE}ℹ️ 32-bit 환경(또는 비-ARM64)이 감지되었습니다. Bun 대신 Node.js를 사용합니다.${NC}"
+fi
+
+# Bun을 사용할 수 없는 경우 Node.js 설치
+if [ "$USE_BUN" = false ]; then
+    if ! command -v node >/dev/null 2>&1; then
+        echo -e "${BLUE}📦 Node.js 및 NPM을 설치합니다...${NC}"
+        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+    fi
 fi
 
 # 3. 소스 코드 클론
@@ -77,11 +99,18 @@ make build
 if [ -d "web-admin" ]; then
     echo -e "${BLUE}🌐 Web Admin 디렉토리를 초기화합니다...${NC}"
     cd web-admin
-    bun install
-    # 빌드는 첫 실행 시 자동으로 수행되거나 개발자가 직접 할 수 있도록 유지
-    # 사용자 편의를 위해 여기서 빌드도 수행 (처음엔 좀 걸림)
-    echo -e "${BLUE}🏗️ Web Admin 빌드 중 (최초 1회, 수 분 소요)...${NC}"
-    bun run build
+    
+    if [ "$USE_BUN" = true ]; then
+        echo -e "${BLUE}🍞 Bun으로 의존성 설치 및 빌드...${NC}"
+        $HOME/.bun/bin/bun install
+        echo -e "${BLUE}🏗️ Web Admin 빌드 중 (Bun)...${NC}"
+        $HOME/.bun/bin/bun run build
+    else
+        echo -e "${BLUE}📦 NPM으로 의존성 설치 및 빌드...${NC}"
+        npm install
+        echo -e "${BLUE}🏗️ Web Admin 빌드 중 (NPM)...${NC}"
+        npm run build
+    fi
     cd ..
 fi
 
