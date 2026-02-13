@@ -70,6 +70,7 @@ fi
 
 # 4. 엔지 빌드
 echo -e "${BLUE}🛠️ MaruBot 엔진을 빌드합니다...${NC}"
+go mod tidy
 make build
 
 # 5. Web Admin 설정
