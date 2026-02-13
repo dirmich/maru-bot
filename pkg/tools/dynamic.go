@@ -80,7 +80,7 @@ func (t *CreateToolTool) Name() string {
 }
 
 func (t *CreateToolTool) Description() string {
-	return "Dynamically create a new tool by providing a script and its definition. This allows MaruBot to expand its own capabilities."
+	return "Dynamically create a new tool by providing a script and its definition. This allows MaruMiniBot to expand its own capabilities."
 }
 
 func (t *CreateToolTool) Parameters() map[string]interface{} {

@@ -1,6 +1,6 @@
-module marubot
+module maruminibot
 
-go 1.24.0
+go 1.24
 
 require (
 	github.com/adrianmo/go-nmea v1.10.0

@@ -10,9 +10,9 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
-	"marubot/pkg/bus"
-	"marubot/pkg/config"
-	"marubot/pkg/voice"
+	"maruminibot/pkg/bus"
+	"maruminibot/pkg/config"
+	"maruminibot/pkg/voice"
 )
 
 type TelegramChannel struct {
@@ -251,7 +251,7 @@ func (c *TelegramChannel) downloadFileWithInfo(file *tgbotapi.File, ext string) 
 	url := file.Link(c.bot.Token)
 	log.Printf("File URL: %s", url)
 
-	mediaDir := "/tmp/marubot_media"
+	mediaDir := "/tmp/maruminibot_media"
 
 	return fmt.Sprintf("%s/%s%s", mediaDir, file.FilePath[:min(16, len(file.FilePath))], ext)
 }
@@ -277,7 +277,7 @@ func (c *TelegramChannel) downloadFile(fileID, ext string) string {
 	url := file.Link(c.bot.Token)
 	log.Printf("File URL: %s", url)
 
-	mediaDir := "/tmp/marubot_media"
+	mediaDir := "/tmp/maruminibot_media"
 
 	return fmt.Sprintf("%s/%s%s", mediaDir, fileID[:16], ext)
 }

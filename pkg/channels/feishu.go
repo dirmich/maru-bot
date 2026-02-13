@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"marubot/pkg/bus"
-	"marubot/pkg/config"
+	"maruminibot/pkg/bus"
+	"maruminibot/pkg/config"
 )
 
 type FeishuChannel struct {

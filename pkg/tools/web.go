@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	userAgent = "Mozilla/5.0 (compatible; marubot/1.0)"
+	userAgent = "Mozilla/5.0 (compatible; maruminibot/1.0)"
 )
 
 type WebSearchTool struct {
