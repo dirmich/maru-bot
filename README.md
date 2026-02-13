@@ -51,6 +51,16 @@ curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc
 marubot agent
 ```
 
+### 4. Web Admin (웹 관리자 창)
+설정 적용, 도구(Skill) 설치, 에이전트와 채팅을 시각적으로 수행할 수 있는 웹 대시보드입니다. Raspberry Pi의 리소스를 고려하여 Next.js와 SQLite로 구축되었습니다.
+
+```bash
+cd web-admin
+bun install
+bun dev
+```
+웹 브라우저에서 `http://localhost:3000`에 접속하여 관리 도구를 사용할 수 있습니다.
+
 ---
 
 ## ⚙️ 설정 (Configuration)
