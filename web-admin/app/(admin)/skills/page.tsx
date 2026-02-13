@@ -82,7 +82,7 @@ export default function SkillsPage() {
                     </ScrollArea>
                 </CardContent>
                 <CardFooter className="p-3 border-t bg-slate-900 text-[10px] text-slate-500 justify-between">
-                    <span>maruminibot skills list</span>
+                    <span>marubot skills list</span>
                     <span>SYSTEM READY</span>
                 </CardFooter>
             </Card>

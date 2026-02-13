@@ -26,11 +26,11 @@ type AgentsConfig struct {
 }
 
 type AgentDefaults struct {
-	Workspace         string  `json:"workspace" env:"MARUMINIBOT_AGENTS_DEFAULTS_WORKSPACE"`
-	Model             string  `json:"model" env:"MARUMINIBOT_AGENTS_DEFAULTS_MODEL"`
-	MaxTokens         int     `json:"max_tokens" env:"MARUMINIBOT_AGENTS_DEFAULTS_MAX_TOKENS"`
-	Temperature       float64 `json:"temperature" env:"MARUMINIBOT_AGENTS_DEFAULTS_TEMPERATURE"`
-	MaxToolIterations int     `json:"max_tool_iterations" env:"MARUMINIBOT_AGENTS_DEFAULTS_MAX_TOOL_ITERATIONS"`
+	Workspace         string  `json:"workspace" env:"MARUBOT_AGENTS_DEFAULTS_WORKSPACE"`
+	Model             string  `json:"model" env:"MARUBOT_AGENTS_DEFAULTS_MODEL"`
+	MaxTokens         int     `json:"max_tokens" env:"MARUBOT_AGENTS_DEFAULTS_MAX_TOKENS"`
+	Temperature       float64 `json:"temperature" env:"MARUBOT_AGENTS_DEFAULTS_TEMPERATURE"`
+	MaxToolIterations int     `json:"max_tool_iterations" env:"MARUBOT_AGENTS_DEFAULTS_MAX_TOOL_ITERATIONS"`
 }
 
 type ChannelsConfig struct {
@@ -42,37 +42,37 @@ type ChannelsConfig struct {
 }
 
 type WhatsAppConfig struct {
-	Enabled   bool     `json:"enabled" env:"MARUMINIBOT_CHANNELS_WHATSAPP_ENABLED"`
-	BridgeURL string   `json:"bridge_url" env:"MARUMINIBOT_CHANNELS_WHATSAPP_BRIDGE_URL"`
-	AllowFrom []string `json:"allow_from" env:"MARUMINIBOT_CHANNELS_WHATSAPP_ALLOW_FROM"`
+	Enabled   bool     `json:"enabled" env:"MARUBOT_CHANNELS_WHATSAPP_ENABLED"`
+	BridgeURL string   `json:"bridge_url" env:"MARUBOT_CHANNELS_WHATSAPP_BRIDGE_URL"`
+	AllowFrom []string `json:"allow_from" env:"MARUBOT_CHANNELS_WHATSAPP_ALLOW_FROM"`
 }
 
 type TelegramConfig struct {
-	Enabled   bool     `json:"enabled" env:"MARUMINIBOT_CHANNELS_TELEGRAM_ENABLED"`
-	Token     string   `json:"token" env:"MARUMINIBOT_CHANNELS_TELEGRAM_TOKEN"`
-	AllowFrom []string `json:"allow_from" env:"MARUMINIBOT_CHANNELS_TELEGRAM_ALLOW_FROM"`
+	Enabled   bool     `json:"enabled" env:"MARUBOT_CHANNELS_TELEGRAM_ENABLED"`
+	Token     string   `json:"token" env:"MARUBOT_CHANNELS_TELEGRAM_TOKEN"`
+	AllowFrom []string `json:"allow_from" env:"MARUBOT_CHANNELS_TELEGRAM_ALLOW_FROM"`
 }
 
 type FeishuConfig struct {
-	Enabled           bool     `json:"enabled" env:"MARUMINIBOT_CHANNELS_FEISHU_ENABLED"`
-	AppID             string   `json:"app_id" env:"MARUMINIBOT_CHANNELS_FEISHU_APP_ID"`
-	AppSecret         string   `json:"app_secret" env:"MARUMINIBOT_CHANNELS_FEISHU_APP_SECRET"`
-	EncryptKey        string   `json:"encrypt_key" env:"MARUMINIBOT_CHANNELS_FEISHU_ENCRYPT_KEY"`
-	VerificationToken string   `json:"verification_token" env:"MARUMINIBOT_CHANNELS_FEISHU_VERIFICATION_TOKEN"`
-	AllowFrom         []string `json:"allow_from" env:"MARUMINIBOT_CHANNELS_FEISHU_ALLOW_FROM"`
+	Enabled           bool     `json:"enabled" env:"MARUBOT_CHANNELS_FEISHU_ENABLED"`
+	AppID             string   `json:"app_id" env:"MARUBOT_CHANNELS_FEISHU_APP_ID"`
+	AppSecret         string   `json:"app_secret" env:"MARUBOT_CHANNELS_FEISHU_APP_SECRET"`
+	EncryptKey        string   `json:"encrypt_key" env:"MARUBOT_CHANNELS_FEISHU_ENCRYPT_KEY"`
+	VerificationToken string   `json:"verification_token" env:"MARUBOT_CHANNELS_FEISHU_VERIFICATION_TOKEN"`
+	AllowFrom         []string `json:"allow_from" env:"MARUBOT_CHANNELS_FEISHU_ALLOW_FROM"`
 }
 
 type DiscordConfig struct {
-	Enabled   bool     `json:"enabled" env:"MARUMINIBOT_CHANNELS_DISCORD_ENABLED"`
-	Token     string   `json:"token" env:"MARUMINIBOT_CHANNELS_DISCORD_TOKEN"`
-	AllowFrom []string `json:"allow_from" env:"MARUMINIBOT_CHANNELS_DISCORD_ALLOW_FROM"`
+	Enabled   bool     `json:"enabled" env:"MARUBOT_CHANNELS_DISCORD_ENABLED"`
+	Token     string   `json:"token" env:"MARUBOT_CHANNELS_DISCORD_TOKEN"`
+	AllowFrom []string `json:"allow_from" env:"MARUBOT_CHANNELS_DISCORD_ALLOW_FROM"`
 }
 
 type MaixCamConfig struct {
-	Enabled   bool     `json:"enabled" env:"MARUMINIBOT_CHANNELS_MAIXCAM_ENABLED"`
-	Host      string   `json:"host" env:"MARUMINIBOT_CHANNELS_MAIXCAM_HOST"`
-	Port      int      `json:"port" env:"MARUMINIBOT_CHANNELS_MAIXCAM_PORT"`
-	AllowFrom []string `json:"allow_from" env:"MARUMINIBOT_CHANNELS_MAIXCAM_ALLOW_FROM"`
+	Enabled   bool     `json:"enabled" env:"MARUBOT_CHANNELS_MAIXCAM_ENABLED"`
+	Host      string   `json:"host" env:"MARUBOT_CHANNELS_MAIXCAM_HOST"`
+	Port      int      `json:"port" env:"MARUBOT_CHANNELS_MAIXCAM_PORT"`
+	AllowFrom []string `json:"allow_from" env:"MARUBOT_CHANNELS_MAIXCAM_ALLOW_FROM"`
 }
 
 type ProvidersConfig struct {
@@ -86,18 +86,18 @@ type ProvidersConfig struct {
 }
 
 type ProviderConfig struct {
-	APIKey  string `json:"api_key" env:"MARUMINIBOT_PROVIDERS_{{.Name}}_API_KEY"`
-	APIBase string `json:"api_base" env:"MARUMINIBOT_PROVIDERS_{{.Name}}_API_BASE"`
+	APIKey  string `json:"api_key" env:"MARUBOT_PROVIDERS_{{.Name}}_API_KEY"`
+	APIBase string `json:"api_base" env:"MARUBOT_PROVIDERS_{{.Name}}_API_BASE"`
 }
 
 type GatewayConfig struct {
-	Host string `json:"host" env:"MARUMINIBOT_GATEWAY_HOST"`
-	Port int    `json:"port" env:"MARUMINIBOT_GATEWAY_PORT"`
+	Host string `json:"host" env:"MARUBOT_GATEWAY_HOST"`
+	Port int    `json:"port" env:"MARUBOT_GATEWAY_PORT"`
 }
 
 type WebSearchConfig struct {
-	APIKey     string `json:"api_key" env:"MARUMINIBOT_TOOLS_WEB_SEARCH_API_KEY"`
-	MaxResults int    `json:"max_results" env:"MARUMINIBOT_TOOLS_WEB_SEARCH_MAX_RESULTS"`
+	APIKey     string `json:"api_key" env:"MARUBOT_TOOLS_WEB_SEARCH_API_KEY"`
+	MaxResults int    `json:"max_results" env:"MARUBOT_TOOLS_WEB_SEARCH_MAX_RESULTS"`
 }
 
 type WebToolsConfig struct {
@@ -134,7 +134,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		Agents: AgentsConfig{
 			Defaults: AgentDefaults{
-				Workspace:         "~/.maruminibot/workspace",
+				Workspace:         "~/.marubot/workspace",
 				Model:             "glm-4.7",
 				MaxTokens:         8192,
 				Temperature:       0.7,

@@ -3,7 +3,7 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs';
 
-const DB_DIR = path.join(os.homedir(), '.maruminibot', 'web');
+const DB_DIR = path.join(os.homedir(), '.marubot', 'web');
 const DB_PATH = path.join(DB_DIR, 'admin.db');
 
 let _db: any = null;

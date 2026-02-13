@@ -7,8 +7,8 @@ import path from 'path';
 
 const execAsync = promisify(exec);
 
-// Path to the maruminibot binary or go run command
-const MARUBOT_CMD = process.platform === 'win32' ? 'go run ..\\cmd\\maruminibot\\main.go' : 'maruminibot';
+// Path to the marubot binary or go run command
+const MARUBOT_CMD = process.platform === 'win32' ? 'go run ..\\cmd\\marubot\\main.go' : 'marubot';
 
 export async function GET() {
     try {
