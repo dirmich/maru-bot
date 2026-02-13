@@ -1,1 +1,2 @@
-install.sh에 go mod tidy 단계 추가 및 go.mod 버전 업데이트
+install.sh: build 전 go mod tidy 추가
+publish.sh: .git 폴더 삭제 방지 로직 강화 (TARGET_DIR 변경 반영)

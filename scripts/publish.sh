@@ -19,7 +19,9 @@ if [ -d "$TARGET_DIR/.git" ]; then
     # .git 폴더와 기존에 있을지 모를 maru-bot 관련 메타파일 제외하고 삭제
     find "$TARGET_DIR" -maxdepth 1 ! -name ".git" ! -name ".." ! -name "." -exec rm -rf {} +
 else
-    rm -rf "${TARGET_DIR:?}"/*
+    echo "⚠️  주의: $TARGET_DIR/.git 폴더를 찾을 수 없습니다."
+    echo "    안전을 위해 기존 파일 삭제 단계를 건너뛰고 덮어쓰기를 수행합니다."
+    # rm -rf "${TARGET_DIR:?}"/*  <-- .git 삭제 방지를 위해 위험한 전체 삭제 코드 제거
 fi
 
 # 3. 선별적 파일 복사
