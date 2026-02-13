@@ -13,15 +13,32 @@ echo "🚀 공개 배포용 파일을 $TARGET_DIR 로 동기화합니다..."
 # 1. 대상 디렉토리 생성
 mkdir -p "$TARGET_DIR"
 
-# 2. 대상 디택토리 정리 (.git 및 필요한 파일 제외)
+# 2. 대상 디렉토리 정리 ( .git 보존을 위한 안전한 방식 )
 echo "🧹 대상 폴더를 정리 중..."
+GIT_BACKUP_DIR="${TARGET_DIR}_git_backup.tmp"
+
+# 이전 백업이 남아있다면 삭제 (잔여 파일 정리)
+if [ -d "$GIT_BACKUP_DIR" ]; then
+    rm -rf "$GIT_BACKUP_DIR"
+fi
+
+# .git 폴더 백업 (이동)
 if [ -d "$TARGET_DIR/.git" ]; then
-    # .git 폴더와 기존에 있을지 모를 maru-bot 관련 메타파일 제외하고 삭제
-    find "$TARGET_DIR" -maxdepth 1 ! -name ".git" ! -name ".." ! -name "." -exec rm -rf {} +
+    echo "🔒 .git 폴더를 안전한 곳으로 임시 이동 중..."
+    mv "$TARGET_DIR/.git" "$GIT_BACKUP_DIR"
 else
-    echo "⚠️  주의: $TARGET_DIR/.git 폴더를 찾을 수 없습니다."
-    echo "    안전을 위해 기존 파일 삭제 단계를 건너뛰고 덮어쓰기를 수행합니다."
-    # rm -rf "${TARGET_DIR:?}"/*  <-- .git 삭제 방지를 위해 위험한 전체 삭제 코드 제거
+    echo "⚠️  주의: $TARGET_DIR/.git 폴더가 존재하지 않음 (신규 생성?)"
+fi
+
+# 대상 폴더 내용 전체 삭제
+# (이제 .git이 없으므로 안심하고 삭제 가능)
+# 단, 대상 폴더 자체는 남겨둠
+find "$TARGET_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+
+# .git 폴더 복원 (이동)
+if [ -d "$GIT_BACKUP_DIR" ]; then
+    echo "🔓 .git 폴더 복원 중..."
+    mv "$GIT_BACKUP_DIR" "$TARGET_DIR/.git"
 fi
 
 # 3. 선별적 파일 복사
