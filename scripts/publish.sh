@@ -57,9 +57,13 @@ for item in "${ITEMS[@]}"; do
             # 빌드 디렉토리로 이동
             if cd "$SOURCE_DIR/web-admin"; then
                 # 의존성 설치 및 빌드 (Next.js Standalone 모드)
-                echo "    - 의존성 확인 및 빌드 (bun)..."
-                bun install
-                bun run build
+                echo "    - 기존 빌드 정리 (.next 삭제)..."
+                rm -rf .next
+
+                echo "    - 의존성 확인 및 빌드 (npm)..."
+                # 윈도우 환경 호환성을 위해 bun 대신 npm 사용 권장
+                npm install
+                npm run build
                 
                 echo "  📦 Web Admin 빌드 결과물(Standalone) 배포 중..."
                 mkdir -p "$TARGET_DIR/web-admin"
