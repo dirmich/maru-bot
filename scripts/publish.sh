@@ -6,7 +6,7 @@
 set -e
 
 SOURCE_DIR=$(pwd)
-TARGET_DIR="../marubot"
+TARGET_DIR="../maru-bot"
 
 echo "🚀 공개 배포용 파일을 $TARGET_DIR 로 동기화합니다..."
 
