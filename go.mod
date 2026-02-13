@@ -1,4 +1,4 @@
-module marubot
+module maruminibot
 
 go 1.24.0
 

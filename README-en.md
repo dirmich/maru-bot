@@ -39,7 +39,7 @@ curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc
 ### 2. Manual Installation
 If the above command doesn't work or you prefer manual setup:
 1. Install Go 1.24+ and essentials: `sudo apt install -y git make golang libcamera-apps`
-2. Clone repo: `git clone https://github.com/dirmich/maru-bot.git`
+2. Clone repo: `git clone https://github.com/dirmich/marubot.git`
 3. Run setup: `cd marubot && bash maru-setup.sh`
 This script will:
 - Check permissions for `/dev/gpiomem`.
@@ -50,6 +50,15 @@ This script will:
 ```bash
 marubot agent
 ```
+
+### 4. Web Admin Dashboard
+A visual dashboard to manage configurations, install skills, and chat with the agent. Optimized for Raspberry Pi using Next.js and SQLite.
+
+```bash
+# Start both Gateway and Web Dashboard at once
+marubot dashboard
+```
+Access the dashboard via `http://localhost:3000`. Initial setup for Google SSO will be required on the first run.
 
 ---
 

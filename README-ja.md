@@ -5,7 +5,7 @@
 ---
 
 ## ✨ コアコンセプト
-1. **エンジンの再利用**: 高効率な Go バイナリを使用し、RAM 占有率を 10MB 以下に維持します。
+1. **エンジンの再利用**: 高効率な Go バイナリを使用し、RAM 占有率를 10MB 以下に維持します。
 2. **Raspberry Pi 最適化**: GPIO、カメラ、マイク、スピーカーの権限設定を自動化します。
 3. **ハイパーローカル設定**: 複雑な JSON 編集の代わりに、専用スクリプト (`maru-setup.sh`) を通じて対話形式で設定を完了します。
 4. **物理的な相互作用**: サーボモーター、LED、各種センサー（DHT、PIR など）を AI エージェントが制御できるツールが事前に含まれています。
@@ -23,31 +23,41 @@
 ## 🚀 クイックスタート
 
 ### 1. ワンクリックインストール (GitHub Gist 推奨)
-最も速く簡単なインストール方法です。自身の Gist で **Raw** ボタンを押して取得した URL を使用してください：
-
+最も速く簡単なインストール方法です：
 ```bash
 # MaruBot 公式ワンクリックインストーラー
 curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc55f7d5/raw/install.sh | bash
 ```
 
+### 2. 手動インストール
+1. Go 1.24+ および必須ツールのインストール: `sudo apt install -y git make golang libcamera-apps`
+2. リポジトリのクローン: `git clone https://github.com/dirmich/maru-bot.git`
+3. セットアップの実行: `cd marubot && bash maru-setup.sh`
+
+### 3. エージェントの実行
+```bash
+marubot agent
+```
+
+### 4. Web Admin ダッシュボード
+設定の管理、スキルのインストール、エージェントとのチャットを視覚的に行えるウェブダッシュボードです。
+```bash
+# ゲートウェイとウェブダッシュボードを同時に起動
+marubot dashboard
+```
+ブラウザから `http://localhost:3000` にアクセスして管理ツールを使用できます。
+
 ---
 
 ## ⚙️ 設定 (Configuration)
 
-インストール完了後、AIモデルを使用するためにAPIキーを設定する必要があります。
-
-1. **設定ファイルを開く**:
-   ```bash
-   nano ~/.marubot/config.json
-   ```
-2. **APIキーの入力**: `providers` セクションでお使いのサービス（openai, gemini など）の `api_key` 欄に自身のキーを入力します。
-3. **モデルの設定**: `agents` -> `defaults` -> `model` 項目に使用するモデル名（例: `gpt-4o`, `gemini-1.5-flash`）を入力します。
+1. **設定ファイルを開く**: `nano ~/.marubot/config.json`
+2. **APIキーの入力**: `providers` セクションで使用するサービスの `api_key` を入力。
+3. **モデルの設定**: `agents` -> `defaults` -> `model` を設定。
 
 ---
 
 ## 📝 ライセンス
-MIT License。
-
-MaruBot は [picoclaw](https://github.com/sipeed/picoclaw) をベースにしており、Raspberry Pi 用に最適化された機能が追加されています。
+MIT License。 MaruBot は [picoclaw](https://github.com/sipeed/picoclaw) をベースにしています。
 
 *開発と分析: Antigravity AI (2026)*
