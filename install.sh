@@ -100,17 +100,17 @@ if [ -d "web-admin" ]; then
     echo -e "${BLUE}🌐 Web Admin 디렉토리를 초기화합니다...${NC}"
     cd web-admin
     
+    # Standalone 모드 배포이므로 빌드는 필요 없음. 의존성만 설치.
     if [ "$USE_BUN" = true ]; then
-        echo -e "${BLUE}🍞 Bun으로 의존성 설치 및 빌드...${NC}"
-        $HOME/.bun/bin/bun install
-        echo -e "${BLUE}🏗️ Web Admin 빌드 중 (Bun)...${NC}"
-        $HOME/.bun/bin/bun run build
+        echo -e "${BLUE}🍞 Bun으로 런타임 의존성 설치 (프로덕션)...${NC}"
+        # --production 옵션으로 devDependencies 제외
+        $HOME/.bun/bin/bun install --production
     else
-        echo -e "${BLUE}📦 NPM으로 의존성 설치 및 빌드...${NC}"
-        npm install
-        echo -e "${BLUE}🏗️ Web Admin 빌드 중 (NPM)...${NC}"
-        npm run build
+        echo -e "${BLUE}📦 NPM으로 런타임 의존성 설치 (프로덕션)...${NC}"
+        npm install --production
     fi
+    
+    echo -e "${GREEN}✅ Web Admin 준비 완료 (실행: node server.js)${NC}"
     cd ..
 fi
 

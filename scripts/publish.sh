@@ -52,11 +52,48 @@ echo "📂 파일 복사 중..."
 for item in "${ITEMS[@]}"; do
     if [ -e "$SOURCE_DIR/$item" ]; then
         if [ "$item" == "web-admin" ]; then
-            echo "  📦 web-admin 소스 복사 중..."
-            mkdir -p "$TARGET_DIR/web-admin"
-            # 무거운 폴더 제외하고 복사 (이미 빌드와 상관없이 소스만 배포)
-            tar -c --exclude='.git' --exclude='node_modules' --exclude='.next' --exclude='.env*' --exclude='*.db*' -C "$SOURCE_DIR/web-admin" . | tar -x -C "$TARGET_DIR/web-admin"
-            echo "  ✓ web-admin 복사 완료"
+            echo "  🍳 Web Admin 로컬 빌드 시작..."
+            
+            # 빌드 디렉토리로 이동
+            if cd "$SOURCE_DIR/web-admin"; then
+                # 의존성 설치 및 빌드 (Next.js Standalone 모드)
+                echo "    - 의존성 확인 및 빌드 (bun)..."
+                bun install
+                bun run build
+                
+                echo "  📦 Web Admin 빌드 결과물(Standalone) 배포 중..."
+                mkdir -p "$TARGET_DIR/web-admin"
+
+                # 1. Standalone 결과물 복사 (server.js, package.json 등)
+                # .next/standalone 내부에 있는 파일들을 web-admin 루트로 복사
+                cp -R .next/standalone/* "$TARGET_DIR/web-admin/"
+                
+                # 2. Static 리소스 복사 (.next/static -> .next/static)
+                # Standalone 모드는 static 파일을 별도로 서빙해야 하므로 구조를 맞춰줘야 함
+                mkdir -p "$TARGET_DIR/web-admin/.next/static"
+                cp -R .next/static/* "$TARGET_DIR/web-admin/.next/static/"
+                
+                # 3. Public 폴더 복사
+                cp -R public "$TARGET_DIR/web-admin/"
+
+                # 중요: 로컬(Windows/Mac)의 node_modules는 리눅스(ARM)와 호환되지 않을 수 있음
+                # 특히 sharp, sqlite3 같은 네이티브 모듈.
+                # 따라서 node_modules는 제외하고, 타겟 머신에서 'bun install'을 수행하도록 유도해야 함.
+                # 하지만 standalone 폴더는 node_modules를 포함하고 있음.
+                # 안전을 위해 복사된 node_modules를 삭제함.
+                if [ -d "$TARGET_DIR/web-admin/node_modules" ]; then
+                    echo "    - 플랫폼 호환성을 위해 로컬 node_modules 제거 (타겟에서 재설치 필요)"
+                    rm -rf "$TARGET_DIR/web-admin/node_modules"
+                fi
+
+                echo "  ✓ web-admin 빌드 및 배포 완료"
+                
+                # 다시 루트로 복귀
+                cd "$SOURCE_DIR"
+            else
+                echo "  ❌ web-admin 디렉토리 진입 실패"
+                exit 1
+            fi
         else
             cp -R "$SOURCE_DIR/$item" "$TARGET_DIR/"
             echo "  ✓ $item 복사 완료"
