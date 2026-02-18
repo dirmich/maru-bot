@@ -9,20 +9,20 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${BLUE}🤖 MaruBot 원클릭 설치를 시작합니다...${NC}"
+echo -e "${BLUE}🤖 Starting MaruBot One-Click Installer...${NC}"
 
-# 1. 아키텍처 및 OS 확인
+# 1. Check Architecture and OS
 if [[ "$(uname -m)" != "aarch64" && "$(uname -m)" != "armv7l" ]]; then
-    echo -e "${RED}❌ 이 스크립트는 Raspberry Pi (ARM) 환경 전용입니다.${NC}"
+    echo -e "${RED}❌ This script is only for Raspberry Pi (ARM) environments.${NC}"
     exit 1
 fi
 
-# 2. 필수 패키지 설치
-echo -e "${BLUE}📦 필수 패키지를 설치합니다...${NC}"
+# 2. Install Required Packages
+echo -e "${BLUE}📦 Installing required packages...${NC}"
 sudo apt update
 sudo apt install -y git make libcamera-apps alsa-utils vlc-plugin-base curl wget
 
-# Go 설치 (1.24+)
+# Install Go (1.24+)
 GO_REQUIRED="1.24"
 INSTALL_GO=false
 
@@ -36,7 +36,7 @@ else
 fi
 
 if [ "$INSTALL_GO" = true ]; then
-    echo -e "${BLUE}Hamster🐹 Go $GO_REQUIRED+ 최신 버전을 설치합니다...${NC}"
+    echo -e "${BLUE}🐹 Installing latest Go $GO_REQUIRED+ ...${NC}"
     ARCH=$(uname -m)
     BITS=$(getconf LONG_BIT)
     if [ "$ARCH" = "aarch64" ] && [ "$BITS" = "64" ]; then GO_ARCH="arm64"; else GO_ARCH="armv6l"; fi
@@ -48,113 +48,111 @@ if [ "$INSTALL_GO" = true ]; then
     export PATH=/usr/local/go/bin:$PATH
 fi
 
-# 51. Bun 또는 Node.js 설치 (Web Admin용)
-# Bun은 ARM64 64-bit OS만 지원하므로, 32-bit OS 환경에서는 Node.js를 사용해야 함
+# 3. Install Bun or Node.js (for Web Admin)
+# Bun only supports ARM64 64-bit OS. Node.js will be used for 32-bit OS.
 USE_BUN=false
 BITS=$(getconf LONG_BIT)
 if [[ "$(uname -m)" = "aarch64" && "$BITS" = "64" ]]; then
     if ! command -v bun >/dev/null 2>&1; then
-        echo -e "${BLUE}🍞 Web Admin 실행을 위해 Bun을 설치합니다...${NC}"
+        echo -e "${BLUE}🍞 Installing Bun for Web Admin...${NC}"
         curl -fsSL https://bun.sh/install | bash
         export BUN_INSTALL="$HOME/.bun"
         export PATH="$BUN_INSTALL/bin:$PATH"
     fi
     
-    # 설치 확인 및 실행 가능 여부 체크
+    # Check installation and support
     if [ -f "$HOME/.bun/bin/bun" ] && "$HOME/.bun/bin/bun" --version >/dev/null 2>&1; then
         USE_BUN=true
     else
-        echo -e "${RED}⚠️ Bun이 설치되지 않았거나 이 환경에서 실행할 수 없습니다. Node.js로 전환합니다.${NC}"
-        # 혹시 잘못 설치된 경우 정리
-        # rm -rf "$HOME/.bun"
+        echo -e "${RED}⚠️ Bun is not installed or not supported in this environment. Switching to Node.js.${NC}"
     fi
 else
-    echo -e "${BLUE}ℹ️ 32-bit OS 또는 비-ARM64 환경입니다. Bun 대신 Node.js를 사용합니다.${NC}"
+    echo -e "${BLUE}ℹ️ 32-bit OS or non-ARM64 environment detected. Using Node.js instead of Bun.${NC}"
 fi
 
-# Bun을 사용할 수 없는 경우 Node.js 설치
+# Install Node.js if Bun is not used
 if [ "$USE_BUN" = false ]; then
     if ! command -v node >/dev/null 2>&1; then
-        echo -e "${BLUE}📦 Node.js 및 NPM을 설치합니다...${NC}"
+        echo -e "${BLUE}📦 Installing Node.js and NPM...${NC}"
         curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
         sudo apt-get install -y nodejs
     fi
 fi
 
-# 3. 소스 코드 클론
+# 4. Clone Source Code
 INSTALL_DIR="$HOME/marubot"
 if [ -d "$INSTALL_DIR" ]; then
-    echo -e "${BLUE}🔄 최신 코드로 업데이트합니다...${NC}"
+    echo -e "${BLUE}🔄 Updating to latest source code...${NC}"
     cd "$INSTALL_DIR"
     git pull
 else
-    echo -e "${BLUE}📂 GitHub에서 MaruBot 소스를 가져옵니다...${NC}"
+    echo -e "${BLUE}📂 Cloning MaruBot source from GitHub...${NC}"
     git clone --depth 1 https://github.com/dirmich/maru-bot.git "$INSTALL_DIR"
     cd "$INSTALL_DIR"
 fi
 
-# 4. 엔지 빌드
-echo -e "${BLUE}🛠️ MaruBot 엔진을 빌드합니다...${NC}"
+# 5. Build Engine
+echo -e "${BLUE}🛠️ Building MaruBot engine...${NC}"
 go mod tidy
 make build
 
-# 5. 시스템 설치 및 리소스 배치
-echo -e "${BLUE}🏗️ 시스템에 설치 및 리소스를 배치합니다...${NC}"
+# 6. Install System and Deploy Resources
+echo -e "${BLUE}🏗️ Installing system and deploying resources...${NC}"
 
-# 5-1. 실행 파일 설치 (시스템 전역)
+# 6-1. Install Executable (System-wide)
 if [ -f "build/marubot" ]; then
-    echo "  📦 실행 파일(/usr/local/bin/marubot) 복사 중..."
+    echo "  📦 Copying executable to /usr/local/bin/marubot..."
     sudo cp build/marubot /usr/local/bin/
     sudo chmod +x /usr/local/bin/marubot
 else
-    echo -e "${RED}❌ 빌드된 marubot 실행 파일이 없습니다. 빌드 실패.${NC}"
+    echo -e "${RED}❌ marubot executable not found. Build failed.${NC}"
     exit 1
 fi
 
-# 5-2. 리소스 디렉토리 구성 (~/.marubot)
+# 6-2. Configure Resource Directory (~/.marubot)
 RESOURCE_DIR="$HOME/.marubot"
 mkdir -p "$RESOURCE_DIR"
 
-echo "  📂 리소스(~/.marubot) 설정 중..."
+echo "  📂 Setting up resources in ~/.marubot..."
 
 # (1) Config
 mkdir -p "$RESOURCE_DIR/config"
-# 기존 설정 유지 (없을 때만 복사)
+# Maintain existing config (copy only if it doesn't exist)
 if [ ! -f "$RESOURCE_DIR/config.json" ]; then
     cp config/maru-config.json "$RESOURCE_DIR/config.json"
 fi
 
 # (2) Skills, Tools
-# 기존 폴더 제거 후 최신 복사 (업데이트)
+# Removing existing folders and copying latest (update)
 rm -rf "$RESOURCE_DIR/skills" "$RESOURCE_DIR/tools"
 cp -r skills "$RESOURCE_DIR/"
 if [ -d "tools" ]; then cp -r tools "$RESOURCE_DIR/"; fi
 
 # (3) Web Admin
-# 기존 web-admin 제거 (clean install)
+# Removing existing web-admin (clean install)
 rm -rf "$RESOURCE_DIR/web-admin"
 if [ -d "web-admin" ]; then
-    echo "  🌐 Web Admin 리소스 복사..."
+    echo "  🌐 Copying Web Admin resources..."
     cp -r web-admin "$RESOURCE_DIR/"
     
-    # 의존성 설치 (이동된 위치에서 수행)
+    # Installing dependencies (at the deployed location)
     cd "$RESOURCE_DIR/web-admin"
     if [ "$USE_BUN" = true ]; then
-        echo -e "${BLUE}    🍞 Bun으로 런타임 의존성 설치...${NC}"
+        echo -e "${BLUE}    🍞 Installing production dependencies with Bun...${NC}"
         $HOME/.bun/bin/bun install --production
     else
-        echo -e "${BLUE}    📦 NPM으로 런타임 의존성 설치...${NC}"
+        echo -e "${BLUE}    📦 Installing production dependencies with NPM...${NC}"
         npm install --production
     fi
     cd "$INSTALL_DIR"
 fi
 
-# 6. 하드웨어 설정 스크립트 실행
+# 7. Run Hardware Setup Script
 chmod +x maru-setup.sh
-# maru-setup.sh 내부에서 'marubot' 명령어를 사용하므로 PATH 등록 없이 바로 실행 가능해야 함 (/usr/local/bin)
+# maru-setup.sh uses 'marubot' command, which should be available in /usr/local/bin.
 ./maru-setup.sh
 
-# 7. PATH 등록 (Bun만 필요, MaruBot은 이미 /usr/local/bin)
+# 8. Register PATH (only for Bun, MaruBot already in /usr/local/bin)
 if [ "$USE_BUN" = true ]; then
     if ! grep -q "BUN_INSTALL" ~/.bashrc; then
         echo "export BUN_INSTALL=\"\$HOME/.bun\"" >> ~/.bashrc
@@ -162,34 +160,34 @@ if [ "$USE_BUN" = true ]; then
     fi
 fi
 
-# 레거시 PATH 제거 (이전에 설치했던 경우 /home/pi/marubot/build 경로가 남아있으면 제거)
+# Clean up old PATH settings
 if grep -q "marubot/build" ~/.bashrc; then
-    echo "  🧹 .bashrc에서 예전 PATH 설정을 정리합니다..."
+    echo "  🧹 Cleaning up old PATH settings from .bashrc..."
     sed -i '/marubot\/build/d' ~/.bashrc
 fi
 
-# 8. 기존 설정 마이그레이션 (상대 경로 -> 절대 경로)
+# 9. Migrate Existing Config (Relative -> Absolute)
 if [ -f "$RESOURCE_DIR/config.json" ]; then
     if grep -q "\./workspace" "$RESOURCE_DIR/config.json"; then
-        echo "  🔄 config.json의 워크스페이스 경로를 ~/.marubot/workspace로 업데이트합니다..."
+        echo "  🔄 Updating workspace path in config.json to ~/.marubot/workspace..."
         sed -i 's|"\./workspace"|"~/.marubot/workspace"|g' "$RESOURCE_DIR/config.json"
     fi
 fi
 
-# 9. 홈 디렉토리에 잘못 생성된 폴더들 (.marubot 외부) 정리
+# 10. Consolidate Home Directory Folders
 for dir in "workspace" "sessions" "extensions"; do
     if [ -d "$HOME/$dir" ]; then
-        echo "  📦 잘못된 위치의 $dir 폴더를 ~/.marubot/$dir 로 통합합니다..."
+        echo "  📦 Consolidating $dir folder from incorrect location to ~/.marubot/$dir..."
         mkdir -p "$RESOURCE_DIR/$dir"
         cp -an "$HOME/$dir/." "$RESOURCE_DIR/$dir/" 2>/dev/null || true
         rm -rf "$HOME/$dir"
     fi
 done
 
-echo -e "\n${GREEN}🎉 MaruBot 설치가 완료되었습니다!${NC}"
-echo -e "🧹 설치에 사용된 소스 폴더($INSTALL_DIR)를 자동으로 정리합니다..."
+echo -e "\n${GREEN}🎉 MaruBot installation complete!${NC}"
+echo -e "🧹 Automatically cleaning up the source folder ($INSTALL_DIR)..."
 cd "$HOME"
 rm -rf "$INSTALL_DIR"
 
-echo -e "명령어: ${BLUE}marubot agent${NC} (콘솔 채팅)"
-echo -e "대시보드: ${BLUE}marubot dashboard${NC} (웹 관리자)"
+echo -e "Command: ${BLUE}marubot agent${NC} (Console Chat)"
+echo -e "Dashboard: ${BLUE}marubot dashboard${NC} (Web Admin)"
