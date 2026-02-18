@@ -1,0 +1,13 @@
+feat: MaruBot 0.2.0 업데이트 (32-bit 지원 및 Web Admin 개선)
+
+- 설치 스크립트(install.sh):
+  - Raspberry Pi 32-bit/64-bit ARM 아키텍처 자동 감지 로직 추가
+  - 64-bit 환경은 Bun, 32-bit 환경은 Node.js 자동 선택 설치
+  - Go 1.24+ 버전 자동 설치 및 버전 체크 로직 강화
+- Web Admin (v0.2.0):
+  - Next.js Standalone 빌드 배포 방식 적용 (타겟 머신 빌드 부하 제거)
+  - Prisma -> Drizzle ORM 마이그레이션 (32-bit 호환성 확보)
+  - 대시보드 UI/UX 개선 및 다국어 지원 준비
+- 문서(Documentation):
+  - README-en.md (영어), README.md (한국어) 등 다국어 가이드 최신화
+  - 공개 레포지토리 명칭(maru-bot)으로 일괄 변경 적용
