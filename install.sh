@@ -135,14 +135,18 @@ if [ -d "web-admin" ]; then
     echo "  🌐 Copying Web Admin resources..."
     cp -r web-admin "$RESOURCE_DIR/"
     
-    # Installing dependencies (at the deployed location)
+    # Installing dependencies and building (On-Device Build)
     cd "$RESOURCE_DIR/web-admin"
     if [ "$USE_BUN" = true ]; then
-        echo -e "${BLUE}    🍞 Installing production dependencies with Bun...${NC}"
-        $HOME/.bun/bin/bun install --production
+        echo -e "${BLUE}    🍞 Installing dependencies with Bun...${NC}"
+        $HOME/.bun/bin/bun install
+        echo -e "${BLUE}    🏗️ Building Web Admin with Bun (Next.js)...${NC}"
+        $HOME/.bun/bin/bun run build
     else
-        echo -e "${BLUE}    📦 Installing production dependencies with NPM...${NC}"
-        npm install --production
+        echo -e "${BLUE}    📦 Installing dependencies with NPM...${NC}"
+        npm install
+        echo -e "${BLUE}    🏗️ Building Web Admin with NPM (Next.js)...${NC}"
+        npm run build
     fi
     cd "$INSTALL_DIR"
 fi
