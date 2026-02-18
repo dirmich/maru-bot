@@ -159,8 +159,11 @@ if [ "$USE_BUN" = true ]; then
     fi
 fi
 
-# 레거시 PATH 제거 (혹시 이전에 설치했다면)
-# sed -i '/marubot\/build/d' ~/.bashrc  <-- 위험할 수 있으므로 사용자에게 맡김
+# 레거시 PATH 제거 (이전에 설치했던 경우 /home/pi/marubot/build 경로가 남아있으면 제거)
+if grep -q "marubot/build" ~/.bashrc; then
+    echo "  🧹 .bashrc에서 예전 PATH 설정을 정리합니다..."
+    sed -i '/marubot\/build/d' ~/.bashrc
+fi
 
 echo -e "\n${GREEN}🎉 MaruBot 설치가 완료되었습니다!${NC}"
 echo -e "🧹 설치에 사용된 소스 폴더($INSTALL_DIR)를 자동으로 정리합니다..."
