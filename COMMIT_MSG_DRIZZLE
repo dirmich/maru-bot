@@ -1,0 +1,14 @@
+32-bit ARM 지원을 위한 Drizzle ORM 전환
+
+1. Prisma 제거 및 Drizzle ORM 도입
+   - Prisma는 32-bit ARM용 엔진 바이너리를 제공하지 않아 발생하는 404 에러 원천 해결
+   - drizzle-orm 및 @auth/drizzle-adapter 사용하여 보다 경량화 및 포터블한 DB 환경 구축
+2. Database 레이어 재작성
+   - web-admin/lib/db.ts: Drizzle 기반으로 수정, 테이블 자동 생성 로직 포함
+   - web-admin/lib/schema.ts: Drizzle 스키마 정의 (Auth 및 채팅 내역)
+3. Auth 레이어 수정
+   - web-admin/lib/auth.ts: PrismaAdapter를 DrizzleAdapter로 교체
+4. 배포 및 설치 스크립트 최적화
+   - install.sh: prisma generate 단계 제거 (Drizzle은 런타임에 드라이버 사용)
+   - publish.sh: 불필요해진 prisma 폴더 동기화 제거
+5. task.md 업데이트: 32-bit 지원 공식화 

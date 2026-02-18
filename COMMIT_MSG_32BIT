@@ -1,5 +1,0 @@
-32-bit ARM 환경 Prisma 미지원 예외 처리
-
-1. install.sh: 32-bit ARM 환경에서 Prisma Client 생성 실패 시 에러를 무시하고 진행하도록 수정
-2. install.sh: 실패 시 64-bit OS 권장 안내 메시지 추가
-3. task.md 작업 내역 업데이트 

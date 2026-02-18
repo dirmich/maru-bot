@@ -1,18 +1,13 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { PrismaClient } from "@prisma/client";
-
-// Build-time safety for Prisma
-const prisma = (function () {
-    if (typeof window !== 'undefined' || process.env.NEXT_PHASE === 'phase-production-build') {
-        return null;
-    }
-    return new PrismaClient();
-})();
+import { DrizzleAdapter } from "@auth/drizzle-adapter";
+import { getDb } from "./db";
 
 export const authOptions: NextAuthOptions = {
-    adapter: prisma ? (PrismaAdapter(prisma) as any) : undefined,
+    adapter: (function () {
+        const db = getDb();
+        return db ? (DrizzleAdapter(db) as any) : undefined;
+    })(),
     providers: [
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID || "dummy",

@@ -10,7 +10,7 @@ const execAsync = promisify(exec);
 const MARUBOT_CMD = process.platform === 'win32' ? 'go run ..\\cmd\\marubot\\main.go' : 'marubot';
 
 export async function GET() {
-    const messages = getMessages();
+    const messages = await getMessages();
     return NextResponse.json(messages.reverse());
 }
 
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
         const { message } = await request.json();
 
         // Save user message
-        addMessage('user', message);
+        await addMessage('user', message);
 
         // Call marubot agent
         // We use a single message mode
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
         const cleanedResponse = response.replace(/^.*?🦞\s*/, '').trim();
 
         // Save assistant message
-        addMessage('assistant', cleanedResponse);
+        await addMessage('assistant', cleanedResponse);
 
         return NextResponse.json({ response: cleanedResponse });
     } catch (error: any) {
