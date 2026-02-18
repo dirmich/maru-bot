@@ -163,6 +163,9 @@ fi
 # sed -i '/marubot\/build/d' ~/.bashrc  <-- 위험할 수 있으므로 사용자에게 맡김
 
 echo -e "\n${GREEN}🎉 MaruBot 설치가 완료되었습니다!${NC}"
-echo -e "이제 소스 폴더($INSTALL_DIR)는 삭제하셔도 됩니다."
+echo -e "🧹 설치에 사용된 소스 폴더($INSTALL_DIR)를 자동으로 정리합니다..."
+cd "$HOME"
+rm -rf "$INSTALL_DIR"
+
 echo -e "명령어: ${BLUE}marubot agent${NC} (콘솔 채팅)"
 echo -e "대시보드: ${BLUE}marubot dashboard${NC} (웹 관리자)"
