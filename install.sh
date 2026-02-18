@@ -95,38 +95,77 @@ echo -e "${BLUE}🛠️ MaruBot 엔진을 빌드합니다...${NC}"
 go mod tidy
 make build
 
-# 5. Web Admin 설정
+# 5. 시스템 설치 및 리소스 배치
+echo -e "${BLUE}🏗️ 시스템에 설치 및 리소스를 배치합니다...${NC}"
+
+# 5-1. 실행 파일 설치 (시스템 전역)
+if [ -f "build/marubot" ]; then
+    echo "  📦 실행 파일(/usr/local/bin/marubot) 복사 중..."
+    sudo cp build/marubot /usr/local/bin/
+    sudo chmod +x /usr/local/bin/marubot
+else
+    echo -e "${RED}❌ 빌드된 marubot 실행 파일이 없습니다. 빌드 실패.${NC}"
+    exit 1
+fi
+
+# 5-2. 리소스 디렉토리 구성 (~/.marubot)
+RESOURCE_DIR="$HOME/.marubot"
+mkdir -p "$RESOURCE_DIR"
+
+echo "  📂 리소스(~/.marubot) 설정 중..."
+
+# (1) Config
+mkdir -p "$RESOURCE_DIR/config"
+# 기존 설정 유지 (없을 때만 복사)
+if [ ! -f "$RESOURCE_DIR/config.json" ]; then
+    cp config/maru-config.json "$RESOURCE_DIR/config.json"
+fi
+
+# (2) Skills, Tools
+# 기존 폴더 제거 후 최신 복사 (업데이트)
+rm -rf "$RESOURCE_DIR/skills" "$RESOURCE_DIR/tools"
+cp -r skills "$RESOURCE_DIR/"
+if [ -d "tools" ]; then cp -r tools "$RESOURCE_DIR/"; fi
+
+# (3) Web Admin
+# 기존 web-admin 제거 (clean install)
+rm -rf "$RESOURCE_DIR/web-admin"
 if [ -d "web-admin" ]; then
-    echo -e "${BLUE}🌐 Web Admin 디렉토리를 초기화합니다...${NC}"
-    cd web-admin
+    echo "  🌐 Web Admin 리소스 복사..."
+    cp -r web-admin "$RESOURCE_DIR/"
     
-    # Standalone 모드 배포이므로 빌드는 필요 없음. 의존성만 설치.
+    # 의존성 설치 (이동된 위치에서 수행)
+    cd "$RESOURCE_DIR/web-admin"
     if [ "$USE_BUN" = true ]; then
-        echo -e "${BLUE}🍞 Bun으로 런타임 의존성 설치 (프로덕션)...${NC}"
-        # --production 옵션으로 devDependencies 제외
+        echo -e "${BLUE}    🍞 Bun으로 런타임 의존성 설치...${NC}"
         $HOME/.bun/bin/bun install --production
     else
-        echo -e "${BLUE}📦 NPM으로 런타임 의존성 설치 (프로덕션)...${NC}"
+        echo -e "${BLUE}    📦 NPM으로 런타임 의존성 설치...${NC}"
         npm install --production
     fi
-    
-    echo -e "${GREEN}✅ Web Admin 준비 완료 (실행: node server.js)${NC}"
-    cd ..
+    cd "$INSTALL_DIR"
 fi
 
 # 6. 하드웨어 설정 스크립트 실행
 chmod +x maru-setup.sh
-export PATH="$PWD/build:$PATH"
+# maru-setup.sh 내부에서 'marubot' 명령어를 사용하므로 PATH 등록 없이 바로 실행 가능해야 함 (/usr/local/bin)
 ./maru-setup.sh
 
-# 7. PATH 등록
-if ! grep -q "marubot/build" ~/.bashrc; then
-    echo "export PATH=\"\$HOME/marubot/build:\$PATH\"" >> ~/.bashrc
-    echo "export BUN_INSTALL=\"\$HOME/.bun\"" >> ~/.bashrc
-    echo "export PATH=\"\$BUN_INSTALL/bin:\$PATH\"" >> ~/.bashrc
-    echo -e "${GREEN}✅ PATH 등록 완료 (명령어: marubot)${NC}"
+# 7. PATH 등록 (Bun만 필요, MaruBot은 이미 /usr/local/bin)
+if [ "$USE_BUN" = true ]; then
+    if ! grep -q "BUN_INSTALL" ~/.bashrc; then
+        echo "export BUN_INSTALL=\"\$HOME/.bun\"" >> ~/.bashrc
+        echo "export PATH=\"\$BUN_INSTALL/bin:\$PATH\"" >> ~/.bashrc
+    fi
 fi
 
+# 레거시 PATH 제거 (혹시 이전에 설치했다면)
+# sed -i '/marubot\/build/d' ~/.bashrc  <-- 위험할 수 있으므로 사용자에게 맡김
+
 echo -e "\n${GREEN}🎉 MaruBot 설치가 완료되었습니다!${NC}"
+echo -e "🧹 설치에 사용된 소스 폴더($INSTALL_DIR)를 자동으로 정리합니다..."
+cd "$HOME"
+rm -rf "$INSTALL_DIR"
+
 echo -e "명령어: ${BLUE}marubot agent${NC} (콘솔 채팅)"
 echo -e "대시보드: ${BLUE}marubot dashboard${NC} (웹 관리자)"

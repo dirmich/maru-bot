@@ -140,10 +140,73 @@ func main() {
 		}
 	case "version", "--version", "-v":
 		fmt.Printf("%s marubot v%s\n", logo, version)
+	case "uninstall":
+		uninstallCmd()
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
 		printHelp()
 		os.Exit(1)
+	}
+}
+
+func uninstallCmd() {
+	fmt.Printf("%s MaruBot Uninstaller\n", logo)
+	fmt.Println("WARNING: This will remove MaruBot and its resources from your system.")
+
+	fmt.Print("Are you sure you want to continue? (y/N): ")
+	var confirm string
+	fmt.Scanln(&confirm)
+	if strings.ToLower(confirm) != "y" {
+		fmt.Println("Aborted.")
+		return
+	}
+
+	fmt.Print("Do you want to keep your user data (config, memory, workspace)? (Y/n): ")
+	var keepData string
+	fmt.Scanln(&keepData)
+	keep := true
+	if strings.ToLower(keepData) == "n" {
+		keep = false
+	}
+
+	// 1. Remove resources
+	resourceDir := getResourceDir()
+	if _, err := os.Stat(resourceDir); err == nil {
+		if keep {
+			fmt.Println("Cleaning system resources (keeping user data)...")
+			os.RemoveAll(filepath.Join(resourceDir, "skills"))
+			os.RemoveAll(filepath.Join(resourceDir, "tools"))
+			os.RemoveAll(filepath.Join(resourceDir, "web-admin"))
+			fmt.Printf("✓ System resources removed. User data kept in %s\n", resourceDir)
+		} else {
+			fmt.Println("Removing all data...")
+			if err := os.RemoveAll(resourceDir); err != nil {
+				fmt.Printf("Error removing %s: %v\n", resourceDir, err)
+			} else {
+				fmt.Printf("✓ %s removed\n", resourceDir)
+			}
+		}
+	}
+
+	// 2. Remove binary
+	// Try to remove self using os.Executable
+	exePath, err := os.Executable()
+	if err == nil {
+		// Resolving symlinks if needed, but os.Executable usually returns the path
+		fmt.Printf("Removing executable: %s\n", exePath)
+		if err := os.Remove(exePath); err != nil {
+			fmt.Printf("Error removing executable: %v\n", err)
+			fmt.Println("Hint: You may need to run this command with sudo: 'sudo marubot uninstall'")
+		} else {
+			fmt.Println("✓ Executable removed")
+		}
+	} else {
+		fmt.Println("Could not determine executable path. Please remove it manually.")
+	}
+
+	fmt.Println("\nMaruBot has been uninstalled.")
+	if keep {
+		fmt.Printf("To remove user data later, delete: %s\n", resourceDir)
 	}
 }
 
@@ -159,6 +222,7 @@ func printHelp() {
 	fmt.Println("  config      Manage hardware/system configuration")
 	fmt.Println("  cron        Manage scheduled tasks")
 	fmt.Println("  skills      Manage skills (install, list, remove)")
+	fmt.Println("  uninstall   Remove marubot from system")
 	fmt.Println("  version     Show version information")
 }
 
@@ -706,9 +770,13 @@ func statusCmd() {
 	}
 }
 
-func getConfigPath() string {
+func getResourceDir() string {
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".marubot", "config.json")
+	return filepath.Join(home, ".marubot")
+}
+
+func getConfigPath() string {
+	return filepath.Join(getResourceDir(), "config.json")
 }
 
 func loadConfig() (*config.Config, error) {
@@ -1042,10 +1110,15 @@ func skillsRemoveCmd(installer *skills.SkillInstaller, skillName string) {
 }
 
 func skillsInstallBuiltinCmd(workspace string) {
-	builtinSkillsDir := "./marubot/skills"
+	builtinSkillsDir := filepath.Join(getResourceDir(), "skills")
+	// If not found in resource dir, fallback to local dev path for backward compatibility
+	if _, err := os.Stat(builtinSkillsDir); os.IsNotExist(err) {
+		builtinSkillsDir = "./skills"
+	}
+
 	workspaceSkillsDir := filepath.Join(workspace, "skills")
 
-	fmt.Printf("Copying builtin skills to workspace...\n")
+	fmt.Printf("Copying builtin skills from %s to workspace...\n", builtinSkillsDir)
 
 	skillsToInstall := []string{
 		"weather",
@@ -1078,12 +1151,11 @@ func skillsInstallBuiltinCmd(workspace string) {
 }
 
 func skillsListBuiltinCmd() {
-	cfg, err := loadConfig()
-	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
-		return
+	builtinSkillsDir := filepath.Join(getResourceDir(), "skills")
+	// If not found in resource dir, fallback to local dev path for backward compatibility
+	if _, err := os.Stat(builtinSkillsDir); os.IsNotExist(err) {
+		builtinSkillsDir = "./skills"
 	}
-	builtinSkillsDir := filepath.Join(filepath.Dir(cfg.WorkspacePath()), "marubot", "skills")
 
 	fmt.Println("\nAvailable Builtin Skills:")
 	fmt.Println("-----------------------")
@@ -1240,22 +1312,46 @@ func dashboardCmd() {
 	// Wait a bit for gateway to initialize
 	time.Sleep(2 * time.Second)
 
-	// Determine web project path (assumes it's in web-admin folder relative to binary or source)
-	// For development, we'll try to find it in the current or parent directories
-	webPath := "web-admin"
+	// Determine web project path
+	// Priority 1: ~/.marubot/web-admin (Installed Resource)
+	// Priority 2: ./web-admin (Local Dev)
+	// Priority 3: ../web-admin (Local Dev Parent)
+
+	webPath := filepath.Join(getResourceDir(), "web-admin")
+	runMode := "prod" // prod = node server.js
+
 	if _, err := os.Stat(webPath); os.IsNotExist(err) {
-		// Try parent
-		webPath = "../web-admin"
+		webPath = "web-admin"
+		runMode = "dev"
 		if _, err := os.Stat(webPath); os.IsNotExist(err) {
-			fmt.Println("Error: web-admin directory not found.")
-			return
+			webPath = "../web-admin"
+			if _, err := os.Stat(webPath); os.IsNotExist(err) {
+				fmt.Println("Error: web-admin directory not found in ~/.marubot, ./, or ../.")
+				return
+			}
 		}
 	}
 
-	fmt.Printf("✓ Starting Web UI from %s\n", webPath)
+	fmt.Printf("✓ Starting Web UI from %s (Mode: %s)\n", webPath, runMode)
 
-	// Start Next.js (bun dev for now)
-	cmd := exec.Command("bun", "dev")
+	var cmd *exec.Cmd
+	if runMode == "prod" {
+		// Production: Standalone Next.js
+		// Check if server.js exists
+		if _, err := os.Stat(filepath.Join(webPath, "server.js")); os.IsNotExist(err) {
+			// Fallback to dev if server.js missing
+			fmt.Println("Warning: server.js not found in web-admin. Trying 'bun dev'...")
+			runMode = "dev"
+			cmd = exec.Command("bun", "dev")
+		} else {
+			cmd = exec.Command("node", "server.js")
+			cmd.Env = append(os.Environ(), "PORT=3000", "HOSTNAME=0.0.0.0")
+		}
+	} else {
+		// Dev: bun dev
+		cmd = exec.Command("bun", "dev")
+	}
+
 	cmd.Dir = webPath
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
