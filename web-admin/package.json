@@ -1,10 +1,10 @@
 {
   "name": "web-admin",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build --no-turbo",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint"
   },
