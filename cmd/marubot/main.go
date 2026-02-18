@@ -1351,6 +1351,14 @@ func dashboardCmd() {
 
 	fmt.Printf("✓ Starting Web UI from %s (Mode: %s)\n", webPath, runMode)
 
+	// Debug: Check .next directory
+	absNext, _ := filepath.Abs(filepath.Join(webPath, ".next"))
+	if _, err := os.Stat(absNext); err != nil {
+		fmt.Printf("⚠️ Warning: .next directory not found at %s. Production build might be missing.\n", absNext)
+	} else {
+		fmt.Printf("✓ Found .next directory at %s\n", absNext)
+	}
+
 	var cmd *exec.Cmd
 	if runMode == "prod" {
 		// Production: Standalone Next.js
