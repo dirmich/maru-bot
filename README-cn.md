@@ -20,40 +20,76 @@
 
 ---
 
-## 🚀 快速开始
+## 📋 事前准备 (Prerequisites)
 
-### 1. 一键安装 (推荐使用 GitHub Gist)
-最快速、最简便的安装方式：
+在开始之前，请确保您已准备好以下内容：
+- **Hardware**: 树莓派 (ARM64/32), 电源适配器, SD 卡
+- **OS**: 树莓派 OS (建议 Bullseye 或更高版本)
+- **API Key**: OpenAI, Gemini 等 LLM 服务的 API 密钥
+
+---
+
+## 🚀 快速开始 (Quick Start)
+
+最快速启动 MaruBot 的方法。
+
+### 1. 一键安装
+在终端执行以下命令，即可一次性完成引擎和 Web 管理后台的下载与安装：
+
 ```bash
-# MaruBot 官方一键安装程序
-curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc55f7d5/raw/install.sh | bash
+# Official MaruBot One-Line Installer
+curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash
 ```
 
-### 2. 手动安装
-1. 安装 Go 1.24+ 及必要工具: `sudo apt install -y git make golang libcamera-apps`
-2. 克隆仓库: `git clone https://github.com/dirmich/maru-bot.git`
-3. 执行设置: `cd marubot && bash maru-setup.sh`
+### 2. 必要设置 (注册 API 密钥)
+安装完成后，请注册您要使用的 AI 模型的 API 密钥：
+
+```bash
+# OpenAI API 密钥设置示例
+marubot config set providers.openai.api_key "YOUR_OPENAI_KEY"
+
+# 选择默认模型
+marubot config set agents.defaults.model "gpt-4o"
+```
 
 ### 3. 运行智能体
 ```bash
+# 控制台交互模式
 marubot agent
-```
 
-### 4. Web 管理后台 (Web Admin Dashboard)
-一个可视化的仪表板，用于管理配置、安装技能以及与智能体聊天。
-```bash
-# 同时启动网关和 Web 管理后台
+# 或 Web 管理后台仪表板 (http://localhost:3000)
 marubot dashboard
 ```
-在浏览器中访问 `http://localhost:3000` 即可使用管理工具。
+
+---
+
+## 🛠️ 详细安装及硬件联动
+
+如果一键安装程序无法正常工作，或者您更倾向于手动设置：
+
+1. **安装基础工具**: `sudo apt install -y git make golang libcamera-apps`
+2. **克隆仓库**: `git clone https://github.com/dirmich/maru-bot.git marubot`
+3. **硬件初始化**: `cd marubot && bash maru-setup.sh`
+   - 此脚本将检查 GPIO 权限并激活摄像头/音频接口。
 
 ---
 
 ## ⚙️ 配置 (Configuration)
 
-1. **打开配置文件**: `nano ~/.marubot/config.json`
-2. **填写 API 密钥**: 在 `providers` 部分填写相应服务的 `api_key`。
-3. **设置模型**: 在 `agents` -> `defaults` -> `model` 中设置。
+1. **使用命令行工具 (推荐)**:
+   ```bash
+   # 设置 OpenAI API 密钥
+   marubot config set providers.openai.api_key "YOUR_KEY"
+   
+   # 修改默认模型
+   marubot config set agents.defaults.model "gpt-4o"
+   ```
+
+2. **手动修改配置文件**:
+   ```bash
+   nano ~/.marubot/config.json
+   ```
+   在 `providers` 部分填写相应服务的 `api_key`。
 
 ---
 

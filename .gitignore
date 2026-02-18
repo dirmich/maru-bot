@@ -17,6 +17,7 @@ coverage.html
 
 # Web Admin
 node_modules/
+.next/
 out/
 npm-debug.log*
 yarn-debug.log*

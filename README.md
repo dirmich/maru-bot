@@ -20,45 +20,57 @@
 
 ---
 
+## 📋 Prerequisites
+
+Before starting, ensure you have the following ready:
+- **Hardware**: Raspberry Pi (ARM64/32), Power Adapter, SD Card
+- **OS**: Raspberry Pi OS (Bullseye or newer recommended)
+- **API Key**: API keys for LLM services like OpenAI, Gemini, etc.
+
+---
+
 ## 🚀 Quick Start
 
-### 1. One-Click Installation (Recommended via GitHub Gist)
-The fastest and easiest way to install. Use the URL obtained by clicking the **Raw** button on your Gist:
+The fastest way to get MaruBot up and running.
+
+### 1. One-Click Installation
+Run the following command in your terminal to install the engine and Web Admin together:
 
 ```bash
 # Official MaruBot One-Line Installer
-curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc55f7d5/raw/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash
 ```
 
-#### 💡 How to create your own installation Gist:
-1. Visit [gist.github.com](https://gist.github.com/).
-2. Enter the filename as `install.sh` and paste the content of `install.sh` from this project.
-3. Click **Create public gist** (or secret), then click the **Raw** button at the top right.
-4. Copy the resulting URL and use it with: `curl -fsSL <COPIED_URL> | bash`.
+### 2. Essential Configuration (API Key)
+After installation, register the API key for the AI model you want to use:
 
-### 2. Manual Installation
-If the above command doesn't work or you prefer manual setup:
-1. Install Go 1.24+ and essentials: `sudo apt install -y git make golang libcamera-apps`
-2. Clone repo: `git clone https://github.com/dirmich/maru-bot.git`
-3. Run setup: `cd marubot && bash maru-setup.sh`
-This script will:
-- Check permissions for `/dev/gpiomem`.
-- Verify camera and audio interfaces.
-- Run the interactive configuration wizard.
+```bash
+# Example: Set OpenAI API Key
+marubot config set providers.openai.api_key "YOUR_OPENAI_KEY"
+
+# Select default model
+marubot config set agents.defaults.model "gpt-4o"
+```
 
 ### 3. Run Agent
 ```bash
+# Console interaction mode
 marubot agent
-```
 
-### 4. Web Admin Dashboard
-A visual dashboard to manage configurations, install skills, and chat with the agent. Optimized for Raspberry Pi using Next.js and SQLite.
-
-```bash
-# Start both Gateway and Web Dashboard at once
+# Or Web Admin Dashboard (http://localhost:3000)
 marubot dashboard
 ```
-Access the dashboard via `http://localhost:3000`. Initial setup for Google SSO will be required on the first run.
+
+---
+
+## 🛠️ Detailed Installation & Hardware Setup
+
+If the one-click installer doesn't work or you prefer manual setup:
+
+1. **Install Essentials**: `sudo apt install -y git make golang libcamera-apps`
+2. **Clone Repo**: `git clone https://github.com/dirmich/maru-bot.git marubot`
+3. **Hardware Init**: `cd marubot && bash maru-setup.sh`
+   - This script verifies GPIO permissions and activates camera/audio interfaces.
 
 ---
 
@@ -66,12 +78,20 @@ Access the dashboard via `http://localhost:3000`. Initial setup for Google SSO w
 
 After installation, you must configure your API keys to use AI models.
 
-1. **Open the configuration file**:
+1. **Using CLI (Recommended)**:
+   ```bash
+   # Set OpenAI API Key
+   marubot config set providers.openai.api_key "YOUR_KEY"
+   
+   # Change default model
+   marubot config set agents.defaults.model "gpt-4o"
+   ```
+
+2. **Manual File Edit**:
    ```bash
    nano ~/.marubot/config.json
    ```
-2. **Enter API Keys**: Locate the `providers` section and enter your key for the service you wish to use (e.g., openai, gemini).
-3. **Set Model**: Update the `agents` -> `defaults` -> `model` field with your desired model name (e.g., `gpt-4o`, `gemini-1.5-flash`).
+   Locate the `providers` section and enter your key for the service you wish to use (e.g., openai, gemini).
 
 ---
 
