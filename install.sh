@@ -49,9 +49,10 @@ if [ "$INSTALL_GO" = true ]; then
 fi
 
 # 51. Bun 또는 Node.js 설치 (Web Admin용)
-# Bun은 ARM64만 지원하므로, ARMv7 등에서는 Node.js를 사용해야 함
+# Bun은 ARM64 64-bit OS만 지원하므로, 32-bit OS 환경에서는 Node.js를 사용해야 함
 USE_BUN=false
-if [ "$(uname -m)" = "aarch64" ]; then
+BITS=$(getconf LONG_BIT)
+if [[ "$(uname -m)" = "aarch64" && "$BITS" = "64" ]]; then
     if ! command -v bun >/dev/null 2>&1; then
         echo -e "${BLUE}🍞 Web Admin 실행을 위해 Bun을 설치합니다...${NC}"
         curl -fsSL https://bun.sh/install | bash
@@ -59,14 +60,16 @@ if [ "$(uname -m)" = "aarch64" ]; then
         export PATH="$BUN_INSTALL/bin:$PATH"
     fi
     
-    # 설치 확인
-    if [ -f "$HOME/.bun/bin/bun" ]; then
+    # 설치 확인 및 실행 가능 여부 체크
+    if [ -f "$HOME/.bun/bin/bun" ] && "$HOME/.bun/bin/bun" --version >/dev/null 2>&1; then
         USE_BUN=true
     else
-        echo -e "${RED}⚠️ Bun 설치에 실패했습니다. Node.js로 전환합니다.${NC}"
+        echo -e "${RED}⚠️ Bun이 설치되지 않았거나 이 환경에서 실행할 수 없습니다. Node.js로 전환합니다.${NC}"
+        # 혹시 잘못 설치된 경우 정리
+        # rm -rf "$HOME/.bun"
     fi
 else
-    echo -e "${BLUE}ℹ️ 32-bit 환경(또는 비-ARM64)이 감지되었습니다. Bun 대신 Node.js를 사용합니다.${NC}"
+    echo -e "${BLUE}ℹ️ 32-bit OS 또는 비-ARM64 환경입니다. Bun 대신 Node.js를 사용합니다.${NC}"
 fi
 
 # Bun을 사용할 수 없는 경우 Node.js 설치
