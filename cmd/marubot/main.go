@@ -140,10 +140,73 @@ func main() {
 		}
 	case "version", "--version", "-v":
 		fmt.Printf("%s marubot v%s\n", logo, version)
+	case "uninstall":
+		uninstallCmd()
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
 		printHelp()
 		os.Exit(1)
+	}
+}
+
+func uninstallCmd() {
+	fmt.Printf("%s MaruBot Uninstaller\n", logo)
+	fmt.Println("WARNING: This will remove MaruBot and its resources from your system.")
+
+	fmt.Print("Are you sure you want to continue? (y/N): ")
+	var confirm string
+	fmt.Scanln(&confirm)
+	if strings.ToLower(confirm) != "y" {
+		fmt.Println("Aborted.")
+		return
+	}
+
+	fmt.Print("Do you want to keep your user data (config, memory, workspace)? (Y/n): ")
+	var keepData string
+	fmt.Scanln(&keepData)
+	keep := true
+	if strings.ToLower(keepData) == "n" {
+		keep = false
+	}
+
+	// 1. Remove resources
+	resourceDir := getResourceDir()
+	if _, err := os.Stat(resourceDir); err == nil {
+		if keep {
+			fmt.Println("Cleaning system resources (keeping user data)...")
+			os.RemoveAll(filepath.Join(resourceDir, "skills"))
+			os.RemoveAll(filepath.Join(resourceDir, "tools"))
+			os.RemoveAll(filepath.Join(resourceDir, "web-admin"))
+			fmt.Printf("✓ System resources removed. User data kept in %s\n", resourceDir)
+		} else {
+			fmt.Println("Removing all data...")
+			if err := os.RemoveAll(resourceDir); err != nil {
+				fmt.Printf("Error removing %s: %v\n", resourceDir, err)
+			} else {
+				fmt.Printf("✓ %s removed\n", resourceDir)
+			}
+		}
+	}
+
+	// 2. Remove binary
+	// Try to remove self using os.Executable
+	exePath, err := os.Executable()
+	if err == nil {
+		// Resolving symlinks if needed, but os.Executable usually returns the path
+		fmt.Printf("Removing executable: %s\n", exePath)
+		if err := os.Remove(exePath); err != nil {
+			fmt.Printf("Error removing executable: %v\n", err)
+			fmt.Println("Hint: You may need to run this command with sudo: 'sudo marubot uninstall'")
+		} else {
+			fmt.Println("✓ Executable removed")
+		}
+	} else {
+		fmt.Println("Could not determine executable path. Please remove it manually.")
+	}
+
+	fmt.Println("\nMaruBot has been uninstalled.")
+	if keep {
+		fmt.Printf("To remove user data later, delete: %s\n", resourceDir)
 	}
 }
 
@@ -159,6 +222,7 @@ func printHelp() {
 	fmt.Println("  config      Manage hardware/system configuration")
 	fmt.Println("  cron        Manage scheduled tasks")
 	fmt.Println("  skills      Manage skills (install, list, remove)")
+	fmt.Println("  uninstall   Remove marubot from system")
 	fmt.Println("  version     Show version information")
 }
 
