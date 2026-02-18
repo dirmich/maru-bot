@@ -1,0 +1,5 @@
+버전 업데이트 및 32-bit 지원 공식화
+
+1. web-admin 버전 업데이트: 0.1.0 -> 0.2.0 (Drizzle ORM 전환 및 32-bit 지원 포함)
+2. README 다국어(KO, EN, JA, CN) 문서 업데이트: 32-bit 하드웨어 완벽 지원 명시
+3. Drizzle ORM 전환 완료 및 관련 문서 정리 
