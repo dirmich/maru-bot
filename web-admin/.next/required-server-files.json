@@ -294,7 +294,8 @@
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.ts",
     "serverExternalPackages": [
-      "better-sqlite3"
+      "better-sqlite3",
+      "@prisma/client"
     ],
     "turbopack": {
       "root": "Z:\\work\\0.project\\0.ai\\maruminibot\\web-admin"
