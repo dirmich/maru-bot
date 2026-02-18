@@ -28,7 +28,7 @@
   "agents": {
     "defaults": {
       "model": "gemini-1.5-flash",
-      "workspace": "./workspace",
+      "workspace": "~/.marubot/workspace",
       "max_tool_iterations": 25
     }
   },
