@@ -23,7 +23,7 @@
 ## 📋 事前準備 (Prerequisites)
 
 開始する前に、以下の準備ができているか確認してください：
-- **Hardware**: Raspberry Pi (ARM64/32), 電源アダプター, SDカード
+- **Hardware**: Raspberry Pi (ARM64/32 完全対応), 電源アダプター, SDカード
 - **OS**: Raspberry Pi OS (Bullseye 以上推奨)
 - **API Key**: OpenAI, Gemini など使用する LLM サービスの API キー
 

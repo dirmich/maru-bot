@@ -23,7 +23,7 @@
 ## 📋 事前准备 (Prerequisites)
 
 在开始之前，请确保您已准备好以下内容：
-- **Hardware**: 树莓派 (ARM64/32), 电源适配器, SD 卡
+- **Hardware**: 树莓派 (完美支持 ARM64/32), 电源适配器, SD 卡
 - **OS**: 树莓派 OS (建议 Bullseye 或更高版本)
 - **API Key**: OpenAI, Gemini 等 LLM 服务的 API 密钥
 

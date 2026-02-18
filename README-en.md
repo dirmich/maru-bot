@@ -23,7 +23,7 @@
 ## 📋 Prerequisites
 
 Before starting, ensure you have the following ready:
-- **Hardware**: Raspberry Pi (ARM64/32), Power Adapter, SD Card
+- **Hardware**: Raspberry Pi (Full ARM64/32 support), Power Adapter, SD Card
 - **OS**: Raspberry Pi OS (Bullseye or newer recommended)
 - **API Key**: API keys for LLM services like OpenAI, Gemini, etc.
 

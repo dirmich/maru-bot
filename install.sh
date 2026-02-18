@@ -142,13 +142,9 @@ if [ -d "web-admin" ]; then
     if [ "$USE_BUN" = true ]; then
         echo -e "${BLUE}    🍞 Bun으로 런타임 의존성 설치...${NC}"
         $HOME/.bun/bin/bun install --production
-        echo -e "${BLUE}    💎 Prisma Client 생성...${NC}"
-        $HOME/.bun/bin/bunx prisma generate
     else
         echo -e "${BLUE}    📦 NPM으로 런타임 의존성 설치...${NC}"
         npm install --production
-        echo -e "${BLUE}    💎 Prisma Client 생성...${NC}"
-        npx prisma generate
     fi
     cd "$INSTALL_DIR"
 fi

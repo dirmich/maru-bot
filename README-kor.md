@@ -23,7 +23,7 @@
 ## � 사전 준비 (Prerequisites)
 
 시작하기 전에 다음 사항이 준비되었는지 확인하세요:
-- **Hardware**: Raspberry Pi (ARM64/32), 전원 아답터, SD 카드
+- **Hardware**: Raspberry Pi (ARM64/32 완벽 지원), 전원 아답터, SD 카드
 - **OS**: Raspberry Pi OS (Bullseye 이상 권장)
 - **API Key**: OpenAI, Gemini 등 사용할 LLM 서비스의 API 키
 
