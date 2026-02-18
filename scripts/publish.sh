@@ -69,25 +69,34 @@ for item in "${ITEMS[@]}"; do
                 echo "  📦 Web Admin 빌드 결과물(Standalone) 배포 중..."
                 mkdir -p "$TARGET_DIR/web-admin"
 
-                # 1. Standalone 결과물 복사 (server.js, package.json 및 .next 숨김 폴더 포함)
-                # cp -a ./. 사용 시 점(.)으로 시작하는 숨김 폴더(.next 등)도 모두 복사됨
-                cp -a .next/standalone/. "$TARGET_DIR/web-admin/"
+                # 명시적으로 필요한 파일들만 복사 (숨김 폴더 .next 포함)
+                echo "    - server.js 및 package.json 복사"
+                cp .next/standalone/server.js "$TARGET_DIR/web-admin/"
+                cp .next/standalone/package.json "$TARGET_DIR/web-admin/"
+                
+                if [ -d ".next/standalone/.next" ]; then
+                    echo "    - .next (standalone build data) 폴더 복사"
+                    cp -a .next/standalone/.next "$TARGET_DIR/web-admin/"
+                else
+                    echo "    ⚠️ .next/standalone/.next 폴더를 찾을 수 없습니다!"
+                fi
                 
                 # 2. Static 리소스 복사 (.next/static -> .next/static)
-                # Standalone 모드는 static 파일을 별도로 서빙해야 하므로 구조를 맞춰줘야 함
+                echo "    - .next/static 리소스 복사"
                 mkdir -p "$TARGET_DIR/web-admin/.next/static"
-                cp -R .next/static/* "$TARGET_DIR/web-admin/.next/static/"
+                if [ -d ".next/static" ]; then
+                    cp -a .next/static/. "$TARGET_DIR/web-admin/.next/static/"
+                fi
                 
                 # 3. Public 폴더 복사
-                cp -R public "$TARGET_DIR/web-admin/"
+                echo "    - public 폴더 복사"
+                if [ -d "public" ]; then
+                    cp -a public "$TARGET_DIR/web-admin/"
+                fi
 
-                # 중요: 로컬(Windows/Mac)의 node_modules는 리눅스(ARM)와 호환되지 않을 수 있음
-                # 특히 sharp, sqlite3 같은 네이티브 모듈.
-                # 따라서 node_modules는 제외하고, 타겟 머신에서 'bun install'을 수행하도록 유도해야 함.
-                # 하지만 standalone 폴더는 node_modules를 포함하고 있음.
-                # 안전을 위해 복사된 node_modules를 삭제함.
+                # node_modules는 타켓에서 설치하도록 제외
                 if [ -d "$TARGET_DIR/web-admin/node_modules" ]; then
-                    echo "    - 플랫폼 호환성을 위해 로컬 node_modules 제거 (타겟에서 재설치 필요)"
+                    echo "    - 기존 node_modules 제거"
                     rm -rf "$TARGET_DIR/web-admin/node_modules"
                 fi
 
