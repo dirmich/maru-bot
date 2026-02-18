@@ -20,32 +20,57 @@
 
 ---
 
-## 🚀 クイックスタート
+## 📋 事前準備 (Prerequisites)
 
-### 1. ワンクリックインストール (GitHub Gist 推奨)
-最も速く簡単なインストール方法です：
+開始する前に、以下の準備ができているか確認してください：
+- **Hardware**: Raspberry Pi (ARM64/32), 電源アダプター, SDカード
+- **OS**: Raspberry Pi OS (Bullseye 以上推奨)
+- **API Key**: OpenAI, Gemini など使用する LLM サービスの API キー
+
+---
+
+## 🚀 クイックスタート (Quick Start)
+
+最も素早く MaruBot を開始する方法です。
+
+### 1. ワンクリックインストール
+ターミナルで以下のコマンドを実行し、エンジンと Web 管理者を一括でダウンロード・インストールします：
+
 ```bash
-# MaruBot 公式ワンクリックインストーラー
-curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc55f7d5/raw/install.sh | bash
+# Official MaruBot One-Line Installer
+curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash
 ```
 
-### 2. 手動インストール
-1. Go 1.24+ および必須ツールのインストール: `sudo apt install -y git make golang libcamera-apps`
-2. リポジトリのクローン: `git clone https://github.com/dirmich/maru-bot.git marubot`
-3. セットアップの実行: `cd marubot && bash maru-setup.sh`
+### 2. 必須設定 (API キーの登録)
+インストール完了後、使用する AI モデルの API キーを登録します：
+
+```bash
+# OpenAI API キーの設定例
+marubot config set providers.openai.api_key "YOUR_OPENAI_KEY"
+
+# デフォルトモデルの選択
+marubot config set agents.defaults.model "gpt-4o"
+```
 
 ### 3. エージェントの実行
 ```bash
+# コンソール対話モード
 marubot agent
-```
 
-### 4. Web Admin ダッシュボード
-設定の管理、スキルのインストール、エージェントとのチャットを視覚的に行えるウェブダッシュボードです。
-```bash
-# ゲートウェイとウェブダッシュボードを同時に起動
+# または Web 管理者ダッシュボード (http://localhost:3000)
 marubot dashboard
 ```
-ブラウザから `http://localhost:3000` にアクセスして管理ツールを使用できます。
+
+---
+
+## 🛠️ 詳細インストールおよびハードウェア連携
+
+ワンクリックインストーラーが動作しない場合や、手動設定を希望する場合：
+
+1. **必須ツールのインストール**: `sudo apt install -y git make golang libcamera-apps`
+2. **リポジトリのクローン**: `git clone https://github.com/dirmich/maru-bot.git marubot`
+3. **ハードウェア初期化**: `cd marubot && bash maru-setup.sh`
+   - このスクリプトは GPIO 権限、カメラ/オーディオインターフェースの有効化を確認します。
 
 ---
 

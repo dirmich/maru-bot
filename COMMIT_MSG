@@ -1,9 +1,8 @@
-문서 최신화 및 CLI 안내 추가
+README 구조 개편: 사전 준비 및 빠른 시작 분리
 
-1. README 다국어(EN, KO, JP, CN) 문서 최신화
-   - git clone 경로 수정 (maru-bot.git marubot)
-   - 'marubot config set' 명령어를 통한 설정 방법 안내 추가
-2. maru-setup.sh 수정
-   - '에드워드' -> '마루봇' 명칭 오타 수정
-   - 존재하지 않는 maru-run.sh 참조 제거
-3. task.md 작업 내역 업데이트 
+1. '사전 준비(Prerequisites)' 섹션 추가: 하드웨어 및 API 키 준비 안내
+2. '빠른 시작(Quick Start)' 섹션 재구성
+   - 원클릭 설치, 필수 설정(API 키 등록), 실행 단계로 간소화
+   - 설치 후 바로 사용할 수 있는 흐름으로 개선
+3. '상세 설치 및 하드웨어 연동' 섹션 분리: 수동 설치 프로세스를 별도 섹션으로 이동
+4. 다국어(EN, JP, CN) 문서에 동일한 구조 적용
