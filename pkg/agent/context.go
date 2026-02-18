@@ -16,7 +16,7 @@ type ContextBuilder struct {
 }
 
 func NewContextBuilder(workspace string) *ContextBuilder {
-	builtinSkillsDir := filepath.Join(filepath.Dir(workspace), "marubot", "skills")
+	builtinSkillsDir := filepath.Join(filepath.Dir(workspace), "skills")
 	return &ContextBuilder{
 		workspace:    workspace,
 		skillsLoader: skills.NewSkillsLoader(workspace, builtinSkillsDir),
