@@ -1,6 +1,0 @@
-Web Admin Prisma Client 로딩 에러 수정
-
-1. web-admin/next.config.ts: @prisma/client를 serverExternalPackages에 추가하여 번들링에서 제외 (Standalone 모드 호환성 개선)
-2. publish.sh: 배포 패키지에 prisma 폴더를 포함하도록 수정 (타겟 머신에서 스키마 생성을 위해 필요)
-3. install.sh: 설치 과정 중 npx prisma generate를 실행하여 타겟 머신 아키텍처에 맞는 클라이언트 생성
-4. task.md 작업 내역 업데이트 

@@ -143,12 +143,18 @@ if [ -d "web-admin" ]; then
         echo -e "${BLUE}    🍞 Bun으로 런타임 의존성 설치...${NC}"
         $HOME/.bun/bin/bun install --production
         echo -e "${BLUE}    💎 Prisma Client 생성...${NC}"
-        $HOME/.bun/bin/bunx prisma generate
+        PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 $HOME/.bun/bin/bunx prisma generate || true
     else
         echo -e "${BLUE}    📦 NPM으로 런타임 의존성 설치...${NC}"
         npm install --production
         echo -e "${BLUE}    💎 Prisma Client 생성...${NC}"
-        npx prisma generate
+        # 32-bit ARM에서 Prisma 엔진 다운로드 실패 시 무시하고 진행 (대시보드 제한 안내)
+        PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 npx prisma generate || {
+            echo -e "${RED}⚠️ Prisma Client 생성에 실패했습니다. (32-bit ARM 미지원)${NC}"
+            echo -e "   - Web Admin(대시보드)은 32-bit OS에서 정상적으로 작동하지 않을 수 있습니다."
+            echo -e "   - 해결책: Raspberry Pi OS 64-bit 버전 사용을 강력히 권장합니다."
+            echo -e "   - 'marubot agent' (콘솔 대화) 기능은 문제 없이 사용 가능합니다."
+        }
     fi
     cd "$INSTALL_DIR"
 fi

@@ -78,3 +78,4 @@
 - **2026-02-18**: README 다국어 문서(EN, KO, JP, CN) 최신화 및 `marubot config` 안내 추가.
 - **2026-02-18**: `maru-setup.sh` 내 오타 수정 및 불필요한 스크립트 참조 제거.
 - **2026-02-18**: Web Admin Prisma Client 로딩 에러 수정 (Standalone 배포 시 외부 모듈 제외 및 타겟 머신에서 스키마 생성 로직 추가).
+- **2026-02-18**: 32-bit ARM(armv7l) 환경에서의 Prisma 엔진 미지원 예외 처리 및 64-bit OS 권장 안내 추가.
