@@ -69,9 +69,9 @@ for item in "${ITEMS[@]}"; do
                 echo "  📦 Web Admin 빌드 결과물(Standalone) 배포 중..."
                 mkdir -p "$TARGET_DIR/web-admin"
 
-                # 1. Standalone 결과물 복사 (server.js, package.json 등)
-                # .next/standalone 내부에 있는 파일들을 web-admin 루트로 복사
-                cp -R .next/standalone/* "$TARGET_DIR/web-admin/"
+                # 1. Standalone 결과물 복사 (server.js, package.json 및 .next 숨김 폴더 포함)
+                # cp -a ./. 사용 시 점(.)으로 시작하는 숨김 폴더(.next 등)도 모두 복사됨
+                cp -a .next/standalone/. "$TARGET_DIR/web-admin/"
                 
                 # 2. Static 리소스 복사 (.next/static -> .next/static)
                 # Standalone 모드는 static 파일을 별도로 서빙해야 하므로 구조를 맞춰줘야 함
