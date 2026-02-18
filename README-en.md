@@ -39,7 +39,7 @@ curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc
 ### 2. Manual Installation
 If the above command doesn't work or you prefer manual setup:
 1. Install Go 1.24+ and essentials: `sudo apt install -y git make golang libcamera-apps`
-2. Clone repo: `git clone https://github.com/dirmich/marubot.git`
+2. Clone repo: `git clone https://github.com/dirmich/maru-bot.git marubot`
 3. Run setup: `cd marubot && bash maru-setup.sh`
 This script will:
 - Check permissions for `/dev/gpiomem`.
@@ -66,12 +66,20 @@ Access the dashboard via `http://localhost:3000`. Initial setup for Google SSO w
 
 After installation, you must configure your API keys to use AI models.
 
-1. **Open the configuration file**:
+1. **Using CLI (Recommended)**:
+   ```bash
+   # Set OpenAI API Key
+   marubot config set providers.openai.api_key "YOUR_KEY"
+   
+   # Change default model
+   marubot config set agents.defaults.model "gpt-4o"
+   ```
+
+2. **Manual File Edit**:
    ```bash
    nano ~/.marubot/config.json
    ```
-2. **Enter API Keys**: Locate the `providers` section and enter your key for the service you wish to use (e.g., openai, gemini).
-3. **Set Model**: Update the `agents` -> `defaults` -> `model` field with your desired model name (e.g., `gpt-4o`, `gemini-1.5-flash`).
+   Locate the `providers` section and enter your key for the service you wish to use (e.g., openai, gemini).
 
 ---
 

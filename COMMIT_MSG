@@ -1,0 +1,9 @@
+문서 최신화 및 CLI 안내 추가
+
+1. README 다국어(EN, KO, JP, CN) 문서 최신화
+   - git clone 경로 수정 (maru-bot.git marubot)
+   - 'marubot config set' 명령어를 통한 설정 방법 안내 추가
+2. maru-setup.sh 수정
+   - '에드워드' -> '마루봇' 명칭 오타 수정
+   - 존재하지 않는 maru-run.sh 참조 제거
+3. task.md 작업 내역 업데이트 

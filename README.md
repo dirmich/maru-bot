@@ -39,7 +39,7 @@ curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc
 ### 2. 수동 설치 및 하드웨어 준비
 만약 위 명령어가 작동하지 않거나 수동 설치를 원할 경우:
 1. Go 1.24+ 및 필수 도구 설치 (`sudo apt install -y git make golang libcamera-apps`)
-2. 리포지토리 클론: `git clone https://github.com/dirmich/maru-bot.git`
+2. 리포지토리 클론: `git clone https://github.com/dirmich/maru-bot.git marubot`
 3. 설정 스크립트 실행: `cd marubot && bash maru-setup.sh`
 이 스크립트는 다음을 수행합니다:
 - Raspberry Pi GPIO 라이브러리(`/dev/gpiomem`) 권한 확인
@@ -67,12 +67,20 @@ marubot dashboard
 
 설치가 완료되면 AI 모델을 사용하기 위해 API 키를 설정해야 합니다.
 
-1. **설정 파일 열기**:
+1. **명령줄 도구 사용 (권장)**:
+   ```bash
+   # OpenAI API 키 설정
+   marubot config set providers.openai.api_key "YOUR_KEY"
+   
+   # 기본 모델 변경
+   marubot config set agents.defaults.model "gpt-4o"
+   ```
+
+2. **설정 파일 직접 수정**:
    ```bash
    nano ~/.marubot/config.json
    ```
-2. **API 키 입력**: `providers` 섹션에서 사용할 서비스(openai, gemini 등)의 `api_key` 아래에 본인의 키를 입력합니다.
-3. **모델 설정**: `agents` -> `defaults` -> `model` 항목에 사용할 모델명(예: `gpt-4o`, `gemini-1.5-flash`)을 입력합니다.
+   `providers` 섹션에서 사용할 서비스(openai, gemini 등)의 `api_key` 아래에 본인의 키를 입력합니다.
 
 ---
 

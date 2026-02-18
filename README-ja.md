@@ -31,7 +31,7 @@ curl -fsSL https://gist.githubusercontent.com/dirmich/367961d107d6e0f35f1c3156dc
 
 ### 2. 手動インストール
 1. Go 1.24+ および必須ツールのインストール: `sudo apt install -y git make golang libcamera-apps`
-2. リポジトリのクローン: `git clone https://github.com/dirmich/maru-bot.git`
+2. リポジトリのクローン: `git clone https://github.com/dirmich/maru-bot.git marubot`
 3. セットアップの実行: `cd marubot && bash maru-setup.sh`
 
 ### 3. エージェントの実行
@@ -51,9 +51,20 @@ marubot dashboard
 
 ## ⚙️ 設定 (Configuration)
 
-1. **設定ファイルを開く**: `nano ~/.marubot/config.json`
-2. **APIキーの入力**: `providers` セクションで使用するサービスの `api_key` を入力。
-3. **モデルの設定**: `agents` -> `defaults` -> `model` を設定。
+1. **CLIを使用する (推奨)**:
+   ```bash
+   # OpenAI APIキーを設定
+   marubot config set providers.openai.api_key "YOUR_KEY"
+   
+   # デフォルトモデルを変更
+   marubot config set agents.defaults.model "gpt-4o"
+   ```
+
+2. **設定ファイルを直接編集**:
+   ```bash
+   nano ~/.marubot/config.json
+   ```
+   `providers` セクションで使用するサービスの `api_key` を入力。
 
 ---
 
