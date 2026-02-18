@@ -6,7 +6,8 @@
 set -e
 
 SOURCE_DIR=$(pwd)
-TARGET_DIR="../maru-bot"
+# TARGET_DIR을 절대 경로로 변환 (하위 폴더 이동 시에도 경로 유지)
+TARGET_DIR=$(readlink -f "../maru-bot")
 
 echo "🚀 공개 배포용 파일을 $TARGET_DIR 로 동기화합니다..."
 
