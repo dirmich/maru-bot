@@ -94,6 +94,12 @@ for item in "${ITEMS[@]}"; do
                     cp -a public "$TARGET_DIR/web-admin/"
                 fi
 
+                # 4. Prisma 폴더 복사 (스키마 재생성을 위해 필요)
+                echo "    - prisma 폴더 복사"
+                if [ -d "prisma" ]; then
+                    cp -a prisma "$TARGET_DIR/web-admin/"
+                fi
+
                 # node_modules는 타켓에서 설치하도록 제외
                 if [ -d "$TARGET_DIR/web-admin/node_modules" ]; then
                     echo "    - 기존 node_modules 제거"
