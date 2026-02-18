@@ -1,5 +1,0 @@
-Prisma 잔재 제거 및 빌드 에러 수정
-
-1. web-admin/prisma.config.ts 제거 (Drizzle 전환으로 불필요)
-2. web-admin/next.config.ts: serverExternalPackages에서 @prisma/client 제거
-3. 공개 배포 스크립트(publish.sh)를 통한 빌드 및 동기화 확인 완료 
