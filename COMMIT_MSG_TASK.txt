@@ -1,3 +1,0 @@
-docs: MaruBot 0.2.0 배포완료 로그 추가
-
-- task.md: v0.2.0 정식 배포 완료 기록 (32-bit 지원, Standalone 빌드)

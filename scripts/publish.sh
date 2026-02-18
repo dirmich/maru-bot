@@ -53,61 +53,21 @@ echo "📂 파일 복사 중..."
 for item in "${ITEMS[@]}"; do
     if [ -e "$SOURCE_DIR/$item" ]; then
         if [ "$item" == "web-admin" ]; then
-            echo "  🍳 Web Admin 로컬 빌드 시작..."
+            echo "  � Web Admin 소스 코드 복사 중 (타겟 머신 빌드용)..."
             
-            # 빌드 디렉토리로 이동
-            if cd "$SOURCE_DIR/web-admin"; then
-                # 의존성 설치 및 빌드 (Next.js Standalone 모드)
-                echo "    - 기존 빌드 정리 (.next 삭제)..."
-                rm -rf .next
+            # 1. web-admin 디렉토리 생성
+            mkdir -p "$TARGET_DIR/web-admin"
 
-                echo "    - 의존성 확인 및 빌드 (npm)..."
-                # 윈도우 환경 호환성을 위해 bun 대신 npm 사용 권장
-                npm install
-                npm run build
-                
-                echo "  📦 Web Admin 빌드 결과물(Standalone) 배포 중..."
-                mkdir -p "$TARGET_DIR/web-admin"
+            # 2. 소스 파일 복사 (숨김 파일 포함, .next, node_modules 제외)
+            # 깔끔하게 복사하기 위해 rsync가 좋지만 윈도우 환경(Git Bash) 고려하여 find 사용
+            # web-admin 안의 내용물을 복사
+            cp -r "$SOURCE_DIR/web-admin/." "$TARGET_DIR/web-admin/"
 
-                # 명시적으로 필요한 파일들만 복사 (숨김 폴더 .next 포함)
-                echo "    - server.js 및 package.json 복사"
-                cp .next/standalone/server.js "$TARGET_DIR/web-admin/"
-                cp .next/standalone/package.json "$TARGET_DIR/web-admin/"
-                
-                if [ -d ".next/standalone/.next" ]; then
-                    echo "    - .next (standalone build data) 폴더 복사"
-                    cp -a .next/standalone/.next "$TARGET_DIR/web-admin/"
-                else
-                    echo "    ⚠️ .next/standalone/.next 폴더를 찾을 수 없습니다!"
-                fi
-                
-                # 2. Static 리소스 복사 (.next/static -> .next/static)
-                echo "    - .next/static 리소스 복사"
-                mkdir -p "$TARGET_DIR/web-admin/.next/static"
-                if [ -d ".next/static" ]; then
-                    cp -a .next/static/. "$TARGET_DIR/web-admin/.next/static/"
-                fi
-                
-                # 3. Public 폴더 복사
-                echo "    - public 폴더 복사"
-                if [ -d "public" ]; then
-                    cp -a public "$TARGET_DIR/web-admin/"
-                fi
-
-                # node_modules는 타켓에서 설치하도록 제외
-                if [ -d "$TARGET_DIR/web-admin/node_modules" ]; then
-                    echo "    - 기존 node_modules 제거"
-                    rm -rf "$TARGET_DIR/web-admin/node_modules"
-                fi
-
-                echo "  ✓ web-admin 빌드 및 배포 완료"
-                
-                # 다시 루트로 복귀
-                cd "$SOURCE_DIR"
-            else
-                echo "  ❌ web-admin 디렉토리 진입 실패"
-                exit 1
-            fi
+            # 3. 불필요한 빌드 아티팩트 및 의존성 제거
+            rm -rf "$TARGET_DIR/web-admin/.next"
+            rm -rf "$TARGET_DIR/web-admin/node_modules"
+            
+            echo "  ✓ web-admin 소스 복사 완료"
         else
             cp -R "$SOURCE_DIR/$item" "$TARGET_DIR/"
             echo "  ✓ $item 복사 완료"
