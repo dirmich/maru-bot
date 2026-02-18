@@ -1,111 +1,111 @@
-# 🤖 MaruBot
+# 🤖 MaruBot (마루봇)
 
-**MaruBot** is a **"Physical AI Assistant"** optimized for directly controlling hardware and interacting on SBCs (Single Board Computers) like Raspberry Pi, based on the ultra-lightweight MaruBot engine.
-
----
-
-## ✨ Key Concepts
-1. **Engine Reuse**: Uses high-efficiency Go binaries, maintaining RAM usage under 10MB.
-2. **Raspberry Pi Optimized**: Automates GPIO, camera, microphone, and speaker permission settings.
-3. **Hyper-Local Setup**: Complete configuration interactively through a dedicated script (`maru-setup.sh`) instead of complex JSON editing.
-4. **Physical Interaction**: Pre-included tools for the AI agent to control servo motors, LEDs, and various sensors (DHT, PIR, etc.).
+**MaruBot**은 MaruBot의 초경량 엔진을 기반으로, Raspberry Pi와 같은 SBC(Single Board Computer)에서 하드웨어를 직접 제어하고 소통하기 위해 최적화된 **"Physical AI Assistant"**입니다.
 
 ---
 
-## 📂 Directory Structure
-- `/config`: Hardware and agent configuration files for MaruBot.
-- `maru-setup.sh`: Script for Raspberry Pi initialization and hardware integration.
-- `/tools`: GPIO/I2C/SPI control utilities for the AI agent.
-- `/bin`: MaruBot binary links or executables.
+## ✨ 핵심 컨셉
+1. **MaruBot 엔진 재사용**: MaruBot의 고효율 Go 바이너리를 그대로 사용하여 10MB 이하의 RAM 점유율을 유지합니다.
+2. **Raspberry Pi 최적화**: GPIO, 카메라, 마이크, 스피커 권한 설정을 자동화합니다.
+3. **하이퍼-로컬 설정**: 복잡한 JSON 편집 대신 전용 스크립트(`maru-setup.sh`)를 통해 대화형으로 설정을 완료합니다.
+4. **물리적 상호작용**: AI 에이전트가 서보 모터, LED, 각종 센서(DHT, PIR 등)를 제어할 수 있는 도구가 사전 포함되어 있습니다.
 
 ---
 
-## 📋 Prerequisites
-
-Before starting, ensure you have the following ready:
-- **Hardware**: Raspberry Pi (Full ARM64/32 support), Power Adapter, SD Card
-- **OS**: Raspberry Pi OS (Bullseye or newer recommended)
-- **API Key**: API keys for LLM services like OpenAI, Gemini, etc.
+## 📂 폴더 구조
+- `/config`: 마루봇 전용 하드웨어 및 에이전트 설정 파일
+- `maru-setup.sh`: 라즈베리 파이 초기화 및 하드웨어 연동 자동화 스크립트
+- `/tools`: AI 에이전트가 사용할 GPIO/I2C/SPI 제어 유틸리티 (구현 예정)
+- `/bin`: MaruBot 바이너리 링크 또는 실행 파일 보관
 
 ---
 
-## 🚀 Quick Start
+## � 사전 준비 (Prerequisites)
 
-The fastest way to get MaruBot up and running.
+시작하기 전에 다음 사항이 준비되었는지 확인하세요:
+- **Hardware**: Raspberry Pi (ARM64/32 완벽 지원), 전원 아답터, SD 카드
+- **OS**: Raspberry Pi OS (Bullseye 이상 권장)
+- **API Key**: OpenAI, Gemini 등 사용할 LLM 서비스의 API 키
 
-### 1. One-Click Installation
-Run the following command in your terminal to install the engine and Web Admin together:
+---
+
+## 🚀 빠른 시작 (Quick Start)
+
+가장 빠르고 간편하게 마루봇을 시작하는 방법입니다.
+
+### 1. 원클릭 설치
+터미널에서 아래 명령어를 실행하여 엔진과 웹 관리자를 한 번에 설치합니다:
 
 ```bash
 # Official MaruBot One-Line Installer
 curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash
 ```
 
-### 2. Essential Configuration (API Key)
-After installation, register the API key for the AI model you want to use:
+### 2. 필수 설정 (API 키 등록)
+설치 완료 후, 사용할 AI 모델의 API 키를 등록합니다:
 
 ```bash
-# Example: Set OpenAI API Key
+# OpenAI API 키 설정 예시
 marubot config set providers.openai.api_key "YOUR_OPENAI_KEY"
 
-# Select default model
+# 기본 모델 선택
 marubot config set agents.defaults.model "gpt-4o"
 ```
 
-### 3. Run Agent
+### 3. 에이전트 실행
 ```bash
-# Console interaction mode
+# 콘솔 대화 모드
 marubot agent
 
-# Or Web Admin Dashboard (http://localhost:3000)
+# 또는 웹 관리자 대시보드 (http://localhost:3000)
 marubot dashboard
 ```
 
 ---
 
-## 🛠️ Detailed Installation & Hardware Setup
+## 🛠️ 상세 설치 및 하드웨어 연동 (Detailed Installation)
 
-If the one-click installer doesn't work or you prefer manual setup:
+원클릭 설치가 작동하지 않거나 수동 설정을 원하는 경우:
 
-1. **Install Essentials**: `sudo apt install -y git make golang libcamera-apps`
-2. **Clone Repo**: `git clone https://github.com/dirmich/maru-bot.git marubot`
-3. **Hardware Init**: `cd marubot && bash maru-setup.sh`
-   - This script verifies GPIO permissions and activates camera/audio interfaces.
+1.  **필수 도구 설치**: `sudo apt install -y git make golang libcamera-apps`
+2.  **리포지토리 클론**: `git clone https://github.com/dirmich/maru-bot.git marubot`
+3.  **하드웨어 초기화**: `cd marubot && bash maru-setup.sh`
+    -   이 스크립트는 GPIO 권한, 카메라/오디오 인터페이스 활성화를 점검합니다.
 
 ---
 
-## ⚙️ Configuration
+## ⚙️ 설정 (Configuration)
 
-After installation, you must configure your API keys to use AI models.
+설치가 완료되면 AI 모델을 사용하기 위해 API 키를 설정해야 합니다.
 
-1. **Using CLI (Recommended)**:
+1. **명령줄 도구 사용 (권장)**:
    ```bash
-   # Set OpenAI API Key
+   # OpenAI API 키 설정
    marubot config set providers.openai.api_key "YOUR_KEY"
    
-   # Change default model
+   # 기본 모델 변경
    marubot config set agents.defaults.model "gpt-4o"
    ```
 
-2. **Manual File Edit**:
+2. **설정 파일 직접 수정**:
    ```bash
    nano ~/.marubot/config.json
    ```
-   Locate the `providers` section and enter your key for the service you wish to use (e.g., openai, gemini).
+   `providers` 섹션에서 사용할 서비스(openai, gemini 등)의 `api_key` 아래에 본인의 키를 입력합니다.
 
 ---
 
-## 🔧 Hardware Features
-- **GPIO**: LED control, button input detection.
-- **I2C/SPI**: Real-time sensor data reading (Temp, Humidity, Light).
-- **Camera**: AI-driven image capture and analysis (Libcamera integration).
-- **Audio**: Voice command reception and speaker output via local hardware.
+## 🔧 주요 하드웨어 제어 기능
+- **GPIO**: LED 제어, 버튼 입력 감지
+- **I2C/SPI**: 온도, 습도, 조도 센서 데이터 실시간 읽기
+- **Camera**: AI가 직접 현장을 촬영하고 상황 분석 (Libcamera 연동)
+- **Audio**: 로컬 마이크를 통한 음성 명령 수신 및 스피커 출력
 
 ---
 
-## 📝 License
-Distributed under the MIT License.
+## 📝 라이선스
+MaruBot의 철학을 계승하여 MIT License를 따릅니다.
 
-MaruBot is based on [picoclaw](https://github.com/sipeed/picoclaw) and has been enhanced with additional features optimized for Raspberry Pi.
+MaruBot은 [picoclaw](https://github.com/sipeed/picoclaw)를 기본으로 Raspberry Pi에 맞게 기능이 추가되었습니다.
 
-*Developed & Analyzed by: Antigravity AI (2026)*
+*개발 및 분석: Antigravity AI (2026-02-13)*
