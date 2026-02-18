@@ -1313,23 +1313,40 @@ func dashboardCmd() {
 	time.Sleep(2 * time.Second)
 
 	// Determine web project path
-	// Priority 1: ~/.marubot/web-admin (Installed Resource)
-	// Priority 2: ./web-admin (Local Dev)
-	// Priority 3: ../web-admin (Local Dev Parent)
+	resDir := getResourceDir()
 
-	webPath := filepath.Join(getResourceDir(), "web-admin")
-	runMode := "prod" // prod = node server.js
+	// 후보 경로들 (우선순위 순)
+	candidates := []string{
+		filepath.Join(resDir, "web-admin"), // ~/.marubot/web-admin
+		"web-admin",                        // ./web-admin
+		"../web-admin",                     // ../web-admin
+	}
 
-	if _, err := os.Stat(webPath); os.IsNotExist(err) {
-		webPath = "web-admin"
-		runMode = "dev"
-		if _, err := os.Stat(webPath); os.IsNotExist(err) {
-			webPath = "../web-admin"
-			if _, err := os.Stat(webPath); os.IsNotExist(err) {
-				fmt.Println("Error: web-admin directory not found in ~/.marubot, ./, or ../.")
-				return
+	var webPath string
+	var runMode string
+
+	for _, p := range candidates {
+		abs, _ := filepath.Abs(p)
+		if _, err := os.Stat(p); err == nil {
+			webPath = p
+			// RESOURCE_DIR에 있으면 실서버 모드(prod), 로컬이면 개발 모드(dev)
+			if strings.Contains(abs, resDir) {
+				runMode = "prod"
+			} else {
+				runMode = "dev"
 			}
+			break
 		}
+	}
+
+	if webPath == "" {
+		fmt.Println("Error: web-admin directory not found.")
+		fmt.Println("Checked locations:")
+		for _, p := range candidates {
+			abs, _ := filepath.Abs(p)
+			fmt.Printf("  - %s\n", abs)
+		}
+		return
 	}
 
 	fmt.Printf("✓ Starting Web UI from %s (Mode: %s)\n", webPath, runMode)
@@ -1337,10 +1354,9 @@ func dashboardCmd() {
 	var cmd *exec.Cmd
 	if runMode == "prod" {
 		// Production: Standalone Next.js
-		// Check if server.js exists
-		if _, err := os.Stat(filepath.Join(webPath, "server.js")); os.IsNotExist(err) {
-			// Fallback to dev if server.js missing
-			fmt.Println("Warning: server.js not found in web-admin. Trying 'bun dev'...")
+		serverJS := filepath.Join(webPath, "server.js")
+		if _, err := os.Stat(serverJS); os.IsNotExist(err) {
+			fmt.Printf("Warning: server.js not found in %s. Trying 'bun dev'...\n", webPath)
 			runMode = "dev"
 			cmd = exec.Command("bun", "dev")
 		} else {
