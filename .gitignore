@@ -1,3 +1,4 @@
+build/
 bin/
 *.exe
 *.dll
@@ -6,10 +7,23 @@ bin/
 *.test
 *.out
 .maruminibot/
+.marubot/
 config.json
+usersetting.json
 sessions/
 coverage.txt
 coverage.html
 .DS_Store
-build
 
+# Web Admin
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env*.local
+
+# Public Distribution folder
+maru-bot/
+../maru-bot/
