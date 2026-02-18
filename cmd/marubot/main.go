@@ -33,7 +33,8 @@ import (
 	"github.com/chzyer/readline"
 )
 
-const version = "0.1.0"
+var version = "0.2.0"
+
 const logo = "🦞"
 
 func copyDirectory(src, dst string) error {
@@ -388,7 +389,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-0.1.0
+0.2.0
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
