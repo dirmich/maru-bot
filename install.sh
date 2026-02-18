@@ -168,6 +168,24 @@ if grep -q "marubot/build" ~/.bashrc; then
     sed -i '/marubot\/build/d' ~/.bashrc
 fi
 
+# 8. 기존 설정 마이그레이션 (상대 경로 -> 절대 경로)
+if [ -f "$RESOURCE_DIR/config.json" ]; then
+    if grep -q "\./workspace" "$RESOURCE_DIR/config.json"; then
+        echo "  🔄 config.json의 워크스페이스 경로를 ~/.marubot/workspace로 업데이트합니다..."
+        sed -i 's|"\./workspace"|"~/.marubot/workspace"|g' "$RESOURCE_DIR/config.json"
+    fi
+fi
+
+# 9. 홈 디렉토리에 잘못 생성된 폴더들 (.marubot 외부) 정리
+for dir in "workspace" "sessions" "extensions"; do
+    if [ -d "$HOME/$dir" ]; then
+        echo "  📦 잘못된 위치의 $dir 폴더를 ~/.marubot/$dir 로 통합합니다..."
+        mkdir -p "$RESOURCE_DIR/$dir"
+        cp -an "$HOME/$dir/." "$RESOURCE_DIR/$dir/" 2>/dev/null || true
+        rm -rf "$HOME/$dir"
+    fi
+done
+
 echo -e "\n${GREEN}🎉 MaruBot 설치가 완료되었습니다!${NC}"
 echo -e "🧹 설치에 사용된 소스 폴더($INSTALL_DIR)를 자동으로 정리합니다..."
 cd "$HOME"
