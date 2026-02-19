@@ -12,10 +12,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -1493,6 +1495,33 @@ func stopCmd() {
 func upgradeCmd() {
 	fmt.Println("⚙️  Checking for updates...")
 
+	latest, err := getLatestVersion()
+	if err != nil {
+		fmt.Printf("⚠️  Failed to check latest version: %v\n", err)
+		fmt.Println("Proceeding with forced upgrade...")
+	} else {
+		// Simple string comparison for now, assuming semantic versioning format
+		if strings.TrimPrefix(latest, "v") == strings.TrimPrefix(version, "v") {
+			fmt.Printf("✅ You are already using the latest version (v%s).\n", version)
+			fmt.Print("Do you want to reinstall anyway? [y/N]: ")
+			reader := bufio.NewReader(os.Stdin)
+			response, _ := reader.ReadString('\n')
+			response = strings.TrimSpace(strings.ToLower(response))
+			if response != "y" && response != "yes" {
+				return
+			}
+		} else {
+			fmt.Printf("✨ New version available: v%s (Current: v%s)\n", latest, version)
+			fmt.Print("Do you want to upgrade? [Y/n]: ")
+			reader := bufio.NewReader(os.Stdin)
+			response, _ := reader.ReadString('\n')
+			response = strings.TrimSpace(strings.ToLower(response))
+			if response == "n" || response == "no" {
+				return
+			}
+		}
+	}
+
 	// Stop existing process if running
 	stopCmd()
 
@@ -1513,4 +1542,31 @@ func upgradeCmd() {
 	}
 
 	fmt.Println("✨ Upgrade complete! You can now start the dashboard with 'marubot dashboard'")
+}
+
+func getLatestVersion() (string, error) {
+	// Check the source code on GitHub for the version variable
+	url := "https://raw.githubusercontent.com/dirmich/maru-bot/main/cmd/marubot/main.go"
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to fetch version file: %s", resp.Status)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	// Regex to find: var version = "0.3.1"
+	re := regexp.MustCompile(`var version = "([^"]+)"`)
+	matches := re.FindStringSubmatch(string(body))
+	if len(matches) > 1 {
+		return matches[1], nil
+	}
+	return "", fmt.Errorf("version string not found in remote file")
 }
