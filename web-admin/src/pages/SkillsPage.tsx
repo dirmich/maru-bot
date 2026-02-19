@@ -6,8 +6,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { Package, Plus, Terminal, RefreshCw } from 'lucide-react';
 import { ConfirmDialog } from "@/components/ui-custom-dialog";
+import { useTranslation } from "@/lib/i18n";
 
 export function SkillsPage() {
+    const t = useTranslation();
     const [skillsOutput, setSkillsOutput] = useState<string>('');
     const [installInput, setInstallInput] = useState('');
     const [confirmState, setConfirmState] = useState<{ open: boolean, title: string, desc: string, action: () => Promise<void> }>({
@@ -23,26 +25,25 @@ export function SkillsPage() {
             const res = await fetch('/api/skills');
             if (res.ok) {
                 const data = await res.json();
-                setSkillsOutput(data.output || 'Skills list empty');
+                setSkillsOutput(data.output || t.skills_empty);
             } else {
-                // Offline fallback
                 setSkillsOutput(`(Demo Mode)\n\nINSTALLED SKILLS:\n-----------------\n✓ weather (sipeed/marubot-skills/weather)\n✓ news (sipeed/marubot-skills/news)\n\nAvailable builtin: calculator, stock`);
             }
         } catch (e) {
-            setSkillsOutput(`Connection failed. Make sure the backend is running.\n\nError: ${e}`);
+            setSkillsOutput(`Connection failed. Error: ${e}`);
         }
     };
 
     const handleActionRequest = (action: string, skill: string) => {
         if (!skill) return;
 
-        const actionKR = action === 'install' ? '설치' : '삭제';
+        const actionName = action === 'install' ? t.skills_install : t.skills_uninstall;
         setConfirmState({
             open: true,
-            title: `툴/스킬 ${actionKR}`,
-            desc: `[${skill}]을(를) ${actionKR}하시겠습니까?`,
+            title: `${t.skills_title} ${actionName}`,
+            desc: `[${skill}] ${actionName}?`,
             action: async () => {
-                toast.info(`${skill} ${actionKR} 중...`);
+                toast.info(`${skill} ${actionName}...`);
                 try {
                     const res = await fetch('/api/skills', {
                         method: 'POST',
@@ -50,14 +51,14 @@ export function SkillsPage() {
                         body: JSON.stringify({ action, skill }),
                     });
                     if (res.ok) {
-                        toast.success(`${skill} ${actionKR} 완료`);
+                        toast.success(`${skill} ${actionName} OK`);
                         fetchSkills();
                         setInstallInput('');
                     } else {
-                        toast.success(`(Demo) ${skill} ${actionKR} 완료 시뮬레이션`);
+                        toast.success(`(Demo) ${skill} ${actionName} OK`);
                     }
                 } catch (error) {
-                    toast.error(`${skill} ${actionKR} 실패`);
+                    toast.error(`${skill} ${actionName} Failed`);
                 } finally {
                     setConfirmState(prev => ({ ...prev, open: false }));
                 }
@@ -70,19 +71,19 @@ export function SkillsPage() {
             <header className="flex-none flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <Package className="text-emerald-600" /> 스킬 & 툴 박스
+                        <Package className="text-emerald-600" /> {t.skills_title}
                     </h1>
-                    <p className="text-sm text-slate-500">에이전트의 기능을 확장하는 도구를 관리합니다.</p>
+                    <p className="text-sm text-slate-500">{t.skills_desc}</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={fetchSkills}>
-                    <RefreshCw className="w-4 h-4 mr-2" /> 새로고침
+                    <RefreshCw className="w-4 h-4 mr-2" /> {t.refresh}
                 </Button>
             </header>
 
             <Card className="flex-1 flex flex-col border-none shadow-lg overflow-hidden min-h-0">
                 <CardHeader className="py-4 px-6 border-b bg-white dark:bg-slate-900 flex flex-row items-center justify-between flex-none">
                     <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                        <Terminal className="w-4 h-4 text-emerald-500" /> CLI 출력
+                        <Terminal className="w-4 h-4 text-emerald-500" /> {t.skills_cli_output}
                     </CardTitle>
                     <div className="flex gap-2">
                         <Input
@@ -92,7 +93,7 @@ export function SkillsPage() {
                             className="h-9 w-64 text-sm"
                         />
                         <Button size="sm" onClick={() => handleActionRequest('install', installInput)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                            <Plus className="w-4 h-4 mr-1" /> 설치
+                            <Plus className="w-4 h-4 mr-1" /> {t.skills_install}
                         </Button>
                     </div>
                 </CardHeader>

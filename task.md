@@ -80,9 +80,10 @@
 - **2026-02-18**: 32-bit ARM 환경 지원을 위해 Prisma를 Drizzle ORM으로 전면 교체. 이제 32-bit OS에서도 대시보드 사용 가능.
 - **2026-02-18**: MaruBot v0.2.0 정식 배포 (Github: dirmich/maru-bot). 32-bit/64-bit 자동 감지 설치 및 Web Admin Standalone 빌드 적용 완료.
 - **2026-02-19**: 32-bit 환경 빌드 에러 수정 (next.config.mjs 적용).
+- **2026-02-19**: 대시보드 및 설치 스크립트 다국어화(EN, KO, JP) 완료. 자기 진화(Auto-Evolution) 시스템 프롬프트 강화.
 
 
-## 🟢 Phase 6: 웹 관리자 경량화 및 의존성 제거 (진행 중)
+## 🟢 Phase 6: 웹 관리자 경량화 및 의존성 제거 (완료)
 - [x] **Task 6.1: Vite + React (SPA) 마이그레이션**
     - [x] Next.js 의존성 제거 및 Vite/React Router/Tailwind 설정 (package.json, vite.config.ts)
     - [x] 진입점(src/main.tsx, index.html) 및 라우팅 구성 (App.tsx)
@@ -97,3 +98,18 @@
     - [x] `install.sh`: 사용자 기기(RPi)에서의 `npm install`, `npm run build` 단계를 Go 빌드 전 단계로 이동
     - [x] 미리 빌드된 자산(Web Admin)이 포함된 단일 바이너리 배포 구조로 변경
     - [x] `marubot dashboard` 실행 시 별도 Node.js/Bun 프로세스 없이 Go 서버만으로 동작하도록 개선
+
+---
+
+## 🟢 Phase 7: 다국어화 및 지능형 확장 (완료)
+- [x] **Task 7.1: 대시보드 UI 다국어 지원**
+    - [x] `zustand` + `localStorage` 기반 언어 상태 관리 및 영구 저장 구현
+    - [x] 한국어, 영어, 일본어 번역 사전(`i18n.ts`) 구축
+    - [x] 모든 대시보드 페이지(Chat, GPIO, Skills, Settings) 번역 적용
+- [x] **Task 7.2: 원클릭 설치 스크립트(`install.sh`) 다국어화**
+    - [x] 설치 시작 시 언어 선택 프롬프트 추가
+    - [x] 모든 설치 메시지 및 로그 다국어 출력 적용
+    - [x] 선택된 언어를 시스템 기본 언어로 `config.json`에 자동 주입
+- [x] **Task 7.3: 자기 진화(Auto-Evolution) 기능 강화**
+    - [x] `create_custom_tool` 도구의 목적과 사용법을 시스템 프롬프트에 명시
+    - [x] 에이전트가 스스로 기능을 확장하도록 유도하는 지능형 컨텍스트 구축

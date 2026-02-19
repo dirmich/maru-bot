@@ -8,23 +8,34 @@ import {
     User as UserIcon,
     ChevronLeft,
     ChevronRight,
+    Languages
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState } from "react";
-
-const menuItems = [
-    { name: "채팅", href: "/chat", icon: MessageSquare },
-    { name: "GPIO 설정", href: "/gpio", icon: Cpu },
-    { name: "스킬 & 툴", href: "/skills", icon: Package },
-    { name: "환경 설정", href: "/settings", icon: Settings },
-];
+import { useTranslation, useLanguageStore, Language } from "@/lib/i18n";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 export function Sidebar() {
+    const t = useTranslation();
+    const { language, setLanguage } = useLanguageStore();
     const location = useLocation();
     const pathname = location.pathname;
     const [isCollapsed, setIsCollapsed] = useState(false);
+
+    const menuItems = [
+        { name: t.chat, href: "/chat", icon: MessageSquare },
+        { name: t.gpio, href: "/gpio", icon: Cpu },
+        { name: t.skills, href: "/skills", icon: Package },
+        { name: t.settings, href: "/settings", icon: Settings },
+    ];
 
     // Mock session for local admin
     const session = {
@@ -34,6 +45,12 @@ export function Sidebar() {
             image: ""
         }
     };
+
+    const languages: { code: Language; label: string }[] = [
+        { code: 'en', label: 'English' },
+        { code: 'ko', label: '한국어' },
+        { code: 'ja', label: '日本語' },
+    ];
 
     return (
         <aside className={cn(
@@ -82,6 +99,23 @@ export function Sidebar() {
             </nav>
 
             <div className="p-4 border-t space-y-4">
+                {/* Language Switcher */}
+                <div className={cn("px-2", isCollapsed ? "flex justify-center" : "")}>
+                    <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
+                        <SelectTrigger className={cn("h-9 border-none bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors", isCollapsed ? "px-0 w-9 justify-center" : "w-full justify-start gap-3")}>
+                            <Languages size={18} className="text-slate-500" />
+                            {!isCollapsed && <SelectValue className="text-xs" />}
+                        </SelectTrigger>
+                        <SelectContent>
+                            {languages.map((lang) => (
+                                <SelectItem key={lang.code} value={lang.code}>
+                                    {lang.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
                 {session?.user && (
                     <div className={cn(
                         "flex items-center gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50",
@@ -109,8 +143,8 @@ export function Sidebar() {
                     "text-[10px] text-slate-400 px-2",
                     isCollapsed ? "text-center" : "flex justify-between"
                 )}>
-                    {!isCollapsed && <span>Engine Status: Active</span>}
-                    <span>v0.2.4</span>
+                    {!isCollapsed && <span>{t.status_ok}</span>}
+                    <span>v0.3.0</span>
                 </div>
             </div>
         </aside>

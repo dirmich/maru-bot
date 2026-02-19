@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Cpu, Save, Plus, Trash } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from "@/lib/i18n";
 
-// Placeholder for GpioSchematic since we're migrating
-const GpioSchematic = ({ configuredPins }: { configuredPins: number[] }) => (
+// Placeholder for GpioSchematic
+const GpioSchematic = ({ configuredPins, t }: { configuredPins: number[], t: any }) => (
     <div className="bg-slate-100 p-8 rounded-lg text-center border-2 border-dashed border-slate-300">
-        <h3 className="font-semibold text-slate-500 mb-2">Raspberry Pi GPIO Header</h3>
-        <p className="text-xs text-slate-400">Visualization Component Coming Soon</p>
+        <h3 className="font-semibold text-slate-500 mb-2">{t.gpio_schematic}</h3>
+        <p className="text-xs text-slate-400">{t.gpio_schematic_desc}</p>
         <div className="mt-4 grid grid-cols-2 gap-2 max-w-xs mx-auto text-xs font-mono">
             {[...Array(40)].map((_, i) => (
                 <div key={i} className={`h-4 w-4 rounded-full mx-auto ${configuredPins.includes(i + 1) ? 'bg-orange-500' : 'bg-slate-300'}`}></div>
@@ -26,10 +27,8 @@ interface PinConfig {
 }
 
 export function GpioPage() {
-    const [configuredPins, setConfiguredPins] = useState<PinConfig[]>([
-        { pin: 7, mode: 'OUT', label: 'Status LED' },
-        { pin: 11, mode: 'IN', label: 'Button 1' },
-    ]);
+    const t = useTranslation();
+    const [configuredPins, setConfiguredPins] = useState<PinConfig[]>([]);
 
     const handleAddPin = () => {
         // Find next available pin or just use 0 as placeholder
@@ -89,12 +88,12 @@ export function GpioPage() {
             });
 
             if (res.ok) {
-                toast.success('GPIO 설정이 저장되었습니다.');
+                toast.success(t.gpio_save_success);
             } else {
-                toast.error('저장 실패 (서버 오류)');
+                toast.error('Error (HTTP ' + res.status + ')');
             }
         } catch (e) {
-            toast.error('저장 중 오류가 발생했습니다.');
+            toast.error('Network Error');
         }
     };
 
@@ -102,20 +101,20 @@ export function GpioPage() {
         <div className="p-6 max-w-6xl mx-auto space-y-6">
             <header className="mb-6">
                 <h1 className="text-2xl font-bold flex items-center gap-2">
-                    <Cpu className="text-orange-600" /> GPIO 제어 및 설정
+                    <Cpu className="text-orange-600" /> {t.gpio_title}
                 </h1>
-                <p className="text-sm text-slate-500">Raspberry Pi의 핀 맵을 시각적으로 확인하고 하드웨어 인터페이스를 설정합니다.</p>
+                <p className="text-sm text-slate-500">{t.gpio_desc}</p>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-6">
                     <Card className="border-none shadow-lg">
                         <CardHeader>
-                            <CardTitle className="text-lg">핀 맵 스케매틱</CardTitle>
-                            <CardDescription>핀 번호를 클릭하여 상세 정보를 확인하세요.</CardDescription>
+                            <CardTitle className="text-lg">{t.gpio_schematic}</CardTitle>
+                            <CardDescription>{t.gpio_schematic_desc}</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <GpioSchematic configuredPins={configuredPins.map(p => p.pin)} />
+                            <GpioSchematic configuredPins={configuredPins.map(p => p.pin)} t={t} />
                         </CardContent>
                     </Card>
                 </div>
@@ -124,20 +123,20 @@ export function GpioPage() {
                     <Card className="border-none shadow-lg flex-1">
                         <CardHeader className="flex flex-row items-center justify-between">
                             <div>
-                                <CardTitle className="text-lg">설정된 장치</CardTitle>
-                                <CardDescription>활성화된 GPIO 핀 목록입니다.</CardDescription>
+                                <CardTitle className="text-lg">{t.gpio_configured_devices}</CardTitle>
+                                <CardDescription>{t.gpio_configured_desc}</CardDescription>
                             </div>
                             <Button size="sm" onClick={handleAddPin} className="bg-orange-600 hover:bg-orange-700 text-white">
-                                <Plus className="w-4 h-4 mr-1" /> 추가
+                                <Plus className="w-4 h-4 mr-1" /> {t.gpio_add}
                             </Button>
                         </CardHeader>
                         <CardContent>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Pin</TableHead>
-                                        <TableHead>Mode</TableHead>
-                                        <TableHead>Label</TableHead>
+                                        <TableHead>{t.gpio_pin}</TableHead>
+                                        <TableHead>{t.gpio_mode}</TableHead>
+                                        <TableHead>{t.gpio_label}</TableHead>
                                         <TableHead className="w-10"></TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -191,7 +190,7 @@ export function GpioPage() {
                                     {configuredPins.length === 0 && (
                                         <TableRow>
                                             <TableCell colSpan={4} className="text-center text-slate-400 py-8">
-                                                설정된 GPIO 핀이 없습니다.
+                                                {t.gpio_no_pins}
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -200,7 +199,7 @@ export function GpioPage() {
                         </CardContent>
                         <CardFooter className="justify-end border-t pt-4">
                             <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white">
-                                <Save className="w-4 h-4 mr-2" /> 설정 저장
+                                <Save className="w-4 h-4 mr-2" /> {t.gpio_save}
                             </Button>
                         </CardFooter>
                     </Card>

@@ -58,6 +58,12 @@ IMPORTANT: When responding to direct questions or conversations, reply directly 
 Only use the 'message' tool when you need to send a message to a specific chat channel (like WhatsApp).
 For normal conversation, just respond with text - do not call the message tool.
 
+## Auto-Evolution
+You have the ability to expand your own capabilities. If you encounter a task that requires a specialized tool you don't have:
+1. Use the 'create_custom_tool' to write a Bash or Python script that implements the functionality.
+2. The new tool will be available for you to use in the very next turn.
+3. You can also create high-level 'Skills' by creating a directory in 'skills/{name}/' and writing a 'SKILL.md' file there using 'write_file'.
+
 Always be helpful, accurate, and concise. When using tools, explain what you're doing.
 When remembering something, write to %s/memory/MEMORY.md`,
 		now, workspacePath, workspacePath, workspacePath, workspacePath, workspacePath)

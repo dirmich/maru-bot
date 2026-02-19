@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { Send, MessageSquare, Trash2 } from 'lucide-react';
 import { ConfirmDialog } from "@/components/ui-custom-dialog";
+import { useTranslation } from "@/lib/i18n";
 
 // Simple ID generator
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -18,11 +19,12 @@ interface Message {
 }
 
 export function ChatPage() {
+    const t = useTranslation();
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',
             role: 'assistant',
-            content: '안녕하세요! MaruBot AI 어시스턴트입니다. 무엇을 도와드릴까요?',
+            content: t.chat_welcome,
             timestamp: new Date()
         }
     ]);
@@ -77,8 +79,7 @@ export function ChatPage() {
             }
         } catch (error) {
             console.error('Chat error:', error);
-            // Fallback for demo/offline mode
-            toast.error('메시지 전송에 실패했습니다. (오프라인 모드일 수 있습니다)');
+            toast.error(t.chat_send_error);
 
             // Mock response if API fails (for development/demo)
             setTimeout(() => {
@@ -101,7 +102,7 @@ export function ChatPage() {
 
     const handleClearChat = () => {
         setMessages([]);
-        toast.success('채팅 내역이 초기화되었습니다.');
+        toast.success(t.chat_clear_success);
         setShowClearConfirm(false);
     };
 
@@ -109,16 +110,16 @@ export function ChatPage() {
         <div className="flex flex-col h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-6 overflow-hidden">
             <header className="mb-4 flex-none">
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <MessageSquare className="text-blue-600" /> AI 어시스턴트
+                    <MessageSquare className="text-blue-600" /> {t.chat_title}
                 </h1>
-                <p className="text-sm text-slate-500">에이전트와 실시간으로 대화하세요.</p>
+                <p className="text-sm text-slate-500">{t.chat_desc}</p>
             </header>
 
             <Card className="flex-1 flex flex-col border-none shadow-lg overflow-hidden min-h-0 ring-1 ring-slate-900/5">
                 <CardHeader className="py-3 px-4 border-b bg-white dark:bg-slate-900 flex flex-row items-center justify-between flex-none">
                     <CardTitle className="text-sm font-medium flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full ${isLoading ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`}></span>
-                        실시간 대화
+                        {t.chat_live}
                     </CardTitle>
                     <Button
                         variant="ghost"
@@ -136,7 +137,7 @@ export function ChatPage() {
                             {messages.length === 0 && (
                                 <div className="h-40 flex flex-col items-center justify-center text-slate-400 py-10">
                                     <MessageSquare className="w-12 h-12 mb-2 opacity-20" />
-                                    <p>메시지를 입력하여 대화를 시작하세요.</p>
+                                    <p>{t.chat_empty_msg}</p>
                                 </div>
                             )}
 
@@ -147,8 +148,8 @@ export function ChatPage() {
                                 >
                                     <div
                                         className={`max-w-[85%] md:max-w-[75%] rounded-2xl px-4 py-3 text-sm shadow-sm ${m.role === 'user'
-                                                ? 'bg-blue-600 text-white rounded-tr-none'
-                                                : 'bg-white dark:bg-slate-800 border rounded-tl-none text-slate-800 dark:text-slate-200'
+                                            ? 'bg-blue-600 text-white rounded-tr-none'
+                                            : 'bg-white dark:bg-slate-800 border rounded-tl-none text-slate-800 dark:text-slate-200'
                                             }`}
                                     >
                                         <p className="whitespace-pre-wrap leading-relaxed break-words">{m.content}</p>
@@ -167,7 +168,7 @@ export function ChatPage() {
                                             <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
                                             <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce"></span>
                                         </div>
-                                        <span className="text-slate-500 text-xs">생각 중...</span>
+                                        <span className="text-slate-500 text-xs">{t.chat_thinking}</span>
                                     </div>
                                 </div>
                             )}
@@ -182,7 +183,7 @@ export function ChatPage() {
                         onSubmit={handleSendMessage}
                     >
                         <Input
-                            placeholder="메시지를 입력하세요..."
+                            placeholder={t.chat_input_placeholder}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             disabled={isLoading}
@@ -198,8 +199,8 @@ export function ChatPage() {
             <ConfirmDialog
                 open={showClearConfirm}
                 onOpenChange={setShowClearConfirm}
-                title="채팅 내역 삭제"
-                description="모든 채팅 내역이 삭제됩니다. 계속하시겠습니까?"
+                title={t.chat_clear_confirm_title}
+                description={t.chat_clear_confirm_desc}
                 onConfirm={handleClearChat}
             />
         </div>
