@@ -111,7 +111,7 @@ if [ "$USE_BUN" = true ]; then
     "$HOME/.bun/bin/bun" run build
 else
     echo -e "${BLUE}    📦 Installing web dependencies with NPM...${NC}"
-    npm install
+    npm install --legacy-peer-deps
     echo -e "${BLUE}    ⚛️ Building frontend assets with NPM...${NC}"
     npm run build
 fi
