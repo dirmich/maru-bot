@@ -1,6 +1,6 @@
 module github.com/dirmich/marubot
 
-go 1.24
+go 1.24.0
 
 require (
 	github.com/adrianmo/go-nmea v1.10.0

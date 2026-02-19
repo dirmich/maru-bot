@@ -1,12 +1,15 @@
 package dashboard
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -52,6 +55,7 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/chat", s.handleChat)
 	mux.HandleFunc("/api/config", s.handleConfig)
 	mux.HandleFunc("/api/skills", s.handleSkills)
+	mux.HandleFunc("/api/gpio", s.handleGpio)
 
 	// Static File Serving (SPA Fallback)
 	fileServer := http.FileServer(http.FS(distFS))
@@ -101,7 +105,7 @@ func (s *Server) getFileModTime(f fs.File) time.Time {
 	return stat.ModTime()
 }
 
-// API Handlers (Simplified)
+// API Handlers
 
 func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -119,7 +123,6 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Use the agent to get a real AI response
 		resp, err := s.agent.ProcessDirect(r.Context(), req.Message, "web-admin")
 		if err != nil {
 			http.Error(w, fmt.Sprintf("AI processing error: %v", err), http.StatusInternalServerError)
@@ -132,19 +135,111 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
 	if r.Method == "GET" {
 		json.NewEncoder(w).Encode(s.config)
+		return
+	}
+
+	if r.Method == "POST" {
+		var newCfg config.Config
+		if err := json.NewDecoder(r.Body).Decode(&newCfg); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// Update In-memory config
+		*s.config = newCfg
+
+		// Save to usersetting.json for persistence
+		home, _ := os.UserHomeDir()
+		userSettingsPath := filepath.Join(home, ".marubot", "usersetting.json")
+
+		data, _ := json.MarshalIndent(newCfg, "", "  ")
+		if err := os.WriteFile(userSettingsPath, data, 0644); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to save config: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	}
 }
 
 func (s *Server) handleSkills(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
 	if r.Method == "GET" {
-		skills := s.skillLoad.ListSkills(false)
+		skList := s.skillLoad.ListSkills(false)
 		var output strings.Builder
-		for _, sk := range skills {
-			output.WriteString(fmt.Sprintf("- %s (%s)\n", sk.Name, sk.Source))
+		output.WriteString("INSTALLED SKILLS:\n-----------------\n")
+		for _, sk := range skList {
+			status := "✓"
+			if !sk.Available {
+				status = "✗"
+			}
+			output.WriteString(fmt.Sprintf("%s %s (%s)\n", status, sk.Name, sk.Source))
+			if sk.Description != "" {
+				output.WriteString(fmt.Sprintf("  %s\n", sk.Description))
+			}
 		}
 		json.NewEncoder(w).Encode(map[string]string{"output": output.String()})
+		return
+	}
+
+	if r.Method == "POST" {
+		var req struct {
+			Action string `json:"action"` // "install", "remove"
+			Skill  string `json:"skill"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if req.Action == "install" {
+			ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
+			defer cancel()
+			if err := s.skillMgr.InstallFromGitHub(ctx, req.Skill); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		} else if req.Action == "remove" {
+			if err := s.skillMgr.Uninstall(req.Skill); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		} else {
+			http.Error(w, "Invalid action", http.StatusBadRequest)
+			return
+		}
+
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	}
+}
+
+func (s *Server) handleGpio(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method == "GET" {
+		json.NewEncoder(w).Encode(s.config.Hardware.GPIO.Pins)
+		return
+	}
+
+	if r.Method == "POST" {
+		var pins map[string]interface{}
+		if err := json.NewDecoder(r.Body).Decode(&pins); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		s.config.Hardware.GPIO.Pins = pins
+
+		// Save config
+		home, _ := os.UserHomeDir()
+		userSettingsPath := filepath.Join(home, ".marubot", "usersetting.json")
+		data, _ := json.MarshalIndent(s.config, "", "  ")
+		os.WriteFile(userSettingsPath, data, 0644)
+
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	}
 }

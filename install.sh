@@ -11,14 +11,57 @@ NC='\033[0m'
 
 echo -e "${BLUE}🤖 Starting MaruBot One-Click Installer...${NC}"
 
+# 0. Language Selection
+echo "Language / 언어 / 言語:"
+echo "1) English (en)"
+echo "2) 한국어 (ko)"
+echo "3) 日本語 (ja)"
+read -p "Select (1-3) [Default: 1]: " LANG_CHOICE
+
+case $LANG_CHOICE in
+    2) MARUBOT_LANG="ko" ;;
+    3) MARUBOT_LANG="ja" ;;
+    *) MARUBOT_LANG="en" ;;
+esac
+
+# Translations
+if [ "$MARUBOT_LANG" = "ko" ]; then
+    MSG_ARCH_ERR="❌ 이 스크립트는 라즈베리 파이(ARM) 환경 전용입니다."
+    MSG_PKG_INST="📦 필수 패키지 설치 중..."
+    MSG_GO_INST="🐹 최신 Go 설치 중..."
+    MSG_CLONE="📂 MaruBot 소스 코드 클론 중..."
+    MSG_WEB_BUILD="🏗️ 웹 관리자 페이지(Vite) 빌드 중..."
+    MSG_GO_BUILD="🛠️ MaruBot 엔진 빌드 중..."
+    MSG_SUCCESS="🎉 MaruBot 설치가 완료되었습니다!"
+    MSG_DASHBOARD="대시보드 실행: marubot dashboard"
+elif [ "$MARUBOT_LANG" = "ja" ]; then
+    MSG_ARCH_ERR="❌ このスクリプトはRaspberry Pi(ARM)環境専用です。"
+    MSG_PKG_INST="📦 必須パッケージをインストール中..."
+    MSG_GO_INST="🐹 最新のGoをインストール中..."
+    MSG_CLONE="📂 MaruBotソースコードをクローン中..."
+    MSG_WEB_BUILD="🏗️ Web管理画面(Vite)をビルド中..."
+    MSG_GO_BUILD="🛠️ MaruBotエンジンをビルド中..."
+    MSG_SUCCESS="🎉 MaruBotのインストールが完了しました！"
+    MSG_DASHBOARD="ダッシュボードの実行: marubot dashboard"
+else
+    MSG_ARCH_ERR="❌ This script is only for Raspberry Pi (ARM) environments."
+    MSG_PKG_INST="📦 Installing required packages..."
+    MSG_GO_INST="🐹 Installing latest Go..."
+    MSG_CLONE="📂 Cloning MaruBot source from GitHub..."
+    MSG_WEB_BUILD="🏗️ Building Web Admin (Vite)..."
+    MSG_GO_BUILD="🛠️ Building MaruBot engine..."
+    MSG_SUCCESS="🎉 MaruBot installation complete!"
+    MSG_DASHBOARD="Run dashboard: marubot dashboard"
+fi
+
 # 1. Check Architecture and OS
 if [[ "$(uname -m)" != "aarch64" && "$(uname -m)" != "armv7l" ]]; then
-    echo -e "${RED}❌ This script is only for Raspberry Pi (ARM) environments.${NC}"
+    echo -e "${RED}${MSG_ARCH_ERR}${NC}"
     exit 1
 fi
 
 # 2. Install Required Packages
-echo -e "${BLUE}📦 Installing required packages...${NC}"
+echo -e "${BLUE}${MSG_PKG_INST}${NC}"
 sudo apt update
 sudo apt install -y git make libcamera-apps alsa-utils vlc-plugin-base curl wget
 
@@ -63,7 +106,7 @@ if [ -d "$INSTALL_DIR" ]; then
     cd "$INSTALL_DIR"
     git pull
 else
-    echo -e "${BLUE}📂 Cloning MaruBot source from GitHub...${NC}"
+    echo -e "${BLUE}${MSG_CLONE}${NC}"
     git clone --depth 1 https://github.com/dirmich/maru-bot.git "$INSTALL_DIR"
     cd "$INSTALL_DIR"
 fi
@@ -104,7 +147,7 @@ echo -e "${BLUE}🛠️ Building MaruBot engine...${NC}"
 
 # 5-1. Build Web Admin (If source exists)
 if [ "$HAS_WEB_SOURCE" = true ]; then
-    echo -e "${BLUE}    🏗️ Building Web Admin (Vite)...${NC}"
+    echo -e "${BLUE}    ${MSG_WEB_BUILD}${NC}"
     cd "$INSTALL_DIR/web-admin"
     if [ "$USE_BUN" = true ]; then
         "$HOME/.bun/bin/bun" install
@@ -121,7 +164,7 @@ if [ "$HAS_WEB_SOURCE" = true ]; then
 fi
 
 # 5-2. Go Build
-echo -e "${BLUE}    🐹 Running Go build...${NC}"
+echo -e "${BLUE}    ${MSG_GO_BUILD}${NC}"
 $GO_CMD mod tidy
 make GO="$GO_CMD" build
 
@@ -142,6 +185,17 @@ mkdir -p "$RESOURCE_DIR"
 mkdir -p "$RESOURCE_DIR/config"
 if [ ! -f "$RESOURCE_DIR/config.json" ]; then
     cp config/maru-config.json "$RESOURCE_DIR/config.json"
+fi
+
+# Set selected language in config
+if [ -f "$RESOURCE_DIR/config.json" ]; then
+    # Simple check and replace for "language" field
+    if grep -q "\"language\":" "$RESOURCE_DIR/config.json"; then
+        sed -i "s/\"language\": \".*\"/\"language\": \"$MARUBOT_LANG\"/" "$RESOURCE_DIR/config.json"
+    else
+        # Add after opening brace if not exists
+        sed -i "0,/{/s/{/{\n  \"language\": \"$MARUBOT_LANG\",/" "$RESOURCE_DIR/config.json"
+    fi
 fi
 
 rm -rf "$RESOURCE_DIR/skills" "$RESOURCE_DIR/tools"
@@ -178,10 +232,10 @@ for dir in "workspace" "sessions" "extensions"; do
     fi
 done
 
-echo -e "\n${GREEN}🎉 MaruBot installation complete!${NC}"
+echo -e "\n${GREEN}${MSG_SUCCESS}${NC}"
 echo -e "🧹 Automatically cleaning up the source folder ($INSTALL_DIR)..."
 cd "$HOME"
 rm -rf "$INSTALL_DIR"
 
 echo -e "Command: ${BLUE}marubot agent${NC}"
-echo -e "Dashboard: ${BLUE}marubot dashboard${NC}"
+echo -e "${MSG_DASHBOARD}: ${BLUE}marubot dashboard${NC}"

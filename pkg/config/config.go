@@ -10,6 +10,7 @@ import (
 )
 
 type Config struct {
+	Language  string          `json:"language" env:"MARUBOT_LANGUAGE"`
 	Agents    AgentsConfig    `json:"agents"`
 	Channels  ChannelsConfig  `json:"channels"`
 	Providers ProvidersConfig `json:"providers"`
@@ -132,6 +133,7 @@ type GPSConfig struct {
 
 func DefaultConfig() *Config {
 	return &Config{
+		Language: "ko",
 		Agents: AgentsConfig{
 			Defaults: AgentDefaults{
 				Workspace:         "~/.marubot/workspace",

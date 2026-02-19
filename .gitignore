@@ -27,3 +27,6 @@ yarn-error.log*
 # Public Distribution folder
 maru-bot/
 ../maru-bot/
+
+# Web Admin dist
+web-admin/dist/
