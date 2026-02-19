@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/robfig/cron/v3"
 )
 
 type CronSchedule struct {
@@ -194,6 +196,20 @@ func (cs *CronService) computeNextRun(schedule *CronSchedule, nowMS int64) *int6
 			return nil
 		}
 		next := nowMS + *schedule.EveryMS
+		return &next
+	}
+
+	if schedule.Kind == "cron" {
+		if schedule.Expr == "" {
+			return nil
+		}
+		parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+		sched, err := parser.Parse(schedule.Expr)
+		if err != nil {
+			fmt.Printf("Cron parse error: %v (expr: %s)\n", err, schedule.Expr)
+			return nil
+		}
+		next := sched.Next(time.UnixMilli(nowMS)).UnixMilli()
 		return &next
 	}
 

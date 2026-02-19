@@ -644,11 +644,15 @@ func gatewayCmd() {
 	agentLoop := agent.NewAgentLoop(cfg, bus, provider)
 
 	cronStorePath := filepath.Join(filepath.Dir(getConfigPath()), "cron", "jobs.json")
-	cronService := cron.NewCronService(cronStorePath, nil)
+	cronService := cron.NewCronService(cronStorePath, func(job *cron.CronJob) (string, error) {
+		return agentLoop.ProcessDirect(context.Background(), job.Payload.Message, "cron:"+job.ID)
+	})
 
 	heartbeatService := heartbeat.NewHeartbeatService(
 		cfg.WorkspacePath(),
-		nil,
+		func(msg string) (string, error) {
+			return agentLoop.ProcessDirect(context.Background(), msg, "heartbeat")
+		},
 		30*60,
 		true,
 	)
@@ -1320,28 +1324,43 @@ func dashboardCmd() {
 	bus := bus.NewMessageBus()
 	agentLoop := agent.NewAgentLoop(cfg, bus, provider)
 
-	// Background Services (from gatewayCmd)
+	// Background Services
 	cronStorePath := filepath.Join(filepath.Dir(getConfigPath()), "cron", "jobs.json")
-	cronService := cron.NewCronService(cronStorePath, nil)
+	cronService := cron.NewCronService(cronStorePath, func(job *cron.CronJob) (string, error) {
+		return agentLoop.ProcessDirect(context.Background(), job.Payload.Message, "cron:"+job.ID)
+	})
 
 	heartbeatService := heartbeat.NewHeartbeatService(
 		cfg.WorkspacePath(),
-		nil,
+		func(msg string) (string, error) {
+			return agentLoop.ProcessDirect(context.Background(), msg, "heartbeat")
+		},
 		30*60,
 		true,
 	)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	// In dashboard mode, we don't want to cancel immediately, but we need the context
+	// server.Start will block, so this cancel will only run if dashboardCmd returns.
+	defer cancel()
+
+	if err := cronService.Start(); err != nil {
+		fmt.Printf("Error starting cron service: %v\n", err)
+	}
+	if err := heartbeatService.Start(); err != nil {
+		fmt.Printf("Error starting heartbeat service: %v\n", err)
+	}
+	go agentLoop.Run(ctx)
+
 	channelManager, err := channels.NewManager(cfg, bus)
 	if err == nil {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		cronService.Start()
-		heartbeatService.Start()
-		channelManager.StartAll(ctx)
-		go agentLoop.Run(ctx)
-
+		if err := channelManager.StartAll(ctx); err != nil {
+			fmt.Printf("Error starting channels: %v\n", err)
+		}
 		fmt.Println("✓ Background services started (Cron, Heartbeat, Channels)")
+	} else {
+		fmt.Printf("Warning: Failed to initialize channel manager: %v\n", err)
+		fmt.Println("✓ Background services started (Cron, Heartbeat)")
 	}
 
 	// Initialize Dashboard Server
