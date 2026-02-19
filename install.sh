@@ -26,14 +26,20 @@ sudo apt install -y git make libcamera-apps alsa-utils vlc-plugin-base curl wget
 GO_REQUIRED="1.24"
 INSTALL_GO=false
 
-if command -v go >/dev/null 2>&1; then
-    GO_VERSION=$(go version | awk '{print $3}' | sed 's/go//' | cut -d' ' -f1)
-    if [ "$(printf '%s\n' "$GO_REQUIRED" "$GO_VERSION" | sort -V | head -n1)" != "$GO_REQUIRED" ]; then
+    BUILD_ARCH=$(uname -m)
+    if [ -f "/usr/local/go/bin/go" ]; then
+        EXISTING_VERSION=$(/usr/local/go/bin/go version | awk '{print $3}' | sed 's/go//')
+        # Check if version starts with required version (simple check, e.g. 1.24.0 >= 1.24)
+        if [[ "$EXISTING_VERSION" == "$GO_REQUIRED"* ]] || [[ "$EXISTING_VERSION" > "$GO_REQUIRED" ]]; then
+            echo -e "${GREEN}✓ Go $EXISTING_VERSION is already installed.${NC}"
+            INSTALL_GO=false
+        else
+            echo -e "${BLUE}ℹ️ Upgrading Go from $EXISTING_VERSION to $GO_REQUIRED+...${NC}"
+            INSTALL_GO=true
+        fi
+    else
         INSTALL_GO=true
     fi
-else
-    INSTALL_GO=true
-fi
 
 if [ "$INSTALL_GO" = true ]; then
     echo -e "${BLUE}🐹 Installing latest Go $GO_REQUIRED+ ...${NC}"
