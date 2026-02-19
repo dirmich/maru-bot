@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
@@ -109,7 +109,7 @@ export function SkillsPage() {
 
             <ConfirmDialog
                 open={confirmState.open}
-                onOpenChange={(open) => setConfirmState(prev => ({ ...prev, open }))}
+                onOpenChange={(open: boolean) => setConfirmState(prev => ({ ...prev, open }))}
                 title={confirmState.title}
                 description={confirmState.desc}
                 onConfirm={confirmState.action}

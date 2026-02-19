@@ -1,33 +1,13 @@
-import { create } from 'zustand';
-
-interface ConfirmDialogState {
-    isOpen: boolean;
-    title: string;
-    description: string;
-    onConfirm: () => void;
-    show: (title: string, description: string, onConfirm: () => void) => void;
-    hide: () => void;
-}
-
-// Simple legacy hook adapter (if needed for migration)
+// Client-side dialog placeholder (Mocking missing alert-dialog)
 export const useConfirmDialog = () => {
-    // This is a dummy hook for compatibility if any code still uses it
-    // In React SPA, prefer passing state/props or using context
     return {
-        show: (t: string, d: string, c: () => void) => console.log("Confirm:", t, d)
+        show: (t: string, d: string, c: () => void) => {
+            if (window.confirm(`${t}\n\n${d}`)) {
+                c();
+            }
+        }
     };
 };
-
-import {
-    AlertDialog as UIAlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 
 export function ConfirmDialog({
     open,
@@ -35,27 +15,18 @@ export function ConfirmDialog({
     title,
     description,
     onConfirm
-}: {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    title: string;
-    description: string;
-    onConfirm: () => void
-}) {
+}: any) {
+    if (!open) return null;
     return (
-        <UIAlertDialog open={open} onOpenChange={onOpenChange}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{title}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        {description}
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>취소</AlertDialogCancel>
-                    <AlertDialogAction onClick={onConfirm}>확인</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </UIAlertDialog>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div style={{ background: 'white', padding: '20px', borderRadius: '8px', color: 'black' }}>
+                <h2>{title}</h2>
+                <p>{description}</p>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                    <button onClick={() => onOpenChange(false)}>Cancel</button>
+                    <button onClick={() => { onConfirm(); onOpenChange(false); }}>Confirm</button>
+                </div>
+            </div>
+        </div>
     )
 }
