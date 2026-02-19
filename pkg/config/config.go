@@ -114,8 +114,9 @@ type HardwareConfig struct {
 }
 
 type GPIOConfig struct {
-	Enabled bool                   `json:"enabled"`
-	Pins    map[string]interface{} `json:"pins"`
+	Enabled bool                      `json:"enabled"`
+	Pins    map[string]interface{}    `json:"pins"`
+	Actions map[string]map[string]int `json:"actions"`
 }
 
 type DroneConfig struct {
