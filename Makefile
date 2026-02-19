@@ -7,9 +7,10 @@ CMD_DIR=cmd/$(BINARY_NAME)
 MAIN_GO=$(CMD_DIR)/main.go
 
 # Version
-VERSION?=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+VERSION?=$(shell git describe --tags --exact-match 2>/dev/null || echo "")
+# If VERSION is empty, main.go's harcoded version will be used because we'll conditionalize LDFLAGS
 BUILD_TIME=$(shell date +%FT%T%z)
-LDFLAGS=-ldflags "-X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME)"
+LDFLAGS=$(if $(VERSION),-ldflags "-X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME)",-ldflags "-X main.buildTime=$(BUILD_TIME)")
 CGO_ENABLED=0
 export CGO_ENABLED
 
