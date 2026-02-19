@@ -59,14 +59,23 @@ for item in "${ITEMS[@]}"; do
             rm -rf "$TARGET_DIR/web-admin"
             mkdir -p "$TARGET_DIR/web-admin"
 
-            # 2. 소스 파일 복사 (node_modules, .next 제외)
+            # 2. 소스 파일 복사 (node_modules, .next, .git 제외)
             if command -v rsync >/dev/null 2>&1; then
                 echo "  Using rsync..."
                 rsync -av --exclude 'node_modules' --exclude '.next' --exclude '.git' "$SOURCE_DIR/web-admin/" "$TARGET_DIR/web-admin/" > /dev/null
             else
-                echo "  ⚠️ rsync not found, using tar..."
-                # tar extraction in Windows/GitBash sometimes needs care, but standard pipe usually works
-                tar -cf - --exclude='node_modules' --exclude='.next' --exclude='.git' -C "$SOURCE_DIR/web-admin" . | tar -xf - -C "$TARGET_DIR/web-admin"
+                echo "  ⚠️ rsync not found."
+                # 윈도우/Git Bash 환경에서 tar 파이프라인이 에러를 낼 수 있음.
+                # 복사 후 삭제하는 방식이 가장 안정적일 수 있음.
+                echo "  Creating directory..."
+                mkdir -p "$TARGET_DIR/web-admin"
+                
+                # find를 이용해 파일 복사 (node_modules, .next 제외)
+                # 주의: 윈도우에서 심볼릭 링크나 경로 문제 발생 가능성 최소화
+                echo "  Copying files (excluding node_modules)..."
+                
+                # web-admin 내부의 항목들 순회
+                find "$SOURCE_DIR/web-admin" -mindepth 1 -maxdepth 1 \( -name 'node_modules' -o -name '.next' -o -name '.git' \) -prune -o -exec cp -r {} "$TARGET_DIR/web-admin/" \;
             fi
             
             echo "  ✓ web-admin 소스 복사 완료"
