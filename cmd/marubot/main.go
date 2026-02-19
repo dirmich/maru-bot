@@ -144,6 +144,8 @@ func main() {
 		fmt.Printf("%s marubot v%s\n", logo, version)
 	case "uninstall":
 		uninstallCmd()
+	case "stop":
+		stopCmd()
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
 		printHelp()
@@ -224,7 +226,9 @@ func printHelp() {
 	fmt.Println("  config      Manage hardware/system configuration")
 	fmt.Println("  cron        Manage scheduled tasks")
 	fmt.Println("  skills      Manage skills (install, list, remove)")
+	fmt.Println("  skills      Manage skills (install, list, remove)")
 	fmt.Println("  uninstall   Remove marubot from system")
+	fmt.Println("  stop        Stop background dashboard process")
 	fmt.Println("  version     Show version information")
 }
 
@@ -1335,9 +1339,12 @@ func dashboardCmd() {
 			os.Exit(1)
 		}
 
+		pidFile := getPidFilePath()
+		os.WriteFile(pidFile, []byte(fmt.Sprintf("%d", cmd.Process.Pid)), 0644)
+
 		fmt.Printf("✨ MaruBot Dashboard started in background (PID: %d)\n", cmd.Process.Pid)
 		fmt.Println("   URL: http://localhost:8080")
-		fmt.Println("   To stop: kill the process or use 'marubot stop' (if implemented)")
+		fmt.Println("   To stop: use 'marubot stop'")
 		fmt.Println("   Logs: ~/.marubot/dashboard.log")
 		return
 	}
@@ -1444,4 +1451,38 @@ func dashboardCmd() {
 			fmt.Printf("Error starting dashboard server: %v\n", err)
 		}
 	}
+}
+
+func getPidFilePath() string {
+	return filepath.Join(getResourceDir(), "marubot.pid")
+}
+
+func stopCmd() {
+	pidFile := getPidFilePath()
+	data, err := os.ReadFile(pidFile)
+	if err != nil {
+		fmt.Println("No running marubot process found (pid file missing).")
+		return
+	}
+
+	pidStr := strings.TrimSpace(string(data))
+	var pid int
+	fmt.Sscanf(pidStr, "%d", &pid)
+
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		fmt.Printf("Process %d not found.\n", pid)
+		os.Remove(pidFile)
+		return
+	}
+
+	fmt.Printf("Stopping marubot (PID: %d)...\n", pid)
+	if err := proc.Signal(os.Interrupt); err != nil {
+		// Force kill if signal fails or not supported (Windows)
+		proc.Kill()
+	}
+
+	// Clean up PID file
+	os.Remove(pidFile)
+	fmt.Println("✓ Stopped.")
 }
