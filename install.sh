@@ -97,8 +97,33 @@ else
     cd "$INSTALL_DIR"
 fi
 
-# 5. Build Engine
+# 5. Build Engine (with Embedded Web Admin)
 echo -e "${BLUE}🛠️ Building MaruBot engine...${NC}"
+
+# 5-1. Build Web Admin first
+echo -e "${BLUE}    🏗️ Building Web Admin (Vite)...${NC}"
+cd "$INSTALL_DIR/web-admin"
+
+if [ "$USE_BUN" = true ]; then
+    echo -e "${BLUE}    🍞 Installing web dependencies with Bun...${NC}"
+    "$HOME/.bun/bin/bun" install
+    echo -e "${BLUE}    ⚛️ Building frontend assets with Bun...${NC}"
+    "$HOME/.bun/bin/bun" run build
+else
+    echo -e "${BLUE}    📦 Installing web dependencies with NPM...${NC}"
+    npm install
+    echo -e "${BLUE}    ⚛️ Building frontend assets with NPM...${NC}"
+    npm run build
+fi
+
+# 5-2. Embed Dist to Go Source
+echo -e "${BLUE}    📥 Embedding Web Admin into Go binary...${NC}"
+# Copy build output to Go embedding location
+mkdir -p "$INSTALL_DIR/cmd/marubot/dashboard/dist"
+cp -r dist/* "$INSTALL_DIR/cmd/marubot/dashboard/dist/"
+
+# 5-3. Go Build
+cd "$INSTALL_DIR"
 go mod tidy
 make build
 
@@ -134,27 +159,10 @@ rm -rf "$RESOURCE_DIR/skills" "$RESOURCE_DIR/tools"
 cp -r skills "$RESOURCE_DIR/"
 if [ -d "tools" ]; then cp -r tools "$RESOURCE_DIR/"; fi
 
-# (3) Web Admin
-# Removing existing web-admin (clean install)
-rm -rf "$RESOURCE_DIR/web-admin"
-if [ -d "web-admin" ]; then
-    echo "  🌐 Copying Web Admin resources..."
-    cp -r web-admin "$RESOURCE_DIR/"
-    
-    # Installing dependencies and building (On-Device Build)
-    cd "$RESOURCE_DIR/web-admin"
-    if [ "$USE_BUN" = true ]; then
-        echo -e "${BLUE}    🍞 Installing dependencies with Bun...${NC}"
-        $HOME/.bun/bin/bun install
-        echo -e "${BLUE}    🏗️ Building Web Admin with Bun (Next.js)...${NC}"
-        $HOME/.bun/bin/bun run build
-    else
-        echo -e "${BLUE}    📦 Installing dependencies with NPM...${NC}"
-        npm install
-        echo -e "${BLUE}    🏗️ Building Web Admin with NPM (Next.js)...${NC}"
-        npm run build
-    fi
-    cd "$INSTALL_DIR"
+# (3) Web Admin (Clean up legacy files)
+if [ -d "$RESOURCE_DIR/web-admin" ]; then
+    echo "  🧹 Removing legacy standalone Web Admin files..."
+    rm -rf "$RESOURCE_DIR/web-admin"
 fi
 
 # 7. Run Hardware Setup Script

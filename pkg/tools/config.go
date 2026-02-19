@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"marubot/pkg/config"
+	"github.com/dirmich/marubot/pkg/config"
 )
 
 type ConfigTool struct {

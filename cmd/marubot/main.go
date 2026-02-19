@@ -13,22 +13,22 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"marubot/pkg/agent"
-	"marubot/pkg/bus"
-	"marubot/pkg/channels"
-	"marubot/pkg/config"
-	"marubot/pkg/cron"
-	"marubot/pkg/heartbeat"
-	"marubot/pkg/logger"
-	"marubot/pkg/providers"
-	"marubot/pkg/skills"
-	"marubot/pkg/voice"
+	"github.com/dirmich/marubot/cmd/marubot/dashboard"
+	"github.com/dirmich/marubot/pkg/agent"
+	"github.com/dirmich/marubot/pkg/bus"
+	"github.com/dirmich/marubot/pkg/channels"
+	"github.com/dirmich/marubot/pkg/config"
+	"github.com/dirmich/marubot/pkg/cron"
+	"github.com/dirmich/marubot/pkg/heartbeat"
+	"github.com/dirmich/marubot/pkg/logger"
+	"github.com/dirmich/marubot/pkg/providers"
+	"github.com/dirmich/marubot/pkg/skills"
+	"github.com/dirmich/marubot/pkg/voice"
 
 	"github.com/chzyer/readline"
 )
@@ -1303,85 +1303,40 @@ func configHelp() {
 }
 
 func dashboardCmd() {
-	fmt.Printf("%s Starting MaruBot Dashboard...\n", logo)
+	fmt.Printf("%s Starting MaruBot Dashboard & API Server...\n", logo)
 
-	// Start gateway in a separate goroutine
-	go func() {
-		gatewayCmd()
-	}()
+	// In the new architecture, the Go server *is* the backend.
+	// We no longer rely on external Node.js/Next.js server for API.
 
-	// Wait a bit for gateway to initialize
-	time.Sleep(2 * time.Second)
-
-	// Determine web project path
-	resDir := getResourceDir()
-
-	// 후보 경로들 (우선순위 순)
-	candidates := []string{
-		filepath.Join(resDir, "web-admin"), // ~/.marubot/web-admin
-		"web-admin",                        // ./web-admin
-		"../web-admin",                     // ../web-admin
-	}
-
-	var webPath string
-	var runMode string
-
-	for _, p := range candidates {
-		abs, _ := filepath.Abs(p)
-		if _, err := os.Stat(p); err == nil {
-			webPath = p
-			// RESOURCE_DIR에 있으면 실서버 모드(prod), 로컬이면 개발 모드(dev)
-			if strings.Contains(abs, resDir) {
-				runMode = "prod"
-			} else {
-				runMode = "dev"
-			}
-			break
-		}
-	}
-
-	if webPath == "" {
-		fmt.Println("Error: web-admin directory not found.")
-		fmt.Println("Checked locations:")
-		for _, p := range candidates {
-			abs, _ := filepath.Abs(p)
-			fmt.Printf("  - %s\n", abs)
-		}
+	cfg, err := loadConfig()
+	if err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
 		return
 	}
 
-	fmt.Printf("✓ Starting Web UI from %s (Mode: %s)\n", webPath, runMode)
-
-	// Debug: Check .next directory
-	absNext, _ := filepath.Abs(filepath.Join(webPath, ".next"))
-	if _, err := os.Stat(absNext); err != nil {
-		fmt.Printf("⚠️ Warning: .next directory not found at %s. Production build might be missing.\n", absNext)
-	} else {
-		fmt.Printf("✓ Found .next directory at %s\n", absNext)
+	provider, err := providers.CreateProvider(cfg)
+	if err != nil {
+		fmt.Printf("Error creating provider: %v\n", err)
+		os.Exit(1)
 	}
 
-	var cmd *exec.Cmd
-	if runMode == "prod" {
-		// Production: Standalone Next.js
-		serverJS := filepath.Join(webPath, "server.js")
-		if _, err := os.Stat(serverJS); os.IsNotExist(err) {
-			fmt.Printf("Warning: server.js not found in %s. Trying 'bun dev'...\n", webPath)
-			runMode = "dev"
-			cmd = exec.Command("bun", "dev")
-		} else {
-			cmd = exec.Command("node", "server.js")
-			cmd.Env = append(os.Environ(), "PORT=3000", "HOSTNAME=0.0.0.0")
-		}
-	} else {
-		// Dev: bun dev
-		cmd = exec.Command("bun", "dev")
-	}
+	bus := bus.NewMessageBus()
+	agentLoop := agent.NewAgentLoop(cfg, bus, provider)
 
-	cmd.Dir = webPath
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// Initialize Dashboard Server
+	// Default port 8080, can be configured later
+	port := "8080"
+	server := dashboard.NewServer(":"+port, agentLoop, cfg)
 
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("Error starting Web UI: %v\n", err)
+	// Start Browser (Optional, can be behind a flag)
+	go func() {
+		time.Sleep(1 * time.Second)
+		fmt.Printf("✓ Dashboard available at http://localhost:%s\n", port)
+		// openBrowser("http://localhost:" + port)
+	}()
+
+	// Start Server (Blocking)
+	if err := server.Start(); err != nil {
+		fmt.Printf("Error starting dashboard server: %v\n", err)
 	}
 }

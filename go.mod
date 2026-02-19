@@ -1,4 +1,4 @@
-module marubot
+module github.com/dirmich/marubot
 
 go 1.24.0
 
