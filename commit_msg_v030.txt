@@ -1,0 +1,7 @@
+[Release] MaruBot v0.3.0 배포
+
+- Vite SPA 마이그레이션 완료 (Next.js 의존성 제거)
+- 대시보드 다국어 지원 (KO, EN, JA) 및 상태 관리(Zustand) 적용
+- Go 바이너리 내 대시보드 임베딩 최적화
+- 설치 스크립트(install.sh) 다국어화 및 환경 자동 감지 개선
+- MaruBot v0.3.0 버전 동기화 및 공개 레포지토리 배포 준비 완료
