@@ -7,18 +7,7 @@ import { Cpu, Save, Plus, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from "@/lib/i18n";
 
-// Placeholder for GpioSchematic
-const GpioSchematic = ({ configuredPins, t }: { configuredPins: number[], t: any }) => (
-    <div className="bg-slate-100 p-8 rounded-lg text-center border-2 border-dashed border-slate-300">
-        <h3 className="font-semibold text-slate-500 mb-2">{t.gpio_schematic}</h3>
-        <p className="text-xs text-slate-400">{t.gpio_schematic_desc}</p>
-        <div className="mt-4 grid grid-cols-2 gap-2 max-w-xs mx-auto text-xs font-mono">
-            {[...Array(40)].map((_, i) => (
-                <div key={i} className={`h-4 w-4 rounded-full mx-auto ${configuredPins.includes(i + 1) ? 'bg-orange-500' : 'bg-slate-300'}`}></div>
-            ))}
-        </div>
-    </div>
-);
+import { GpioSchematic } from '@/components/gpio-schematic';
 
 interface PinConfig {
     pin: number;
@@ -29,11 +18,32 @@ interface PinConfig {
 export function GpioPage() {
     const t = useTranslation();
     const [configuredPins, setConfiguredPins] = useState<PinConfig[]>([]);
+    const [selectedPin, setSelectedPin] = useState<number | undefined>(undefined);
 
     const handleAddPin = () => {
         // Find next available pin or just use 0 as placeholder
         const newPin = { pin: 0, mode: 'OUT', label: 'New Device' };
         setConfiguredPins([...configuredPins, newPin]);
+        setSelectedPin(undefined); // Reset selection to show all
+    };
+
+    const handlePinClick = (pin: number) => {
+        const existing = configuredPins.find(p => p.pin === pin);
+        if (existing) {
+            setSelectedPin(pin);
+        } else {
+            // Ask to add
+            if (window.confirm(`Add configuration for Pin ${pin}?`)) {
+                const newPin = { pin: pin, mode: 'OUT', label: `GPIO ${pin}` };
+                setConfiguredPins([...configuredPins, newPin]);
+                setSelectedPin(pin);
+            } else {
+                setSelectedPin(pin); // Just select it visually even if not configured? No, user said only configured.
+                // "if configured... select only this one... if not, ask to add"
+                // If they say no, maybe just select it on the schematic but show nothing in table?
+                setSelectedPin(pin);
+            }
+        }
     };
 
     const handleRemovePin = (index: number) => {
@@ -114,7 +124,11 @@ export function GpioPage() {
                             <CardDescription>{t.gpio_schematic_desc}</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <GpioSchematic configuredPins={configuredPins.map(p => p.pin)} t={t} />
+                            <GpioSchematic
+                                configuredPins={configuredPins.map(p => p.pin)}
+                                selectedPin={selectedPin}
+                                onPinClick={handlePinClick}
+                            />
                         </CardContent>
                     </Card>
                 </div>
@@ -141,52 +155,55 @@ export function GpioPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {configuredPins.map((item, idx) => (
-                                        <TableRow key={idx}>
-                                            <TableCell className="font-mono">
-                                                <input
-                                                    type="number"
-                                                    className="w-12 bg-transparent border-b border-dashed text-center"
-                                                    value={item.pin}
-                                                    onChange={(e) => handleUpdatePin(idx, 'pin', parseInt(e.target.value))}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Select
-                                                    value={item.mode}
-                                                    onValueChange={(v) => handleUpdatePin(idx, 'mode', v)}
-                                                >
-                                                    <SelectTrigger className="w-24 h-8 text-xs">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="OUT">OUT</SelectItem>
-                                                        <SelectItem value="IN">IN</SelectItem>
-                                                        <SelectItem value="PWM">PWM</SelectItem>
-                                                        <SelectItem value="I2C">I2C</SelectItem>
-                                                        <SelectItem value="SPI">SPI</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </TableCell>
-                                            <TableCell>
-                                                <input
-                                                    className="bg-transparent border-b border-dashed border-slate-300 dark:border-slate-700 focus:outline-none focus:border-orange-500 w-full text-sm"
-                                                    value={item.label}
-                                                    onChange={(e) => handleUpdatePin(idx, 'label', e.target.value)}
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-slate-400 hover:text-red-500"
-                                                    onClick={() => handleRemovePin(idx)}
-                                                >
-                                                    <Trash className="w-4 h-4" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
+                                    {configuredPins.map((item, idx) => {
+                                        if (selectedPin !== undefined && item.pin !== selectedPin) return null;
+                                        return (
+                                            <TableRow key={idx}>
+                                                <TableCell className="font-mono">
+                                                    <input
+                                                        type="number"
+                                                        className="w-12 bg-transparent border-b border-dashed text-center"
+                                                        value={item.pin}
+                                                        onChange={(e) => handleUpdatePin(idx, 'pin', parseInt(e.target.value))}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Select
+                                                        value={item.mode}
+                                                        onValueChange={(v) => handleUpdatePin(idx, 'mode', v)}
+                                                    >
+                                                        <SelectTrigger className="w-24 h-8 text-xs">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="OUT">OUT</SelectItem>
+                                                            <SelectItem value="IN">IN</SelectItem>
+                                                            <SelectItem value="PWM">PWM</SelectItem>
+                                                            <SelectItem value="I2C">I2C</SelectItem>
+                                                            <SelectItem value="SPI">SPI</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <input
+                                                        className="bg-transparent border-b border-dashed border-slate-300 dark:border-slate-700 focus:outline-none focus:border-orange-500 w-full text-sm"
+                                                        value={item.label}
+                                                        onChange={(e) => handleUpdatePin(idx, 'label', e.target.value)}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-slate-400 hover:text-red-500"
+                                                        onClick={() => handleRemovePin(idx)}
+                                                    >
+                                                        <Trash className="w-4 h-4" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
                                     {configuredPins.length === 0 && (
                                         <TableRow>
                                             <TableCell colSpan={4} className="text-center text-slate-400 py-8">

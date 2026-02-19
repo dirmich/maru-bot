@@ -58,7 +58,7 @@ const pinData: PinProps[] = [
     { number: 40, label: "GPIO 21", type: 'gpio' },
 ];
 
-export function GpioSchematic({ configuredPins }: { configuredPins: number[] }) {
+export function GpioSchematic({ configuredPins, selectedPin, onPinClick }: { configuredPins: number[], selectedPin?: number, onPinClick?: (pin: number) => void }) {
     const leftPins = pinData.filter(p => p.number % 2 !== 0).sort((a, b) => a.number - b.number);
     const rightPins = pinData.filter(p => p.number % 2 === 0).sort((a, b) => a.number - b.number);
 
@@ -83,13 +83,25 @@ export function GpioSchematic({ configuredPins }: { configuredPins: number[] }) 
                     {/* Left Pins */}
                     <div className="flex flex-col gap-2">
                         {leftPins.map(pin => (
-                            <PinItem key={pin.number} pin={pin} isActive={configuredPins.includes(pin.number)} />
+                            <PinItem
+                                key={pin.number}
+                                pin={pin}
+                                isActive={configuredPins.includes(pin.number)}
+                                isSelected={selectedPin === pin.number}
+                                onClick={() => onPinClick?.(pin.number)}
+                            />
                         ))}
                     </div>
                     {/* Right Pins */}
                     <div className="flex flex-col gap-2">
                         {rightPins.map(pin => (
-                            <PinItem key={pin.number} pin={pin} isActive={configuredPins.includes(pin.number)} />
+                            <PinItem
+                                key={pin.number}
+                                pin={pin}
+                                isActive={configuredPins.includes(pin.number)}
+                                isSelected={selectedPin === pin.number}
+                                onClick={() => onPinClick?.(pin.number)}
+                            />
                         ))}
                     </div>
                 </div>
@@ -114,7 +126,7 @@ export function GpioSchematic({ configuredPins }: { configuredPins: number[] }) 
     );
 }
 
-function PinItem({ pin, isActive }: { pin: PinProps, isActive: boolean }) {
+function PinItem({ pin, isActive, isSelected, onClick }: { pin: PinProps, isActive: boolean, isSelected: boolean, onClick: () => void }) {
     const colors = {
         power: "bg-red-500 hover:bg-red-400 shadow-red-900/50",
         ground: "bg-black hover:bg-slate-900 shadow-black/50 border border-slate-700",
@@ -126,11 +138,14 @@ function PinItem({ pin, isActive }: { pin: PinProps, isActive: boolean }) {
         <TooltipProvider>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <div className={cn(
-                        "w-6 h-6 rounded-sm cursor-help transition-all transform hover:scale-110 shadow-sm flex items-center justify-center text-[8px] font-bold text-white",
-                        colors[pin.type],
-                        isActive ? "ring-2 ring-white ring-offset-2 ring-offset-slate-800 scale-105" : ""
-                    )}>
+                    <div
+                        onClick={onClick}
+                        className={cn(
+                            "w-6 h-6 rounded-sm cursor-pointer transition-all transform hover:scale-110 shadow-sm flex items-center justify-center text-[8px] font-bold text-white relative",
+                            colors[pin.type],
+                            isActive ? "ring-2 ring-white ring-offset-2 ring-offset-slate-800 scale-105" : "",
+                            isSelected ? "ring-4 ring-yellow-400 ring-offset-2 ring-offset-slate-900 scale-110 z-10" : ""
+                        )}>
                         {pin.number}
                     </div>
                 </TooltipTrigger>
@@ -138,6 +153,7 @@ function PinItem({ pin, isActive }: { pin: PinProps, isActive: boolean }) {
                     <p className="font-bold">{pin.label}</p>
                     <p className="text-xs text-slate-400">Pin {pin.number}</p>
                     {isActive && <p className="text-xs text-emerald-400 mt-1 font-semibold">● Configured</p>}
+                    {isSelected && <p className="text-xs text-yellow-400 mt-1 font-semibold">● Selected</p>}
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
