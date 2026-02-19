@@ -10,6 +10,7 @@ require (
 	github.com/chzyer/readline v1.5.1
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/gorilla/websocket v1.5.3
+	github.com/robfig/cron/v3 v3.0.1
 	go.bug.st/serial v1.6.4
 	periph.io/x/conn/v3 v3.7.2
 	periph.io/x/host/v3 v3.8.5
