@@ -1,7 +1,4 @@
-'use client';
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, useLocation } from "react-router-dom";
 import {
     MessageSquare,
     Settings,
@@ -11,11 +8,9 @@ import {
     User as UserIcon,
     ChevronLeft,
     ChevronRight,
-    Menu
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { useSession, signOut } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState } from "react";
 
@@ -27,9 +22,18 @@ const menuItems = [
 ];
 
 export function Sidebar() {
-    const pathname = usePathname();
-    const { data: session } = useSession();
+    const location = useLocation();
+    const pathname = location.pathname;
     const [isCollapsed, setIsCollapsed] = useState(false);
+
+    // Mock session for local admin
+    const session = {
+        user: {
+            name: "Admin",
+            email: "admin@marubot.local",
+            image: ""
+        }
+    };
 
     return (
         <aside className={cn(
@@ -57,27 +61,24 @@ export function Sidebar() {
             </div>
 
             <nav className="flex-1 px-3 space-y-1">
-                {menuItems.map((item) => {
-                    const isActive = pathname === item.href;
-                    return (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={cn(
-                                "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group",
-                                isActive
-                                    ? "bg-blue-600 text-white shadow-md shadow-blue-200 dark:shadow-none"
-                                    : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-                            )}
-                        >
-                            <item.icon className={cn(
-                                "w-5 h-5",
-                                isActive ? "text-white" : "group-hover:text-blue-500 transition-colors"
-                            )} />
-                            {!isCollapsed && <span className="font-medium">{item.name}</span>}
-                        </Link>
-                    );
-                })}
+                {menuItems.map((item) => (
+                    <Link
+                        key={item.href}
+                        to={item.href}
+                        className={cn(
+                            "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group",
+                            pathname === item.href
+                                ? "bg-blue-600 text-white shadow-md shadow-blue-200 dark:shadow-none"
+                                : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        )}
+                    >
+                        <item.icon className={cn(
+                            "w-5 h-5",
+                            pathname === item.href ? "text-white" : "group-hover:text-blue-500 transition-colors"
+                        )} />
+                        {!isCollapsed && <span className="font-medium">{item.name}</span>}
+                    </Link>
+                ))}
             </nav>
 
             <div className="p-4 border-t space-y-4">
@@ -97,7 +98,7 @@ export function Sidebar() {
                             </div>
                         )}
                         {!isCollapsed && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-500" onClick={() => signOut()}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-500" onClick={() => console.log("Logout")}>
                                 <LogOut size={14} />
                             </Button>
                         )}
@@ -109,7 +110,7 @@ export function Sidebar() {
                     isCollapsed ? "text-center" : "flex justify-between"
                 )}>
                     {!isCollapsed && <span>Engine Status: Active</span>}
-                    <span>v1.2.0</span>
+                    <span>v0.2.4</span>
                 </div>
             </div>
         </aside>

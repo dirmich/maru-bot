@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"marubot/pkg/providers"
-	"marubot/pkg/skills"
+	"github.com/dirmich/marubot/pkg/providers"
+	"github.com/dirmich/marubot/pkg/skills"
 )
 
 type ContextBuilder struct {

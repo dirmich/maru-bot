@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"marubot/pkg/bus"
-	"marubot/pkg/config"
+	"github.com/dirmich/marubot/pkg/bus"
+	"github.com/dirmich/marubot/pkg/config"
 )
 
 type FeishuChannel struct {
