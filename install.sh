@@ -12,11 +12,27 @@ NC='\033[0m'
 echo -e "${BLUE}🤖 Starting MaruBot One-Click Installer...${NC}"
 
 # 0. Language Selection
+# 0. Language Selection
 echo "Language / 언어 / 言語:"
 echo "1) English (en)"
 echo "2) 한국어 (ko)"
 echo "3) 日本語 (ja)"
-read -p "Select (1-3) [Default: 1]: " LANG_CHOICE
+
+# Check if running interactively or verify /dev/tty availability
+if [ -c /dev/tty ]; then
+    read -p "Select (1-3) [Default: 1]: " LANG_CHOICE < /dev/tty
+else
+    if [ -t 0 ]; then
+        read -p "Select (1-3) [Default: 1]: " LANG_CHOICE
+    else
+        # Fallback for non-interactive environments
+        LANG_CHOICE=1
+    fi
+fi
+
+if [ -z "$LANG_CHOICE" ]; then
+    LANG_CHOICE=1
+fi
 
 case $LANG_CHOICE in
     2) MARUBOT_LANG="ko" ;;
