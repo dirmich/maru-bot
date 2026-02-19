@@ -86,11 +86,12 @@
 - [x] **Task 6.1: Vite + React (SPA) 마이그레이션**
     - [x] Next.js 의존성 제거 및 Vite/React Router/Tailwind 설정 (package.json, vite.config.ts)
     - [x] 진입점(src/main.tsx, index.html) 및 라우팅 구성 (App.tsx)
-    - [ ] 컴포넌트 및 페이지 구조 이관 (`app/` -> `src/pages`, `src/components`)
-    - [ ] API 연동 로직 수정 (Next.js API Routes -> Go 백엔드 직접 호출)
+    - [x] 컴포넌트 및 페이지 구조 이관 (`app/` -> `src/pages`, `src/components`)
+    - [x] API 연동 로직 수정 (Next.js API Routes -> Go 백엔드 직접 호출 가능한 React 로직으로 변경)
 - [ ] **Task 6.2: Go 바이너리 내장 (Embed) 및 서빙**
     - [ ] `web-admin/dist` 빌드 결과물을 Go 바이너리에 임베딩 (`//go:embed`)
-    - [ ] `marubot dashboard` 명령 실행 시 임베딩된 정적 파일 서빙하도록 수정
+    - [x] Go 서버(`dashboard/server.go`) 구현: 정적 파일 서빙 및 기본 API 구조
+    - [ ] `marubot dashboard` 명령 실행 시 Go 서버 구동 연결
     - [ ] API 라우팅과 정적 파일 서빙 라우팅 분리 및 연동 테스트
 - [ ] **Task 6.3: 설치 프로세스 최적화 (Build-free)**
     - [ ] `install.sh`: 사용자 기기(RPi)에서의 `npm install`, `npm run build` 단계 제거
