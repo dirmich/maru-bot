@@ -4,14 +4,15 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/dirmich/maruminibot/pkg/agent"
-	"github.com/dirmich/maruminibot/pkg/config"
-	"github.com/dirmich/maruminibot/pkg/skills"
+	"github.com/dirmich/marubot/pkg/agent"
+	"github.com/dirmich/marubot/pkg/config"
+	"github.com/dirmich/marubot/pkg/skills"
 )
 
 //go:embed dist
@@ -39,18 +40,9 @@ func NewServer(addr string, agent *agent.AgentLoop, cfg *config.Config) *Server 
 
 // Start begins listening for HTTP requests
 func (s *Server) Start() error {
-	// Serve static files from embedded FS (web-admin/dist)
-
-	// dist, _ := fs.Sub(webAdminAssets, "dist")
-	// The embed directive includes the directory prefix "dist", so we need to access it properly.
-	// However, if we're running from the root of the repo during dev, this might be tricky if build fails.
-	// For production binary, "dist" must exist inside web-admin before building marubot.
-	// But since the embed directive is in this package, the "dist" folder must be relative to THIS file (cmd/marubot/dashboard).
-	// This means we need to COPY web-admin/dist to cmd/marubot/dashboard/dist before building the Go binary.
-
-	// For now, let's assume successful copy.
 	distFS, err := fs.Sub(webAdminAssets, "dist")
 	if err != nil {
+		// Should not happen if build environment is correct (folder exists)
 		return fmt.Errorf("failed to load embedded assets: %w", err)
 	}
 
@@ -66,7 +58,6 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 
-		// If API path wasn't caught above (shouldn't happen with exact matches, but for safety)
 		if strings.HasPrefix(path, "/api/") {
 			http.NotFound(w, r)
 			return
@@ -78,7 +69,6 @@ func (s *Server) Start() error {
 			defer f.Close()
 			stat, _ := f.Stat()
 			if !stat.IsDir() {
-				// Serve existing file
 				fileServer.ServeHTTP(w, r)
 				return
 			}
@@ -92,8 +82,11 @@ func (s *Server) Start() error {
 		}
 		defer index.Close()
 
-		// Copy index.html content to response
-		http.ServeContent(w, r, "index.html", s.getFileModTime(index), index)
+		// Use io.Copy since fs.File from embed doesn't implement io.ReadSeeker required for ServeContent
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if _, err := io.Copy(w, index); err != nil {
+			http.Error(w, "Failed to serve index", http.StatusInternalServerError)
+		}
 	})
 
 	fmt.Printf("Dashboard server listening on http://%s\n", s.addr)
@@ -108,11 +101,11 @@ func (s *Server) getFileModTime(f fs.File) time.Time {
 	return stat.ModTime()
 }
 
-// API Handlers (Simplified for now)
+// API Handlers (Simplified)
 
 func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	if r.Method == "GET" {
-		// Return chat history (mock)
 		json.NewEncoder(w).Encode([]map[string]string{})
 		return
 	}
@@ -126,25 +119,24 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// TODO: Send to Agent
-		// resp, err := s.agent.Chat(req.Message)
-		resp := "Echo: " + req.Message // Placeholder
+		// Mock response
+		resp := "Echo: " + req.Message
 
 		json.NewEncoder(w).Encode(map[string]string{"response": resp})
 	}
 }
 
 func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	if r.Method == "GET" {
 		json.NewEncoder(w).Encode(s.config)
 	}
-	// POST implementation for saving config...
 }
 
 func (s *Server) handleSkills(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	if r.Method == "GET" {
 		skills := s.skillLoad.ListSkills(false)
-		// Convert to simple string output for compatibility with current UI
 		var output strings.Builder
 		for _, sk := range skills {
 			output.WriteString(fmt.Sprintf("- %s (%s)\n", sk.Name, sk.Source))

@@ -10,9 +10,9 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
-	"marubot/pkg/bus"
-	"marubot/pkg/config"
-	"marubot/pkg/voice"
+	"github.com/dirmich/marubot/pkg/bus"
+	"github.com/dirmich/marubot/pkg/config"
+	"github.com/dirmich/marubot/pkg/voice"
 )
 
 type TelegramChannel struct {
