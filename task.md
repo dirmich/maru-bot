@@ -81,3 +81,18 @@
 - **2026-02-18**: MaruBot v0.2.0 정식 배포 (Github: dirmich/maru-bot). 32-bit/64-bit 자동 감지 설치 및 Web Admin Standalone 빌드 적용 완료.
 - **2026-02-19**: 32-bit 환경 빌드 에러 수정 (next.config.mjs 적용).
 
+
+## 🟢 Phase 6: 웹 관리자 경량화 및 의존성 제거 (진행 중)
+- [x] **Task 6.1: Vite + React (SPA) 마이그레이션**
+    - [x] Next.js 의존성 제거 및 Vite/React Router/Tailwind 설정 (package.json, vite.config.ts)
+    - [x] 진입점(src/main.tsx, index.html) 및 라우팅 구성 (App.tsx)
+    - [ ] 컴포넌트 및 페이지 구조 이관 (`app/` -> `src/pages`, `src/components`)
+    - [ ] API 연동 로직 수정 (Next.js API Routes -> Go 백엔드 직접 호출)
+- [ ] **Task 6.2: Go 바이너리 내장 (Embed) 및 서빙**
+    - [ ] `web-admin/dist` 빌드 결과물을 Go 바이너리에 임베딩 (`//go:embed`)
+    - [ ] `marubot dashboard` 명령 실행 시 임베딩된 정적 파일 서빙하도록 수정
+    - [ ] API 라우팅과 정적 파일 서빙 라우팅 분리 및 연동 테스트
+- [ ] **Task 6.3: 설치 프로세스 최적화 (Build-free)**
+    - [ ] `install.sh`: 사용자 기기(RPi)에서의 `npm install`, `npm run build` 단계 제거
+    - [ ] 미리 빌드된 자산이 포함된 단일 바이너리 배포 구조로 변경
+    - [ ] `publish.sh`: 배포 전 로컬에서 Web Admin 빌드 및 임베딩 처리 자동화
