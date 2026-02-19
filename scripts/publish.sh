@@ -59,10 +59,10 @@ for item in "${ITEMS[@]}"; do
             rm -rf "$TARGET_DIR/web-admin"
             mkdir -p "$TARGET_DIR/web-admin"
 
-            # 2. 소스 파일 복사 (node_modules, .next, .git 제외)
+            # 2. 소스 파일 복사 (node_modules, .next, .git, dist 제외)
             if command -v rsync >/dev/null 2>&1; then
                 echo "  Using rsync..."
-                rsync -av --exclude 'node_modules' --exclude '.next' --exclude '.git' "$SOURCE_DIR/web-admin/" "$TARGET_DIR/web-admin/" > /dev/null
+                rsync -av --exclude 'node_modules' --exclude '.next' --exclude 'dist' --exclude '.git' "$SOURCE_DIR/web-admin/" "$TARGET_DIR/web-admin/" > /dev/null
             else
                 echo "  ⚠️ rsync not found."
                 # 윈도우/Git Bash 환경에서 tar 파이프라인이 에러를 낼 수 있음.
@@ -70,12 +70,12 @@ for item in "${ITEMS[@]}"; do
                 echo "  Creating directory..."
                 mkdir -p "$TARGET_DIR/web-admin"
                 
-                # find를 이용해 파일 복사 (node_modules, .next 제외)
+                # find를 이용해 파일 복사 (node_modules, .next, dist 제외)
                 # 주의: 윈도우에서 심볼릭 링크나 경로 문제 발생 가능성 최소화
                 echo "  Copying files (excluding node_modules)..."
                 
                 # web-admin 내부의 항목들 순회
-                find "$SOURCE_DIR/web-admin" -mindepth 1 -maxdepth 1 \( -name 'node_modules' -o -name '.next' -o -name '.git' \) -prune -o -exec cp -r {} "$TARGET_DIR/web-admin/" \;
+                find "$SOURCE_DIR/web-admin" -mindepth 1 -maxdepth 1 \( -name 'node_modules' -o -name '.next' -o -name 'dist' -o -name '.git' \) -prune -o -exec cp -r {} "$TARGET_DIR/web-admin/" \;
             fi
             
             echo "  ✓ web-admin 소스 복사 완료"
@@ -109,9 +109,9 @@ find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -exec sed -i 's/M
 find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -exec sed -i 's/MARUMINIBOT/MARUBOT/g' {} + || true
 
 # GitHub 레포지토리 주소 조정 (정식 명칭 maru-bot)
-echo "🌐 GitHub 레포지토리 주소 조정 (dirmich/maru-bot)..."
-find . -type f -not -path '*/.*' -exec sed -i 's/dirmich\/marubot/dirmich\/maru-bot/g' {} + || true
-find . -type f -not -path '*/.*' -exec sed -i 's/maru-ai\/maru-bot/dirmich\/maru-bot/g' {} + || true
+# echo "🌐 GitHub 레포지토리 주소 조정 (dirmich/maru-bot)..."
+# find . -type f -not -path '*/.*' -exec sed -i 's/dirmich\/marubot/dirmich\/maru-bot/g' {} + || true
+# find . -type f -not -path '*/.*' -exec sed -i 's/maru-ai\/maru-bot/dirmich\/maru-bot/g' {} + || true
 
 cd "$SOURCE_DIR"
 echo -e "\n✅ 모든 동기화가 완료되었습니다!"
