@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -49,9 +49,53 @@ export function GpioPage() {
         setConfiguredPins(newPins);
     }
 
-    const handleSave = () => {
-        console.log("Saving GPIO config:", configuredPins);
-        toast.success('GPIO 설정이 저장되었습니다.');
+    useEffect(() => {
+        fetchGpio();
+    }, []);
+
+    const fetchGpio = async () => {
+        try {
+            const res = await fetch('/api/gpio');
+            if (res.ok) {
+                const data = await res.json();
+                // If data is in the format expected by the frontend
+                // Backend returns map[string]interface{}
+                // We might need to transform it if the frontend expects PinConfig[]
+                const pins: PinConfig[] = Object.entries(data).map(([label, pin]: [string, any]) => {
+                    if (typeof pin === 'number') {
+                        return { pin, mode: 'OUT', label };
+                    }
+                    return { pin: 0, mode: 'OUT', label }; // Fallback
+                });
+                if (pins.length > 0) setConfiguredPins(pins);
+            }
+        } catch (e) {
+            console.error("Failed to fetch GPIO", e);
+        }
+    };
+
+    const handleSave = async () => {
+        try {
+            // Transform PinConfig[] back to map[string]interface{} for backend
+            const pinMap: Record<string, any> = {};
+            configuredPins.forEach(p => {
+                pinMap[p.label] = p.pin;
+            });
+
+            const res = await fetch('/api/gpio', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(pinMap),
+            });
+
+            if (res.ok) {
+                toast.success('GPIO 설정이 저장되었습니다.');
+            } else {
+                toast.error('저장 실패 (서버 오류)');
+            }
+        } catch (e) {
+            toast.error('저장 중 오류가 발생했습니다.');
+        }
     };
 
     return (

@@ -1,1 +1,1 @@
-gitignore 업데이트 및 web-admin dist 폴더 관리 개선
+대시보드 API 강화 (Config/Skills/GPIO 핸들러 구현) 및 웹 인터페이스 통신 연동 완료. 모든 기능이 정상 동작하도록 수정함.
