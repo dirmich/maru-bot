@@ -36,11 +36,14 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	workspace := cfg.WorkspacePath()
 	os.MkdirAll(workspace, 0755)
 
+	home, _ := os.UserHomeDir()
+	marubotHome := filepath.Join(home, ".marubot")
+
 	toolsRegistry := tools.NewToolRegistry()
 	toolsRegistry.Register(&tools.ReadFileTool{})
 	toolsRegistry.Register(&tools.WriteFileTool{})
 	toolsRegistry.Register(&tools.ListDirTool{})
-	configPath := filepath.Join(filepath.Dir(cfg.WorkspacePath()), "config.json") // 추정 경로
+	configPath := filepath.Join(marubotHome, "config", "config.json")
 	toolsRegistry.Register(tools.NewConfigTool(configPath, cfg))
 	toolsRegistry.Register(tools.NewExecTool(workspace))
 
@@ -52,7 +55,11 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	toolsRegistry.Register(tools.NewUltrasonicTool(cfg.Hardware.GPIO.Pins))
 	toolsRegistry.Register(tools.NewIMUTool())
 	toolsRegistry.Register(tools.NewVisionTool(workspace))
-	extensionDir := filepath.Join(filepath.Dir(workspace), "extensions")
+
+	// Ensure extensions directory is under .marubot
+	extensionDir := filepath.Join(marubotHome, "extensions")
+	os.MkdirAll(extensionDir, 0755)
+
 	toolsRegistry.Register(tools.NewCreateToolTool(toolsRegistry, extensionDir))
 	tools.LoadDynamicTools(toolsRegistry, extensionDir)
 	if cfg.Drone.Enabled {
@@ -62,7 +69,10 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 		toolsRegistry.Register(tools.NewGPSTool(cfg.GPS.Device, cfg.GPS.Baud))
 	}
 
-	sessionsManager := session.NewSessionManager(filepath.Join(filepath.Dir(cfg.WorkspacePath()), "sessions"))
+	// Ensure sessions directory is under .marubot
+	sessionsDir := filepath.Join(marubotHome, "sessions")
+	os.MkdirAll(sessionsDir, 0755)
+	sessionsManager := session.NewSessionManager(sessionsDir)
 
 	return &AgentLoop{
 		bus:            bus,
