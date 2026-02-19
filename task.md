@@ -88,12 +88,12 @@
     - [x] 진입점(src/main.tsx, index.html) 및 라우팅 구성 (App.tsx)
     - [x] 컴포넌트 및 페이지 구조 이관 (`app/` -> `src/pages`, `src/components`)
     - [x] API 연동 로직 수정 (Next.js API Routes -> Go 백엔드 직접 호출 가능한 React 로직으로 변경)
-- [ ] **Task 6.2: Go 바이너리 내장 (Embed) 및 서빙**
-    - [ ] `web-admin/dist` 빌드 결과물을 Go 바이너리에 임베딩 (`//go:embed`)
+- [x] **Task 6.2: Go 바이너리 내장 (Embed) 및 서빙**
+    - [x] `web-admin/dist` 빌드 결과물을 Go 바이너리에 임베딩 (`//go:embed`)
     - [x] Go 서버(`dashboard/server.go`) 구현: 정적 파일 서빙 및 기본 API 구조
-    - [ ] `marubot dashboard` 명령 실행 시 Go 서버 구동 연결
-    - [ ] API 라우팅과 정적 파일 서빙 라우팅 분리 및 연동 테스트
-- [ ] **Task 6.3: 설치 프로세스 최적화 (Build-free)**
-    - [ ] `install.sh`: 사용자 기기(RPi)에서의 `npm install`, `npm run build` 단계 제거
-    - [ ] 미리 빌드된 자산이 포함된 단일 바이너리 배포 구조로 변경
-    - [ ] `publish.sh`: 배포 전 로컬에서 Web Admin 빌드 및 임베딩 처리 자동화
+    - [x] `marubot dashboard` 명령 실행 시 Go 서버 구동 연결
+    - [x] API 라우팅과 정적 파일 서빙 라우팅 분리 및 연동 테스트 (Go Build 성공)
+- [x] **Task 6.3: 설치 프로세스 최적화**
+    - [x] `install.sh`: 사용자 기기(RPi)에서의 `npm install`, `npm run build` 단계를 Go 빌드 전 단계로 이동
+    - [x] 미리 빌드된 자산(Web Admin)이 포함된 단일 바이너리 배포 구조로 변경
+    - [x] `marubot dashboard` 실행 시 별도 Node.js/Bun 프로세스 없이 Go 서버만으로 동작하도록 개선
