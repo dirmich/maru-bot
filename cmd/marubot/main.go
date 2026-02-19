@@ -1305,9 +1305,6 @@ func configHelp() {
 func dashboardCmd() {
 	fmt.Printf("%s Starting MaruBot Dashboard & API Server...\n", logo)
 
-	// In the new architecture, the Go server *is* the backend.
-	// We no longer rely on external Node.js/Next.js server for API.
-
 	cfg, err := loadConfig()
 	if err != nil {
 		fmt.Printf("Error loading config: %v\n", err)
@@ -1323,19 +1320,39 @@ func dashboardCmd() {
 	bus := bus.NewMessageBus()
 	agentLoop := agent.NewAgentLoop(cfg, bus, provider)
 
+	// Background Services (from gatewayCmd)
+	cronStorePath := filepath.Join(filepath.Dir(getConfigPath()), "cron", "jobs.json")
+	cronService := cron.NewCronService(cronStorePath, nil)
+
+	heartbeatService := heartbeat.NewHeartbeatService(
+		cfg.WorkspacePath(),
+		nil,
+		30*60,
+		true,
+	)
+
+	channelManager, err := channels.NewManager(cfg, bus)
+	if err == nil {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		cronService.Start()
+		heartbeatService.Start()
+		channelManager.StartAll(ctx)
+		go agentLoop.Run(ctx)
+
+		fmt.Println("✓ Background services started (Cron, Heartbeat, Channels)")
+	}
+
 	// Initialize Dashboard Server
-	// Default port 8080, can be configured later
 	port := "8080"
 	server := dashboard.NewServer(":"+port, agentLoop, cfg)
 
-	// Start Browser (Optional, can be behind a flag)
 	go func() {
 		time.Sleep(1 * time.Second)
 		fmt.Printf("✓ Dashboard available at http://localhost:%s\n", port)
-		// openBrowser("http://localhost:" + port)
 	}()
 
-	// Start Server (Blocking)
 	if err := server.Start(); err != nil {
 		fmt.Printf("Error starting dashboard server: %v\n", err)
 	}
