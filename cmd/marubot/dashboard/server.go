@@ -119,8 +119,12 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Mock response
-		resp := "Echo: " + req.Message
+		// Use the agent to get a real AI response
+		resp, err := s.agent.ProcessDirect(r.Context(), req.Message, "web-admin")
+		if err != nil {
+			http.Error(w, fmt.Sprintf("AI processing error: %v", err), http.StatusInternalServerError)
+			return
+		}
 
 		json.NewEncoder(w).Encode(map[string]string{"response": resp})
 	}
