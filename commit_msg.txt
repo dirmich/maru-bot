@@ -1,5 +1,0 @@
-fix(web-admin): 32-bit 환경 빌드 오류 해결 (next.config.mjs 적용) 및 v0.2.4 업데이트
-
-- next.config.ts를 next.config.mjs로 변경하여 SWC/Turbo 관련 Wasm 바인딩 오류 해결
-- 불필요한 maru-bot 폴더 삭제
-- 버전 0.2.4로 업데이트

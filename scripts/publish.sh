@@ -55,17 +55,19 @@ for item in "${ITEMS[@]}"; do
         if [ "$item" == "web-admin" ]; then
             echo "  � Web Admin 소스 코드 복사 중 (타겟 머신 빌드용)..."
             
-            # 1. web-admin 디렉토리 생성
+            # 1. web-admin 디렉토리 생성 (기존 내용 초기화)
+            rm -rf "$TARGET_DIR/web-admin"
             mkdir -p "$TARGET_DIR/web-admin"
 
-            # 2. 소스 파일 복사 (숨김 파일 포함, .next, node_modules 제외)
-            # 깔끔하게 복사하기 위해 rsync가 좋지만 윈도우 환경(Git Bash) 고려하여 find 사용
-            # web-admin 안의 내용물을 복사
-            cp -r "$SOURCE_DIR/web-admin/." "$TARGET_DIR/web-admin/"
-
-            # 3. 불필요한 빌드 아티팩트 및 의존성 제거
-            rm -rf "$TARGET_DIR/web-admin/.next"
-            rm -rf "$TARGET_DIR/web-admin/node_modules"
+            # 2. 소스 파일 복사 (node_modules, .next 제외)
+            if command -v rsync >/dev/null 2>&1; then
+                echo "  Using rsync..."
+                rsync -av --exclude 'node_modules' --exclude '.next' --exclude '.git' "$SOURCE_DIR/web-admin/" "$TARGET_DIR/web-admin/" > /dev/null
+            else
+                echo "  ⚠️ rsync not found, using tar..."
+                # tar extraction in Windows/GitBash sometimes needs care, but standard pipe usually works
+                tar -cf - --exclude='node_modules' --exclude='.next' --exclude='.git' -C "$SOURCE_DIR/web-admin" . | tar -xf - -C "$TARGET_DIR/web-admin"
+            fi
             
             echo "  ✓ web-admin 소스 복사 완료"
         else
