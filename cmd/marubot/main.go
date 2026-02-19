@@ -34,7 +34,7 @@ import (
 	"github.com/chzyer/readline"
 )
 
-var version = "0.3.0"
+var version = "0.3.1"
 
 const logo = "🦞"
 
@@ -146,6 +146,8 @@ func main() {
 		uninstallCmd()
 	case "stop":
 		stopCmd()
+	case "upgrade":
+		upgradeCmd()
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
 		printHelp()
@@ -229,6 +231,7 @@ func printHelp() {
 	fmt.Println("  skills      Manage skills (install, list, remove)")
 	fmt.Println("  uninstall   Remove marubot from system")
 	fmt.Println("  stop        Stop background dashboard process")
+	fmt.Println("  upgrade     Upgrade marubot to the latest version")
 	fmt.Println("  version     Show version information")
 }
 
@@ -1485,4 +1488,29 @@ func stopCmd() {
 	// Clean up PID file
 	os.Remove(pidFile)
 	fmt.Println("✓ Stopped.")
+}
+
+func upgradeCmd() {
+	fmt.Println("⚙️  Checking for updates...")
+
+	// Stop existing process if running
+	stopCmd()
+
+	fmt.Println("🚀 Upgrading MaruBot to the latest version...")
+
+	// Use curl to download and run the install script
+	// We use the same install script as it handles updates gracefully (git pull if exists)
+	cmd := exec.Command("bash", "-c", "curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash")
+
+	// Connect pipes to let user interact (for language selection, sudo password, etc.)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("❌ Upgrade failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("✨ Upgrade complete! You can now start the dashboard with 'marubot dashboard'")
 }
