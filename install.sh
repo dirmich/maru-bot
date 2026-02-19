@@ -49,8 +49,12 @@ if [ "$INSTALL_GO" = true ]; then
     sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go_dist.tar.gz
     rm go_dist.tar.gz
     if ! grep -q "/usr/local/go/bin" ~/.bashrc; then echo 'export PATH=/usr/local/go/bin:$PATH' >> ~/.bashrc; fi
-    export PATH=/usr/local/go/bin:$PATH
 fi
+
+# Ensure /usr/local/go/bin is at the front of PATH for this script session
+export PATH=/usr/local/go/bin:$PATH
+GO_CMD="/usr/local/go/bin/go"
+if [ ! -f "$GO_CMD" ]; then GO_CMD="go"; fi
 
 # 3. Clone Source Code
 INSTALL_DIR="$HOME/marubot"
@@ -118,8 +122,8 @@ fi
 
 # 5-2. Go Build
 echo -e "${BLUE}    🐹 Running Go build...${NC}"
-go mod tidy
-make build
+$GO_CMD mod tidy
+make GO="$GO_CMD" build
 
 # 6. Install System and Deploy Resources
 echo -e "${BLUE}🏗️ Installing system and deploying resources...${NC}"
@@ -154,7 +158,7 @@ chmod +x maru-setup.sh
 ./maru-setup.sh
 
 # 8. Finalize PATH and Config
-if [ grep -q "marubot/build" ~/.bashrc 2>/dev/null ]; then
+if grep -q "marubot/build" ~/.bashrc 2>/dev/null; then
     sed -i '/marubot\/build/d' ~/.bashrc
 fi
 
