@@ -79,3 +79,5 @@
 - **2026-02-18**: `maru-setup.sh` 내 오타 수정 및 불필요한 스크립트 참조 제거.
 - **2026-02-18**: 32-bit ARM 환경 지원을 위해 Prisma를 Drizzle ORM으로 전면 교체. 이제 32-bit OS에서도 대시보드 사용 가능.
 - **2026-02-18**: MaruBot v0.2.0 정식 배포 (Github: dirmich/maru-bot). 32-bit/64-bit 자동 감지 설치 및 Web Admin Standalone 빌드 적용 완료.
+- **2026-02-19**: 32-bit 환경 빌드 에러 수정 (next.config.mjs 적용).
+
