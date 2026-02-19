@@ -2,6 +2,11 @@
 
 **MaruBot**은 MaruBot의 초경량 엔진을 기반으로, Raspberry Pi와 같은 SBC(Single Board Computer)에서 하드웨어를 직접 제어하고 소통하기 위해 최적화된 **"Physical AI Assistant"**입니다.
 
+## ✨ 0.3.0 업데이트
+- **Web Admin 통합**: 더 이상 별도의 Node.js 설치가 필요 없습니다. Web Admin이 Go 바이너리에 내장되어 단일 파일로 실행됩니다.
+- **설치 프로세스 간소화**: 설치 스크립트가 대폭 개선되어 의존성 문제를 해결했습니다.
+- **REST API 지원**: 대시보드와 에이전트 간의 통신을 위한 내부 API가 추가되었습니다.
+
 ---
 
 ## ✨ 핵심 컨셉
@@ -20,7 +25,7 @@
 
 ---
 
-## � 사전 준비 (Prerequisites)
+##  사전 준비 (Prerequisites)
 
 시작하기 전에 다음 사항이 준비되었는지 확인하세요:
 - **Hardware**: Raspberry Pi (ARM64/32 완벽 지원), 전원 아답터, SD 카드
@@ -57,7 +62,7 @@ marubot config set agents.defaults.model "gpt-4o"
 # 콘솔 대화 모드
 marubot agent
 
-# 또는 웹 관리자 대시보드 (http://localhost:3000)
+# 또는 웹 관리자 대시보드 (http://localhost:8080)
 marubot dashboard
 ```
 
@@ -68,9 +73,9 @@ marubot dashboard
 원클릭 설치가 작동하지 않거나 수동 설정을 원하는 경우:
 
 1.  **필수 도구 설치**: `sudo apt install -y git make golang libcamera-apps`
-2.  **리포지토리 클론**: `git clone https://github.com/dirmich/maru-bot.git marubot`
-3.  **하드웨어 초기화**: `cd marubot && bash maru-setup.sh`
-    -   이 스크립트는 GPIO 권한, 카메라/오디오 인터페이스 활성화를 점검합니다.
+2.  **리포지토리 클론**: `git clone https://github.com/dirmich/maru-bot.git marubot` (또는 `dirmich/maru-bot`)
+3.  **설치 스크립트 실행**: `cd marubot && bash install.sh`
+    -   이 스크립트는 Web Admin 빌드, Go 바이너리 임베딩 및 빌드, 리소스 배포를 자동으로 수행합니다.
 
 ---
 
@@ -108,4 +113,4 @@ MaruBot의 철학을 계승하여 MIT License를 따릅니다.
 
 MaruBot은 [picoclaw](https://github.com/sipeed/picoclaw)를 기본으로 Raspberry Pi에 맞게 기능이 추가되었습니다.
 
-*개발 및 분석: Antigravity AI (2026-02-13)*
+*개발 및 분석: Antigravity AI (2026-02-19)*
