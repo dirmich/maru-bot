@@ -212,6 +212,7 @@ echo -e "${BLUE}🏗️ Installing system and deploying resources...${NC}"
 
 if [ -f "build/marubot" ]; then
     echo "  📦 Copying executable to /usr/local/bin/marubot..."
+    sudo rm -f /usr/local/bin/marubot
     sudo cp build/marubot /usr/local/bin/
     sudo chmod +x /usr/local/bin/marubot
 else

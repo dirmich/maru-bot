@@ -36,7 +36,7 @@ import (
 	"github.com/chzyer/readline"
 )
 
-var version = "0.3.2"
+var version = "0.3.5"
 
 const logo = "🦞"
 
@@ -219,7 +219,7 @@ func uninstallCmd() {
 }
 
 func printHelp() {
-	fmt.Printf("%s marubot - Personal AI Assistant v%s\n\n", logo, version)
+	fmt.Printf("%s marubot - Personal AI Assistant v%s\n", logo, version)
 	fmt.Println("Usage: marubot <command>\n")
 	fmt.Println("Commands:")
 	fmt.Println("  agent       Interact with the agent directly")
@@ -1571,7 +1571,7 @@ func getLatestVersion() (string, error) {
 		return "", err
 	}
 
-	// Regex to find: var version = "0.3.1"
+	// Regex to find: var version = "0.3.4"
 	re := regexp.MustCompile(`var version = "([^"]+)"`)
 	matches := re.FindStringSubmatch(string(body))
 	if len(matches) > 1 {
