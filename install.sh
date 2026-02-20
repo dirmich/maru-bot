@@ -143,7 +143,13 @@ INSTALL_DIR="$HOME/marubot"
 if [ -d "$INSTALL_DIR" ]; then
     echo -e "${BLUE}🔄 Updating to latest source code...${NC}"
     cd "$INSTALL_DIR"
-    git pull
+    if ! git pull; then
+        echo -e "${YELLOW}⚠️ Git update failed. Retrying fresh clone...${NC}"
+        cd "$HOME"
+        rm -rf "$INSTALL_DIR"
+        git clone --depth 1 https://github.com/dirmich/maru-bot.git "$INSTALL_DIR"
+        cd "$INSTALL_DIR"
+    fi
 else
     echo -e "${BLUE}${MSG_CLONE}${NC}"
     git clone --depth 1 https://github.com/dirmich/maru-bot.git "$INSTALL_DIR"
