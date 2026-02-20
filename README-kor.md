@@ -66,7 +66,7 @@ marubot config set agents.defaults.model "gpt-4o"
 marubot agent
 
 # 또는 웹 관리자 대시보드 (http://localhost:8080)
-marubot dashboard
+marubot start
 ```
 
 ### 4. 업데이트 (Upgrade)

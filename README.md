@@ -58,7 +58,7 @@ marubot config set agents.defaults.model "gpt-4o"
 marubot agent
 
 # Or Web Admin Dashboard (http://localhost:3000)
-marubot dashboard
+marubot start
 ```
 
 ---

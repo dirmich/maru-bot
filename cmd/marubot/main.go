@@ -16,8 +16,10 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"os/user"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -36,7 +38,7 @@ import (
 	"github.com/chzyer/readline"
 )
 
-var version = "0.3.10"
+var version = "0.3.11"
 
 const logo = "🦞"
 
@@ -95,8 +97,10 @@ func main() {
 		configCmd()
 	case "cron":
 		cronCmd()
-	case "dashboard":
-		dashboardCmd()
+	case "start":
+		startCmd()
+	case "reload":
+		reloadCmd()
 	case "skills":
 		if len(os.Args) < 3 {
 			skillsHelp()
@@ -225,10 +229,11 @@ func printHelp() {
 	fmt.Println("  agent       Interact with the agent directly")
 	fmt.Println("  config      Manage hardware/system configuration")
 	fmt.Println("  cron        Manage scheduled tasks")
-	fmt.Println("  dashboard   Start both gateway and web UI dashboard")
 	fmt.Println("  gateway     Start marubot gateway")
 	fmt.Println("  onboard     Initialize marubot configuration and workspace")
+	fmt.Println("  reload      Reload marubot configuration")
 	fmt.Println("  skills      Manage skills (install, list, remove)")
+	fmt.Println("  start       Start both gateway and web UI dashboard in background")
 	fmt.Println("  status      Show marubot status")
 	fmt.Println("  stop        Stop background dashboard process")
 	fmt.Println("  uninstall   Remove marubot from system")
@@ -408,7 +413,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-0.3.10
+0.3.11
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
@@ -1325,7 +1330,111 @@ func configHelp() {
 	fmt.Println("  show              Show merged configuration")
 }
 
-func dashboardCmd() {
+func installAndRunSystemdService(exePath string) error {
+	_, err := exec.LookPath("systemctl")
+	if err != nil {
+		return fmt.Errorf("systemctl not found")
+	}
+
+	u, err := user.Current()
+	if err != nil {
+		return err
+	}
+
+	serviceDir := filepath.Join(u.HomeDir, ".config", "systemd", "user")
+	if err := os.MkdirAll(serviceDir, 0755); err != nil {
+		return err
+	}
+
+	servicePath := filepath.Join(serviceDir, "marubot.service")
+	serviceContent := fmt.Sprintf(`[Unit]
+Description=MaruBot Service
+After=network.target
+
+[Service]
+Type=simple
+Environment="MARUBOT_DAEMON=1"
+ExecStart=%s start --foreground
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
+`, exePath)
+
+	if err := os.WriteFile(servicePath, []byte(serviceContent), 0644); err != nil {
+		return err
+	}
+
+	exec.Command("loginctl", "enable-linger", u.Username).Run()
+
+	cmds := [][]string{
+		{"systemctl", "--user", "daemon-reload"},
+		{"systemctl", "--user", "enable", "marubot.service"},
+		{"systemctl", "--user", "start", "marubot.service"},
+	}
+
+	for _, c := range cmds {
+		cmd := exec.Command(c[0], c[1:]...)
+		if os.Getenv("XDG_RUNTIME_DIR") == "" {
+			cmd.Env = append(os.Environ(), fmt.Sprintf("XDG_RUNTIME_DIR=/run/user/%s", u.Uid))
+		} else {
+			cmd.Env = os.Environ()
+		}
+		cmd.Run() // ignore specific errors
+	}
+
+	return nil
+}
+
+func reloadCmd() {
+	fmt.Println("Reloading MaruBot...")
+	if runtime.GOOS == "linux" {
+		_, err := exec.LookPath("systemctl")
+		if err == nil {
+			u, _ := user.Current()
+			uid := ""
+			if u != nil {
+				uid = u.Uid
+			}
+
+			serviceDir := ""
+			if u != nil {
+				serviceDir = filepath.Join(u.HomeDir, ".config", "systemd", "user")
+			}
+			servicePath := filepath.Join(serviceDir, "marubot.service")
+			if _, err := os.Stat(servicePath); err == nil {
+				cmd := exec.Command("systemctl", "--user", "restart", "marubot.service")
+				if os.Getenv("XDG_RUNTIME_DIR") == "" && uid != "" {
+					cmd.Env = append(os.Environ(), fmt.Sprintf("XDG_RUNTIME_DIR=/run/user/%s", uid))
+				} else {
+					cmd.Env = os.Environ()
+				}
+				if err := cmd.Run(); err == nil {
+					fmt.Println("✓ Reloaded via systemd.")
+					return
+				}
+			}
+		}
+	}
+
+	stopCmd()
+	time.Sleep(1 * time.Second)
+
+	exe, err := os.Executable()
+	if err != nil {
+		fmt.Printf("✗ Executable path error: %v\n", err)
+		return
+	}
+	cmd := exec.Command(exe, "start")
+	if err := cmd.Start(); err != nil {
+		fmt.Printf("✗ Failed to start during reload: %v\n", err)
+		return
+	}
+	fmt.Println("✓ Reload complete.")
+}
+
+func startCmd() {
 	// Check for flags
 	var runForeground bool
 	if len(os.Args) > 2 && (os.Args[2] == "--foreground" || os.Args[2] == "-f") {
@@ -1340,8 +1449,21 @@ func dashboardCmd() {
 			return
 		}
 
+		if runtime.GOOS == "linux" {
+			err = installAndRunSystemdService(exe)
+			if err == nil {
+				fmt.Println("✨ MaruBot started as a systemd service.")
+				fmt.Println("   It will auto-restart on reboot and continue working.")
+				fmt.Println("   URL: http://localhost:8080")
+				fmt.Println("   To stop: use 'marubot stop'")
+				fmt.Println("   To reload config: use 'marubot reload'")
+				return
+			}
+			fmt.Printf("Systemd service setup failed: %v. Falling back to simple daemon...\n", err)
+		}
+
 		// Re-run with special env var
-		cmd := exec.Command(exe, "dashboard")
+		cmd := exec.Command(exe, "start")
 		cmd.Env = append(os.Environ(), "MARUBOT_DAEMON=1")
 		// Detach process
 		cmd.Stdin = nil
@@ -1359,6 +1481,7 @@ func dashboardCmd() {
 		fmt.Printf("✨ MaruBot Dashboard started in background (PID: %d)\n", cmd.Process.Pid)
 		fmt.Println("   URL: http://localhost:8080")
 		fmt.Println("   To stop: use 'marubot stop'")
+		fmt.Println("   To reload config: use 'marubot reload'")
 		fmt.Println("   Logs: ~/.marubot/dashboard.log")
 		return
 	}
@@ -1481,10 +1604,42 @@ func getPidFilePath() string {
 }
 
 func stopCmd() {
+	stoppedViaSystemd := false
+	if runtime.GOOS == "linux" {
+		_, err := exec.LookPath("systemctl")
+		if err == nil {
+			u, _ := user.Current()
+			uid := ""
+			if u != nil {
+				uid = u.Uid
+			}
+
+			serviceDir := ""
+			if u != nil {
+				serviceDir = filepath.Join(u.HomeDir, ".config", "systemd", "user")
+			}
+			servicePath := filepath.Join(serviceDir, "marubot.service")
+			if _, err := os.Stat(servicePath); err == nil {
+				cmd := exec.Command("systemctl", "--user", "stop", "marubot.service")
+				if os.Getenv("XDG_RUNTIME_DIR") == "" && uid != "" {
+					cmd.Env = append(os.Environ(), fmt.Sprintf("XDG_RUNTIME_DIR=/run/user/%s", uid))
+				} else {
+					cmd.Env = os.Environ()
+				}
+				if err := cmd.Run(); err == nil {
+					fmt.Println("✓ Stopped systemd service.")
+					stoppedViaSystemd = true
+				}
+			}
+		}
+	}
+
 	pidFile := getPidFilePath()
 	data, err := os.ReadFile(pidFile)
 	if err != nil {
-		fmt.Println("No running marubot process found (pid file missing).")
+		if !stoppedViaSystemd {
+			fmt.Println("No running marubot process found (pid file missing).")
+		}
 		return
 	}
 
@@ -1494,18 +1649,18 @@ func stopCmd() {
 
 	proc, err := os.FindProcess(pid)
 	if err != nil {
-		fmt.Printf("Process %d not found.\n", pid)
+		if !stoppedViaSystemd {
+			fmt.Printf("Process %d not found.\n", pid)
+		}
 		os.Remove(pidFile)
 		return
 	}
 
-	fmt.Printf("Stopping marubot (PID: %d)...\n", pid)
+	fmt.Printf("Stopping marubot daemon (PID: %d)...\n", pid)
 	if err := proc.Signal(os.Interrupt); err != nil {
-		// Force kill if signal fails or not supported (Windows)
 		proc.Kill()
 	}
 
-	// Clean up PID file
 	os.Remove(pidFile)
 	fmt.Println("✓ Stopped.")
 }
@@ -1559,7 +1714,7 @@ func upgradeCmd() {
 		os.Exit(1)
 	}
 
-	fmt.Println("✨ Upgrade complete! You can now start the dashboard with 'marubot dashboard'")
+	fmt.Println("✨ Upgrade complete! You can now start the daemon with 'marubot start'")
 }
 
 func getLatestVersion() (string, error) {
