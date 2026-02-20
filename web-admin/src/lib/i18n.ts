@@ -99,6 +99,12 @@ export const translations = {
         settings_save_success: "Settings saved.",
         settings_reset_not_impl: "Reset function is not yet implemented.",
 
+        settings_channels_title: "Social Channels",
+        settings_channels_desc: "Configure bot connectivity for Discord, Telegram, etc.",
+        settings_channel_enabled: "Enabled",
+        settings_channel_token: "Bot Token",
+        settings_channel_allow_from: "Allowed Users/IDs (Comma separated)",
+
         // Common
         loading: "Loading...",
         save: "Save",
@@ -192,6 +198,12 @@ export const translations = {
         settings_save_success: "설정이 저장되었습니다.",
         settings_reset_not_impl: "초기화 기능은 아직 구현되지 않았습니다.",
 
+        settings_channels_title: "메신저 채널 연동",
+        settings_channels_desc: "디스코드, 텔레그램 등 외부 메신저 연동 설정을 관리합니다.",
+        settings_channel_enabled: "활성화함",
+        settings_channel_token: "봇 토큰 (Bot Token)",
+        settings_channel_allow_from: "허용할 사용자/채팅방 ID (쉼표로 구분)",
+
         // Common
         loading: "로딩 중...",
         save: "저장",
@@ -284,6 +296,12 @@ export const translations = {
         settings_reset_confirm_desc: "すべての設定を初期化しますか？",
         settings_save_success: "設定が保存されました。",
         settings_reset_not_impl: "リセット機能はまだ実装されていません。",
+
+        settings_channels_title: "メッセンジャー連携",
+        settings_channels_desc: "Discord、Telegramなどの外部連携を構成します。",
+        settings_channel_enabled: "有効にする",
+        settings_channel_token: "ボットトークン",
+        settings_channel_allow_from: "許可するユーザー/ID (カンマ区切り)",
 
         // Common
         loading: "読み込み中...",

@@ -185,6 +185,71 @@ export function SettingsPage() {
 
             <Card className="border-none shadow-md overflow-hidden">
                 <CardHeader className="bg-white dark:bg-slate-900 border-b">
+                    <CardTitle className="flex items-center gap-2 text-green-600">
+                        <Languages className="w-5 h-5" /> {t.settings_channels_title}
+                    </CardTitle>
+                    <CardDescription>{t.settings_channels_desc}</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6 space-y-8">
+                    {config.channels && Object.entries(config.channels).map(([name, ch]: [string, any]) => (
+                        <div key={name} className="space-y-3 p-4 rounded-xl bg-slate-50/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-bold uppercase text-sm tracking-tight">{name}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-slate-500">{t.settings_channel_enabled}</span>
+                                    <input
+                                        type="checkbox"
+                                        checked={ch.enabled || false}
+                                        onChange={(e) => updateConfig(['channels', name, 'enabled'], e.target.checked)}
+                                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {ch.hasOwnProperty('token') && (
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] font-medium text-slate-400 ml-1">{t.settings_channel_token}</span>
+                                        <Input
+                                            placeholder="Token"
+                                            type="password"
+                                            value={ch.token || ''}
+                                            onChange={(e) => updateConfig(['channels', name, 'token'], e.target.value)}
+                                        />
+                                    </div>
+                                )}
+                                {ch.hasOwnProperty('allow_from') && (
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] font-medium text-slate-400 ml-1">{t.settings_channel_allow_from}</span>
+                                        <Input
+                                            placeholder="12345, 67890"
+                                            value={Array.isArray(ch.allow_from) ? ch.allow_from.join(', ') : (ch.allow_from || '')}
+                                            onChange={(e) => {
+                                                const val = e.target.value.split(',').map(s => s.trim()).filter(s => s !== '');
+                                                updateConfig(['channels', name, 'allow_from'], val);
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                                {name === 'whatsapp' && (
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] font-medium text-slate-400 ml-1">Bridge URL</span>
+                                        <Input
+                                            value={ch.bridge_url || ''}
+                                            onChange={(e) => updateConfig(['channels', name, 'bridge_url'], e.target.value)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
+
+            <Card className="border-none shadow-md overflow-hidden">
+                <CardHeader className="bg-white dark:bg-slate-900 border-b">
                     <CardTitle className="flex items-center gap-2 text-rose-600">
                         <ShieldCheck className="w-5 h-5" /> {t.settings_security_title}
                     </CardTitle>
