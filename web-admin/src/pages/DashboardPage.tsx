@@ -149,7 +149,7 @@ export function DashboardPage() {
                         </div>
                         <div className="flex justify-between border-b py-2">
                             <span className="text-slate-500">Version</span>
-                            <span className="font-medium">v{stats?.version || '0.3.9'}</span>
+                            <span className="font-medium">v{stats?.version || '0.3.10'}</span>
                         </div>
                         <div className="flex justify-between py-2">
                             <span className="text-slate-500">Status</span>
