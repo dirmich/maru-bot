@@ -42,11 +42,11 @@ func NewExecTool(workingDir string) *ExecTool {
 }
 
 func (t *ExecTool) Name() string {
-	return "exec"
+	return "shell"
 }
 
 func (t *ExecTool) Description() string {
-	return "Execute a shell command and return its output. Use with caution."
+	return "Run a shell (bash/sh) command to interact with the system. Use this to check system status, IP address, hardware, etc. and return the output."
 }
 
 func (t *ExecTool) Parameters() map[string]interface{} {
