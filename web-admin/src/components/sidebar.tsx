@@ -145,7 +145,7 @@ export function Sidebar() {
                     isCollapsed ? "text-center" : "flex justify-between"
                 )}>
                     {!isCollapsed && <span>{t.status_ok}</span>}
-                    <span>v0.3.2</span>
+                    <span>v0.3.6</span>
                 </div>
             </div>
         </aside>
