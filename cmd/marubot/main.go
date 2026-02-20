@@ -36,7 +36,7 @@ import (
 	"github.com/chzyer/readline"
 )
 
-var version = "0.3.1"
+var version = "0.3.2"
 
 const logo = "🦞"
 
@@ -222,17 +222,16 @@ func printHelp() {
 	fmt.Printf("%s marubot - Personal AI Assistant v%s\n\n", logo, version)
 	fmt.Println("Usage: marubot <command>\n")
 	fmt.Println("Commands:")
-	fmt.Println("  onboard     Initialize marubot configuration and workspace")
 	fmt.Println("  agent       Interact with the agent directly")
-	fmt.Println("  gateway     Start marubot gateway")
-	fmt.Println("  dashboard   Start both gateway and web UI dashboard")
-	fmt.Println("  status      Show marubot status")
 	fmt.Println("  config      Manage hardware/system configuration")
 	fmt.Println("  cron        Manage scheduled tasks")
+	fmt.Println("  dashboard   Start both gateway and web UI dashboard")
+	fmt.Println("  gateway     Start marubot gateway")
+	fmt.Println("  onboard     Initialize marubot configuration and workspace")
 	fmt.Println("  skills      Manage skills (install, list, remove)")
-	fmt.Println("  skills      Manage skills (install, list, remove)")
-	fmt.Println("  uninstall   Remove marubot from system")
+	fmt.Println("  status      Show marubot status")
 	fmt.Println("  stop        Stop background dashboard process")
+	fmt.Println("  uninstall   Remove marubot from system")
 	fmt.Println("  upgrade     Upgrade marubot to the latest version")
 	fmt.Println("  version     Show version information")
 }
@@ -399,7 +398,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-0.3.0
+0.3.2
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
@@ -832,11 +831,11 @@ func cronCmd() {
 
 func cronHelp() {
 	fmt.Println("\nCron commands:")
-	fmt.Println("  list              List all scheduled jobs")
 	fmt.Println("  add              Add a new scheduled job")
-	fmt.Println("  remove <id>       Remove a job by ID")
-	fmt.Println("  enable <id>      Enable a job")
 	fmt.Println("  disable <id>     Disable a job")
+	fmt.Println("  enable <id>      Enable a job")
+	fmt.Println("  list              List all scheduled jobs")
+	fmt.Println("  remove <id>       Remove a job by ID")
 	fmt.Println()
 	fmt.Println("Add options:")
 	fmt.Println("  -n, --name       Job name")
@@ -1051,9 +1050,9 @@ func skillsCmd() {
 
 func skillsHelp() {
 	fmt.Println("\nSkills commands:")
-	fmt.Println("  list                    List installed skills")
 	fmt.Println("  install <repo>          Install skill from GitHub")
 	fmt.Println("  install-builtin          Install all builtin skills to workspace")
+	fmt.Println("  list                    List installed skills")
 	fmt.Println("  list-builtin             List available builtin skills")
 	fmt.Println("  remove <name>           Remove installed skill")
 	fmt.Println("  search                  Search available skills")
@@ -1311,9 +1310,9 @@ func configCmd() {
 
 func configHelp() {
 	fmt.Println("\nConfig commands:")
-	fmt.Println("  show              Show merged configuration")
-	fmt.Println("  set <key> <val>   Set an override in usersetting.json")
 	fmt.Println("  reset             Remove all user overrides")
+	fmt.Println("  set <key> <val>   Set an override in usersetting.json")
+	fmt.Println("  show              Show merged configuration")
 }
 
 func dashboardCmd() {
