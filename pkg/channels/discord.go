@@ -75,6 +75,10 @@ func (c *DiscordChannel) Send(ctx context.Context, msg bus.OutboundMessage) erro
 		return fmt.Errorf("channel ID is empty")
 	}
 
+	if msg.Action == "typing" {
+		return c.session.ChannelTyping(channelID)
+	}
+
 	message := msg.Content
 
 	if _, err := c.session.ChannelMessageSend(channelID, message); err != nil {

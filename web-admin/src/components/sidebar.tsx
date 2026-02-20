@@ -9,7 +9,8 @@ import {
     ChevronLeft,
     ChevronRight,
     Languages,
-    ScrollText
+    ScrollText,
+    LayoutDashboard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ export function Sidebar() {
     const [isCollapsed, setIsCollapsed] = useState(false);
 
     const menuItems = [
+        { name: t.dashboard || "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { name: t.chat, href: "/chat", icon: MessageSquare },
         { name: t.gpio, href: "/gpio", icon: Cpu },
         { name: t.skills, href: "/skills", icon: Package },
@@ -147,7 +149,7 @@ export function Sidebar() {
                     isCollapsed ? "text-center" : "flex justify-between"
                 )}>
                     {!isCollapsed && <span>{t.status_ok}</span>}
-                    <span>v0.3.6</span>
+                    <span>v0.3.8</span>
                 </div>
             </div>
         </aside>

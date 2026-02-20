@@ -14,6 +14,7 @@ type OutboundMessage struct {
 	Channel string `json:"channel"`
 	ChatID  string `json:"chat_id"`
 	Content string `json:"content"`
+	Action  string `json:"action,omitempty"` // "typing", "uploading", or empty for message
 }
 
 type MessageHandler func(InboundMessage) error

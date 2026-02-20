@@ -25,6 +25,7 @@ export type TranslationKey = keyof typeof translations.en;
 export const translations = {
     en: {
         // Sidebar
+        dashboard: "Dashboard",
         chat: "AI Assistant",
         gpio: "GPIO Control",
         skills: "Skills & Tools",
@@ -126,6 +127,7 @@ export const translations = {
     },
     ko: {
         // Sidebar
+        dashboard: "대시보드",
         chat: "AI 어시스턴트",
         gpio: "GPIO 제어",
         skills: "스킬 & 툴 박스",
@@ -227,6 +229,7 @@ export const translations = {
     },
     ja: {
         // Sidebar
+        dashboard: "ダッシュボード",
         chat: "AIアシスタント",
         gpio: "GPIO制御",
         skills: "スキル＆ツール",

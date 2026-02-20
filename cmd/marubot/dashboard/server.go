@@ -60,6 +60,7 @@ func (s *Server) Start() error {
 	mux.Handle("/api/skills", s.authMiddleware(http.HandlerFunc(s.handleSkills)))
 	mux.Handle("/api/gpio", s.authMiddleware(http.HandlerFunc(s.handleGpio)))
 	mux.Handle("/api/logs", s.authMiddleware(http.HandlerFunc(s.handleLogs)))
+	mux.Handle("/api/system/stats", s.authMiddleware(http.HandlerFunc(s.handleSystemStats)))
 
 	// Static File Serving (SPA Fallback)
 	fileServer := http.FileServer(http.FS(distFS))
@@ -311,4 +312,13 @@ func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(map[string]string{"logs": logs})
+}
+
+func (s *Server) handleSystemStats(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	stats := getPlatformStats()
+	stats["version"] = "0.3.8"
+
+	json.NewEncoder(w).Encode(stats)
 }

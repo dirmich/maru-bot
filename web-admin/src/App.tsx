@@ -10,6 +10,7 @@ import { SkillsPage } from "@/pages/SkillsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { LogsPage } from "@/pages/LogsPage";
 import { LoginPage } from "@/pages/LoginPage";
+import { DashboardPage } from "@/pages/DashboardPage";
 import { isAuthenticated } from "@/lib/auth";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -28,7 +29,8 @@ function App() {
                         <Routes>
                             <Route path="/login" element={<LoginPage />} />
                             <Route element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
-                                <Route path="/" element={<Navigate to="/chat" replace />} />
+                                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                                <Route path="/dashboard" element={<DashboardPage />} />
                                 <Route path="/chat" element={<ChatPage />} />
                                 <Route path="/gpio" element={<GpioPage />} />
                                 <Route path="/skills" element={<SkillsPage />} />
