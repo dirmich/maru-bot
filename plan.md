@@ -65,3 +65,36 @@
 ---
 *기획 일시: 2026-02-10*
 *작성자: Antigravity AI*
+# 작업 계획 (Implementation Plan)
+
+사용자의 지시에 따라, 항상 수정하기 전에 계획을 세우고 허락을 받은 뒤 작업을 진행합니다.
+
+## 수정 목표
+- `marubot dashboard` 명령을 `marubot start`로 변경하고 백그라운드 구동 지원
+- `marubot reload` 명령 추가: 실행 중인 설정을 다시 읽어오도록 구성 (데몬 재시작)
+- Raspberry Pi (Linux) 환경에서 디바이스 재부팅 시에도 봇이 계속 실행되도록 `systemd` 서비스 등록 및 관리 코드 도입
+
+## 진행 단계
+
+### 1단계: 기능 구현 (진행된 내용 보완 및 점검)
+- `cmd/marubot/main.go` 파일 내 `dashboardCmd`를 `startCmd`로 갱신 (완료됨)
+- `reloadCmd` 신규 작성 및 설정 리로드 로직(또는 재시작 로직) 구현 (완료됨)
+- Linux 환경에서는 `systemd` service 파일(`.config/systemd/user/marubot.service`)을 자동 등록/시작하도록 `installAndRunSystemdService` 함수 구현 (완료됨)
+- Windows 환경 등에서는 기존 데몬 모드처럼 프로세스 PID를 종료 후 다시 `start` 명령으로 재실행하도록 처리
+
+### 2단계: 문서 및 스크립트 갱신
+- 각종 언어별 `README.md`, `install.sh` 내 `dashboard` 명령어 안내를 `start`로 모두 교체 (부분 완료됨, 최종 점검)
+- `task.md` 에 관련된 개발 진행 상황 업데이트
+
+### 3단계: 버전 업 (Version Bump)
+- `cmd/marubot/main.go` 내의 `version` 문자열 수정 (예: `0.3.10` -> `0.3.11` 등)
+- 필요시 `web-admin/package.json` 버전 맞춤
+
+### 4단계: 소스코드 커밋 및 푸시 (Git)
+- `chcp 65001` 실행하여 한글 인코딩 보호
+- 수정한 파일들(`main.go`, 각종 `README*`, `install.sh`, `task.md`)을 `git add .` 및 `git commit -F COMMIT_MSG`로 커밋 후 `git push`
+
+### 5단계: 배포 (Publish)
+- `scripts/publish.sh` 스크립트 등을 실행하여 수정된 버전을 퍼블리싱 (배포)
+
+> **리뷰 요청**: 이 단계별 진행 과정에 대해 허락해 주시면, 나머지 2~5단계를 순차적으로 진행하겠습니다.
