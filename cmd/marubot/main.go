@@ -38,7 +38,7 @@ import (
 	"github.com/chzyer/readline"
 )
 
-var version = "0.3.11"
+var version = "0.3.12"
 
 const logo = "🦞"
 
@@ -413,7 +413,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-0.3.11
+0.3.12
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
@@ -1583,7 +1583,7 @@ func startCmd() {
 
 	// Initialize Dashboard Server
 	port := "8080"
-	server := dashboard.NewServer(":"+port, agentLoop, cfg)
+	server := dashboard.NewServer(":"+port, agentLoop, cfg, version)
 
 	if runForeground {
 		go func() {
