@@ -28,16 +28,18 @@ type Server struct {
 	config    *config.Config
 	skillMgr  *skills.SkillInstaller
 	skillLoad *skills.SkillsLoader
+	version   string
 }
 
 // NewServer creates a new dashboard server instance
-func NewServer(addr string, agent *agent.AgentLoop, cfg *config.Config) *Server {
+func NewServer(addr string, agent *agent.AgentLoop, cfg *config.Config, version string) *Server {
 	return &Server{
 		addr:      addr,
 		agent:     agent,
 		config:    cfg,
 		skillMgr:  skills.NewSkillInstaller(cfg.WorkspacePath()),
 		skillLoad: skills.NewSkillsLoader(cfg.WorkspacePath(), ""),
+		version:   version,
 	}
 }
 
@@ -318,7 +320,7 @@ func (s *Server) handleSystemStats(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	stats := getPlatformStats()
-	stats["version"] = "0.3.10"
+	stats["version"] = s.version
 
 	json.NewEncoder(w).Encode(stats)
 }

@@ -1583,7 +1583,7 @@ func startCmd() {
 
 	// Initialize Dashboard Server
 	port := "8080"
-	server := dashboard.NewServer(":"+port, agentLoop, cfg)
+	server := dashboard.NewServer(":"+port, agentLoop, cfg, version)
 
 	if runForeground {
 		go func() {
