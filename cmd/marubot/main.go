@@ -1406,6 +1406,15 @@ func dashboardCmd() {
 	}
 
 	bus := bus.NewMessageBus()
+
+	// Enable logging to file for background service
+	logFile := filepath.Join(getResourceDir(), "dashboard.log")
+	if err := logger.EnableFileLogging(logFile); err != nil {
+		if runForeground {
+			fmt.Printf("Warning: Failed to enable file logging: %v\n", err)
+		}
+	}
+
 	agentLoop := agent.NewAgentLoop(cfg, bus, provider)
 
 	// Background Services

@@ -59,6 +59,7 @@ func (s *Server) Start() error {
 	mux.Handle("/api/config", s.authMiddleware(http.HandlerFunc(s.handleConfig)))
 	mux.Handle("/api/skills", s.authMiddleware(http.HandlerFunc(s.handleSkills)))
 	mux.Handle("/api/gpio", s.authMiddleware(http.HandlerFunc(s.handleGpio)))
+	mux.Handle("/api/logs", s.authMiddleware(http.HandlerFunc(s.handleLogs)))
 
 	// Static File Serving (SPA Fallback)
 	fileServer := http.FileServer(http.FS(distFS))
@@ -185,14 +186,14 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "POST" {
-		var newCfg config.Config
-		if err := json.NewDecoder(r.Body).Decode(&newCfg); err != nil {
+		newCfg := &config.Config{}
+		if err := json.NewDecoder(r.Body).Decode(newCfg); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		// Update In-memory config fields selectively to avoid copying mutex
-		s.config.Update(&newCfg)
+		s.config.Update(newCfg)
 
 		// Save to usersetting.json for persistence
 		home, _ := os.UserHomeDir()
@@ -286,4 +287,28 @@ func (s *Server) handleGpio(w http.ResponseWriter, r *http.Request) {
 
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	}
+}
+func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	home, _ := os.UserHomeDir()
+	logFile := filepath.Join(home, ".marubot", "dashboard.log")
+
+	data, err := os.ReadFile(logFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			json.NewEncoder(w).Encode(map[string]string{"logs": "No logs found yet."})
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Return last 16000 characters
+	logs := string(data)
+	if len(logs) > 16000 {
+		logs = logs[len(logs)-16000:]
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{"logs": logs})
 }
