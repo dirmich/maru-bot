@@ -318,7 +318,7 @@ func (s *Server) handleSystemStats(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	stats := getPlatformStats()
-	stats["version"] = "0.3.9"
+	stats["version"] = "0.3.10"
 
 	json.NewEncoder(w).Encode(stats)
 }

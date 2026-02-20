@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/dirmich/marubot/pkg/bus"
 	"github.com/dirmich/marubot/pkg/config"
@@ -142,7 +143,27 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 		nil,
 	)
 
-	// Notify channel that we are thinking
+	// Start a ticker to keep sending "typing" indicator while thinking
+	typingCtx, typingCancel := context.WithCancel(ctx)
+	defer typingCancel()
+	go func() {
+		ticker := time.NewTicker(4 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-typingCtx.Done():
+				return
+			case <-ticker.C:
+				al.bus.PublishOutbound(bus.OutboundMessage{
+					Channel: msg.Channel,
+					ChatID:  msg.ChatID,
+					Action:  "typing",
+				})
+			}
+		}
+	}()
+
+	// Initial typing indicator
 	al.bus.PublishOutbound(bus.OutboundMessage{
 		Channel: msg.Channel,
 		ChatID:  msg.ChatID,
