@@ -251,6 +251,16 @@ func onboard() {
 	}
 
 	cfg := config.DefaultConfig()
+
+	fmt.Print("Set Admin Password for Web Dashboard: ")
+	var password string
+	fmt.Scanln(&password)
+	if password == "" {
+		password = "admin" // default
+		fmt.Println("No password entered. Defaulting to 'admin'.")
+	}
+	cfg.AdminPassword = password
+
 	if err := config.SaveConfig(configPath, cfg); err != nil {
 		fmt.Printf("Error saving config: %v\n", err)
 		os.Exit(1)
@@ -604,7 +614,7 @@ func interactiveMode(agentLoop *agent.AgentLoop, sessionKey string) {
 func simpleInteractiveMode(agentLoop *agent.AgentLoop, sessionKey string) {
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		fmt.Print(fmt.Sprintf("%s You: ", logo))
+		fmt.Printf("%s You: ", logo)
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			if err == io.EOF {

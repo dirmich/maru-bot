@@ -51,11 +51,14 @@ func (s *Server) Start() error {
 
 	mux := http.NewServeMux()
 
-	// API Routes
-	mux.HandleFunc("/api/chat", s.handleChat)
-	mux.HandleFunc("/api/config", s.handleConfig)
-	mux.HandleFunc("/api/skills", s.handleSkills)
-	mux.HandleFunc("/api/gpio", s.handleGpio)
+	// Public Routes
+	mux.HandleFunc("/api/login", s.handleLogin)
+
+	// Protected API Routes
+	mux.Handle("/api/chat", s.authMiddleware(http.HandlerFunc(s.handleChat)))
+	mux.Handle("/api/config", s.authMiddleware(http.HandlerFunc(s.handleConfig)))
+	mux.Handle("/api/skills", s.authMiddleware(http.HandlerFunc(s.handleSkills)))
+	mux.Handle("/api/gpio", s.authMiddleware(http.HandlerFunc(s.handleGpio)))
 
 	// Static File Serving (SPA Fallback)
 	fileServer := http.FileServer(http.FS(distFS))
@@ -105,6 +108,46 @@ func (s *Server) getFileModTime(f fs.File) time.Time {
 	return stat.ModTime()
 }
 
+func (s *Server) authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("marubot_session")
+		if err != nil || cookie.Value != s.config.AdminPassword {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if req.Password == s.config.AdminPassword {
+		http.SetCookie(w, &http.Cookie{
+			Name:     "marubot_session",
+			Value:    s.config.AdminPassword,
+			Path:     "/",
+			HttpOnly: true,
+			MaxAge:   86400 * 30, // 30 days
+		})
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	} else {
+		http.Error(w, "Invalid password", http.StatusUnauthorized)
+	}
+}
+
 // API Handlers
 
 func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
@@ -148,13 +191,14 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Update In-memory config
-		*s.config = newCfg
+		// Update In-memory config fields selectively to avoid copying mutex
+		s.config.Update(&newCfg)
 
 		// Save to usersetting.json for persistence
 		home, _ := os.UserHomeDir()
 		userSettingsPath := filepath.Join(home, ".marubot", "usersetting.json")
 
+		// Use a temporary copy for marshaling to avoid lock contention during I/O
 		data, _ := json.MarshalIndent(newCfg, "", "  ")
 		if err := os.WriteFile(userSettingsPath, data, 0644); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save config: %v", err), http.StatusInternalServerError)
