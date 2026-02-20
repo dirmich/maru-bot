@@ -8,6 +8,7 @@ import { ChatPage } from "@/pages/ChatPage";
 import { GpioPage } from "@/pages/GpioPage";
 import { SkillsPage } from "@/pages/SkillsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { LogsPage } from "@/pages/LogsPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { isAuthenticated } from "@/lib/auth";
 
@@ -32,6 +33,7 @@ function App() {
                                 <Route path="/gpio" element={<GpioPage />} />
                                 <Route path="/skills" element={<SkillsPage />} />
                                 <Route path="/settings" element={<SettingsPage />} />
+                                <Route path="/logs" element={<LogsPage />} />
                             </Route>
                         </Routes>
                         <Toaster />

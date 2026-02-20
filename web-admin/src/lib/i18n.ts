@@ -29,6 +29,8 @@ export const translations = {
         gpio: "GPIO Control",
         skills: "Skills & Tools",
         settings: "Settings",
+        logs: "System Logs",
+        logs_desc: "View background activity and diagnostic records.",
 
         // Chat Page
         chat_title: "AI Assistant",
@@ -128,6 +130,8 @@ export const translations = {
         gpio: "GPIO 제어",
         skills: "스킬 & 툴 박스",
         settings: "환경 설정",
+        logs: "시스템 로그",
+        logs_desc: "백그라운드 활동 및 진단 기록을 확인합니다.",
 
         // Chat Page
         chat_title: "AI 어시스턴트",
@@ -227,6 +231,8 @@ export const translations = {
         gpio: "GPIO制御",
         skills: "スキル＆ツール",
         settings: "構成設定",
+        logs: "システムログ",
+        logs_desc: "バックグラウンド活動と診断記録を確認します。",
 
         // Chat Page
         chat_title: "AIアシスタント",

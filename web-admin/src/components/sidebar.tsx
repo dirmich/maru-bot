@@ -8,7 +8,8 @@ import {
     User as UserIcon,
     ChevronLeft,
     ChevronRight,
-    Languages
+    Languages,
+    ScrollText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ export function Sidebar() {
         { name: t.gpio, href: "/gpio", icon: Cpu },
         { name: t.skills, href: "/skills", icon: Package },
         { name: t.settings, href: "/settings", icon: Settings },
+        { name: t.logs, href: "/logs", icon: ScrollText },
     ];
 
     // Mock session for local admin
