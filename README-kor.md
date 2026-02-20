@@ -2,7 +2,8 @@
 
 **MaruBot**은 MaruBot의 초경량 엔진을 기반으로, Raspberry Pi와 같은 SBC(Single Board Computer)에서 하드웨어를 직접 제어하고 소통하기 위해 최적화된 **"Physical AI Assistant"**입니다.
 
-## ✨ 0.3.1 업데이트
+## ✨ 0.3.2 업데이트
+- **도움말 개선**: `marubot` 명령어 도움말의 중복 항목을 제거하고 가독성을 위해 알파벳 순으로 정렬했습니다.
 - **자가 업그레이드(Self Upgrade)**: `marubot upgrade` 명령어로 간편하게 최신 버전으로 업데이트할 수 있습니다.
 - **GPIO 제어 강화**: 핀 제어 로직이 고도화되었으며, 여러 핀을 동시에 제어하는 '그룹 동작(Group Action)' 기능이 추가되었습니다.
 - **Web Admin 통합**: 더 이상 별도의 Node.js 설치가 필요 없습니다. Web Admin이 Go 바이너리에 내장되어 단일 파일로 실행됩니다.
