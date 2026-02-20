@@ -36,7 +36,7 @@ import (
 	"github.com/chzyer/readline"
 )
 
-var version = "0.3.6"
+var version = "0.3.9"
 
 const logo = "🦞"
 
@@ -220,7 +220,7 @@ func uninstallCmd() {
 
 func printHelp() {
 	fmt.Printf("%s marubot - Personal AI Assistant v%s\n", logo, version)
-	fmt.Println("Usage: marubot <command>\n")
+	fmt.Println("Usage: marubot <command>")
 	fmt.Println("Commands:")
 	fmt.Println("  agent       Interact with the agent directly")
 	fmt.Println("  config      Manage hardware/system configuration")
@@ -408,7 +408,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-0.3.2
+0.3.9
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage

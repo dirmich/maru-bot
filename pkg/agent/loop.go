@@ -142,6 +142,13 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 		nil,
 	)
 
+	// Notify channel that we are thinking
+	al.bus.PublishOutbound(bus.OutboundMessage{
+		Channel: msg.Channel,
+		ChatID:  msg.ChatID,
+		Action:  "typing",
+	})
+
 	iteration := 0
 	var finalContent string
 

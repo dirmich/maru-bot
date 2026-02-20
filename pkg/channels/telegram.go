@@ -104,6 +104,11 @@ func (c *TelegramChannel) Send(ctx context.Context, msg bus.OutboundMessage) err
 		return fmt.Errorf("invalid chat ID: %w", err)
 	}
 
+	if msg.Action == "typing" {
+		c.bot.Send(tgbotapi.NewChatAction(chatID, tgbotapi.ChatTyping))
+		return nil
+	}
+
 	htmlContent := markdownToTelegramHTML(msg.Content)
 
 	tgMsg := tgbotapi.NewMessage(chatID, htmlContent)

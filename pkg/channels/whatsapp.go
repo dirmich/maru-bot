@@ -91,6 +91,12 @@ func (c *WhatsAppChannel) Send(ctx context.Context, msg bus.OutboundMessage) err
 		"content": msg.Content,
 	}
 
+	if msg.Action == "typing" {
+		payload["type"] = "action"
+		payload["action"] = "typing"
+		delete(payload, "content")
+	}
+
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal message: %w", err)
