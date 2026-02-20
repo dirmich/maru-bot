@@ -72,7 +72,7 @@ if [ "$MARUBOT_LANG" = "ko" ]; then
     MSG_WEB_BUILD="🏗️ 웹 관리자 페이지(Vite) 빌드 중..."
     MSG_GO_BUILD="🛠️ MaruBot 엔진 빌드 중..."
     MSG_SUCCESS="🎉 MaruBot 설치가 완료되었습니다!"
-    MSG_DASHBOARD="대시보드 실행: marubot dashboard"
+    MSG_DASHBOARD="대시보드 실행: marubot start"
 elif [ "$MARUBOT_LANG" = "ja" ]; then
     MSG_ARCH_ERR="❌ このスクリプトはRaspberry Pi(ARM)環境専用です。"
     MSG_PKG_INST="📦 必須パッケージをインストール中..."
@@ -81,7 +81,7 @@ elif [ "$MARUBOT_LANG" = "ja" ]; then
     MSG_WEB_BUILD="🏗️ Web管理画面(Vite)をビルド中..."
     MSG_GO_BUILD="🛠️ MaruBotエンジンをビルド中..."
     MSG_SUCCESS="🎉 MaruBotのインストールが完了しました！"
-    MSG_DASHBOARD="ダッシュボードの実行: marubot dashboard"
+    MSG_DASHBOARD="ダッシュボードの実行: marubot start"
 else
     MSG_ARCH_ERR="❌ This script is only for Raspberry Pi (ARM) environments."
     MSG_PKG_INST="📦 Installing required packages..."
@@ -90,7 +90,7 @@ else
     MSG_WEB_BUILD="🏗️ Building Web Admin (Vite)..."
     MSG_GO_BUILD="🛠️ Building MaruBot engine..."
     MSG_SUCCESS="🎉 MaruBot installation complete!"
-    MSG_DASHBOARD="Run dashboard: marubot dashboard"
+    MSG_DASHBOARD="Run dashboard: marubot start"
 fi
 
 # 1. Check Architecture and OS
@@ -292,4 +292,4 @@ cd "$HOME"
 rm -rf "$INSTALL_DIR"
 
 echo -e "Command: ${BLUE}marubot agent${NC}"
-echo -e "${MSG_DASHBOARD}: ${BLUE}marubot dashboard${NC}"
+echo -e "${MSG_DASHBOARD}: ${BLUE}marubot start${NC}"
