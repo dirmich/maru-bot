@@ -8,6 +8,15 @@ import { ChatPage } from "@/pages/ChatPage";
 import { GpioPage } from "@/pages/GpioPage";
 import { SkillsPage } from "@/pages/SkillsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { LoginPage } from "@/pages/LoginPage";
+import { isAuthenticated } from "@/lib/auth";
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+    if (!isAuthenticated()) {
+        return <Navigate to="/login" replace />;
+    }
+    return <>{children}</>;
+}
 
 function App() {
     return (
@@ -16,7 +25,8 @@ function App() {
                 <TooltipProvider>
                     <div className="min-h-screen bg-background font-sans antialiased">
                         <Routes>
-                            <Route element={<AdminLayout />}>
+                            <Route path="/login" element={<LoginPage />} />
+                            <Route element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
                                 <Route path="/" element={<Navigate to="/chat" replace />} />
                                 <Route path="/chat" element={<ChatPage />} />
                                 <Route path="/gpio" element={<GpioPage />} />

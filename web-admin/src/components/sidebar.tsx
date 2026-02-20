@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState } from "react";
 import { useTranslation, useLanguageStore, Language } from "@/lib/i18n";
+import { logout } from "@/lib/auth";
 import {
     Select,
     SelectContent,
@@ -132,7 +133,7 @@ export function Sidebar() {
                             </div>
                         )}
                         {!isCollapsed && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-500" onClick={() => console.log("Logout")}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-500" onClick={logout}>
                                 <LogOut size={14} />
                             </Button>
                         )}
@@ -144,7 +145,7 @@ export function Sidebar() {
                     isCollapsed ? "text-center" : "flex justify-between"
                 )}>
                     {!isCollapsed && <span>{t.status_ok}</span>}
-                    <span>v0.3.0</span>
+                    <span>v0.3.2</span>
                 </div>
             </div>
         </aside>

@@ -40,6 +40,29 @@ case $LANG_CHOICE in
     *) MARUBOT_LANG="en" ;;
 esac
 
+# 0-1. Admin Password Selection
+if [ "$MARUBOT_LANG" = "ko" ]; then
+    PROMPT_PWD="웹 대시보드 관리자 암호를 설정하세요 [기본값: admin]: "
+elif [ "$MARUBOT_LANG" = "ja" ]; then
+    PROMPT_PWD="Webダッシュボードの管理パスワードを設定してください [デフォルト: admin]: "
+else
+    PROMPT_PWD="Set Admin Password for Web Dashboard [Default: admin]: "
+fi
+
+if [ -c /dev/tty ]; then
+    read -p "$PROMPT_PWD" MARUBOT_PWD < /dev/tty
+else
+    if [ -t 0 ]; then
+        read -p "$PROMPT_PWD" MARUBOT_PWD
+    else
+        MARUBOT_PWD="admin"
+    fi
+fi
+
+if [ -z "$MARUBOT_PWD" ]; then
+    MARUBOT_PWD="admin"
+fi
+
 # Translations
 if [ "$MARUBOT_LANG" = "ko" ]; then
     MSG_ARCH_ERR="❌ 이 스크립트는 라즈베리 파이(ARM) 환경 전용입니다."
@@ -211,6 +234,14 @@ if [ -f "$RESOURCE_DIR/config.json" ]; then
     else
         # Add after opening brace if not exists
         sed -i "0,/{/s/{/{\n  \"language\": \"$MARUBOT_LANG\",/" "$RESOURCE_DIR/config.json"
+    fi
+
+    # Set admin_password field
+    if grep -q "\"admin_password\":" "$RESOURCE_DIR/config.json"; then
+        sed -i "s/\"admin_password\": \".*\"/\"admin_password\": \"$MARUBOT_PWD\"/" "$RESOURCE_DIR/config.json"
+    else
+        # Add after opening brace
+        sed -i "0,/{/s/{/{\n  \"admin_password\": \"$MARUBOT_PWD\",/" "$RESOURCE_DIR/config.json"
     fi
 fi
 

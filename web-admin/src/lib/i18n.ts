@@ -106,6 +106,15 @@ export const translations = {
         confirm: "Confirm",
         delete: "Delete",
         status_ok: "SYSTEM READY",
+
+        // Login
+        login_title: "Enter your admin password to access the dashboard",
+        admin_password: "Admin Password",
+        login_btn: "Login",
+        logging_in: "Logging in...",
+        login_success: "Login successful",
+        login_failed: "Invalid password",
+        conn_error: "Connection error",
     },
     ko: {
         // Sidebar
@@ -190,6 +199,15 @@ export const translations = {
         confirm: "확인",
         delete: "삭제",
         status_ok: "시스템 준비 완료",
+
+        // Login
+        login_title: "대시보드에 접근하려면 관리자 암호를 입력하세요",
+        admin_password: "관리자 암호",
+        login_btn: "로그인",
+        logging_in: "로그인 중...",
+        login_success: "로그인 성공",
+        login_failed: "잘못된 암호입니다",
+        conn_error: "연결 오류",
     },
     ja: {
         // Sidebar
@@ -274,6 +292,15 @@ export const translations = {
         confirm: "確認",
         delete: "削除",
         status_ok: "システム準備完了",
+
+        // Login
+        login_title: "ダッシュボードにアクセスするには管理者パスワードを入力してください",
+        admin_password: "管理者パスワード",
+        login_btn: "ログイン",
+        logging_in: "ログイン中...",
+        login_success: "ログインに成功しました",
+        login_failed: "パスワードが正しくありません",
+        conn_error: "接続エラー",
     }
 };
 

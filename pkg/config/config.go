@@ -10,16 +10,17 @@ import (
 )
 
 type Config struct {
-	Language  string          `json:"language" env:"MARUBOT_LANGUAGE"`
-	Agents    AgentsConfig    `json:"agents"`
-	Channels  ChannelsConfig  `json:"channels"`
-	Providers ProvidersConfig `json:"providers"`
-	Gateway   GatewayConfig   `json:"gateway"`
-	Tools     ToolsConfig     `json:"tools"`
-	Hardware  HardwareConfig  `json:"hardware"`
-	Drone     DroneConfig     `json:"drone"`
-	GPS       GPSConfig       `json:"gps"`
-	mu        sync.RWMutex
+	Language      string          `json:"language" env:"MARUBOT_LANGUAGE"`
+	AdminPassword string          `json:"admin_password" env:"MARUBOT_ADMIN_PASSWORD"`
+	Agents        AgentsConfig    `json:"agents"`
+	Channels      ChannelsConfig  `json:"channels"`
+	Providers     ProvidersConfig `json:"providers"`
+	Gateway       GatewayConfig   `json:"gateway"`
+	Tools         ToolsConfig     `json:"tools"`
+	Hardware      HardwareConfig  `json:"hardware"`
+	Drone         DroneConfig     `json:"drone"`
+	GPS           GPSConfig       `json:"gps"`
+	mu            sync.RWMutex
 }
 
 type AgentsConfig struct {
@@ -264,6 +265,27 @@ func SaveConfig(path string, cfg *Config) error {
 	}
 
 	return os.WriteFile(path, data, 0644)
+}
+
+func (c *Config) Update(newCfg *Config) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.Language = newCfg.Language
+	c.AdminPassword = newCfg.AdminPassword
+	c.Agents = newCfg.Agents
+	c.Channels = newCfg.Channels
+	c.Providers = newCfg.Providers
+	c.Gateway = newCfg.Gateway
+	c.Tools = newCfg.Tools
+	c.Hardware = newCfg.Hardware
+	c.Drone = newCfg.Drone
+	c.GPS = newCfg.GPS
+}
+
+func (c *Config) UpdateGPIO(pins map[string]interface{}) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.Hardware.GPIO.Pins = pins
 }
 
 func (c *Config) WorkspacePath() string {
