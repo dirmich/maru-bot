@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,6 +16,7 @@ type ContextBuilder struct {
 	workspace    string
 	version      string
 	webhookInfo  string
+	gpioInfo     string
 	skillsLoader *skills.SkillsLoader
 }
 
@@ -26,10 +28,17 @@ func NewContextBuilder(workspace, version string, cfg *config.Config) *ContextBu
 		webhookInfo = fmt.Sprintf("Webhook: Enabled (Port: %d, Path: %s)", cfg.Channels.Webhook.Port, cfg.Channels.Webhook.Path)
 	}
 
+	gpioInfo := "GPIO: Disabled"
+	if cfg.Hardware.GPIO.Enabled {
+		pinsJSON, _ := json.Marshal(cfg.Hardware.GPIO.Pins)
+		gpioInfo = fmt.Sprintf("GPIO: Enabled, Configuration: %s", string(pinsJSON))
+	}
+
 	return &ContextBuilder{
 		workspace:    workspace,
 		version:      version,
 		webhookInfo:  webhookInfo,
+		gpioInfo:     gpioInfo,
 		skillsLoader: skills.NewSkillsLoader(workspace, builtinSkillsDir),
 	}
 }
@@ -41,6 +50,7 @@ func (cb *ContextBuilder) BuildSystemPrompt() string {
 	return fmt.Sprintf(`# marubot 🦞
 - **MaruBot Application Version**: %s
 - **Current Connection Status**: %s
+- **Hardware Status**: %s
 
 You are marubot, a helpful AI assistant. You have access to tools that allow you to:
 - Read, write, and edit files
@@ -88,7 +98,7 @@ You have the ability to expand your own capabilities. If you encounter a task th
 
 Always be helpful, accurate, and concise. When using tools, explain what you're doing.
 When remembering something, write to %%s/memory/MEMORY.md`,
-		cb.version, cb.webhookInfo, now, workspacePath, workspacePath, workspacePath, workspacePath, workspacePath)
+		cb.version, cb.webhookInfo, cb.gpioInfo, now, workspacePath, workspacePath, workspacePath, workspacePath, workspacePath)
 }
 
 func (cb *ContextBuilder) LoadBootstrapFiles() string {
