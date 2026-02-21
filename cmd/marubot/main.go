@@ -549,7 +549,7 @@ func agentCmd() {
 	}
 
 	bus := bus.NewMessageBus()
-	agentLoop := agent.NewAgentLoop(cfg, bus, provider)
+	agentLoop := agent.NewAgentLoop(cfg, bus, provider, version)
 
 	if message != "" {
 		ctx := context.Background()
@@ -665,7 +665,7 @@ func gatewayCmd() {
 	}
 
 	bus := bus.NewMessageBus()
-	agentLoop := agent.NewAgentLoop(cfg, bus, provider)
+	agentLoop := agent.NewAgentLoop(cfg, bus, provider, version)
 
 	cronStorePath := filepath.Join(filepath.Dir(getConfigPath()), "cron", "jobs.json")
 	cronService := cron.NewCronService(cronStorePath, func(job *cron.CronJob) (string, error) {
@@ -1538,7 +1538,7 @@ func startCmd() {
 		}
 	}
 
-	agentLoop := agent.NewAgentLoop(cfg, bus, provider)
+	agentLoop := agent.NewAgentLoop(cfg, bus, provider, version)
 
 	// Background Services
 	cronStorePath := filepath.Join(filepath.Dir(getConfigPath()), "cron", "jobs.json")

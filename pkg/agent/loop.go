@@ -30,10 +30,11 @@ type AgentLoop struct {
 	sessions       *session.SessionManager
 	contextBuilder *ContextBuilder
 	tools          *tools.ToolRegistry
+	version        string
 	running        bool
 }
 
-func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LLMProvider) *AgentLoop {
+func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LLMProvider, version string) *AgentLoop {
 	workspace := cfg.WorkspacePath()
 	os.MkdirAll(workspace, 0755)
 
@@ -84,8 +85,9 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 		model:          cfg.Agents.Defaults.Model,
 		maxIterations:  cfg.Agents.Defaults.MaxToolIterations,
 		sessions:       sessionsManager,
-		contextBuilder: NewContextBuilder(workspace),
+		contextBuilder: NewContextBuilder(workspace, version, cfg),
 		tools:          toolsRegistry,
+		version:        version,
 		running:        false,
 	}
 }
