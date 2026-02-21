@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/dirmich/marubot/pkg/config"
+	"github.com/dirmich/marubot/pkg/hardware/gpio"
 	"github.com/dirmich/marubot/pkg/providers"
 	"github.com/dirmich/marubot/pkg/skills"
 )
@@ -30,8 +32,15 @@ func NewContextBuilder(workspace, version string, cfg *config.Config) *ContextBu
 
 	gpioInfo := "GPIO: Disabled"
 	if cfg.Hardware.GPIO.Enabled {
-		pinsJSON, _ := json.Marshal(cfg.Hardware.GPIO.Pins)
-		gpioInfo = fmt.Sprintf("GPIO: Enabled, Configuration: %s", string(pinsJSON))
+		var pinDetails []string
+		for name, val := range cfg.Hardware.GPIO.Pins {
+			direction := "Output"
+			if gpio.IsInputPin(name) {
+				direction = "Input (Monitoring Enabled)"
+			}
+			pinDetails = append(pinDetails, fmt.Sprintf("- %s: Pin %v (%s)", name, val, direction))
+		}
+		gpioInfo = fmt.Sprintf("GPIO: Enabled\n%s", strings.Join(pinDetails, "\n"))
 	}
 
 	return &ContextBuilder{
