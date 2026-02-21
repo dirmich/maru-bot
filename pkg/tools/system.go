@@ -6,8 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
-	"strings"
 
 	"github.com/dirmich/marubot/pkg/config"
 	"github.com/dirmich/marubot/pkg/logger"
