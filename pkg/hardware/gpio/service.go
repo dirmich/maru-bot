@@ -87,17 +87,22 @@ func (s *GPIOService) monitorPin(ctx context.Context, label, pinName string) {
 					msg := fmt.Sprintf("[GPIO Event] %s (%s) has been %s", label, pinName, event)
 					log.Println(msg)
 
+					levelInt := 0
+					if newLevel == gpio.High {
+						levelInt = 1
+					}
+
 					s.mb.PublishInbound(bus.InboundMessage{
 						Channel:    "gpio",
 						SenderID:   "system",
 						ChatID:     "gpio_event",
 						Content:    msg,
 						SessionKey: "cli:default", // Standard session for system events
-						Metadata: map[string]interface{}{
+						Metadata: map[string]string{
 							"pin_label": label,
 							"pin_name":  pinName,
 							"event":     event,
-							"level":     int(newLevel),
+							"level":     fmt.Sprintf("%d", levelInt),
 						},
 					})
 					lastLevel = newLevel
