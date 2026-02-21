@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/dirmich/marubot/pkg/config"
 	"github.com/dirmich/marubot/pkg/providers"
 	"github.com/dirmich/marubot/pkg/skills"
 )
