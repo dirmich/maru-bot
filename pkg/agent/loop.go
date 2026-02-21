@@ -57,6 +57,7 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	toolsRegistry.Register(tools.NewIMUTool())
 	toolsRegistry.Register(tools.NewVisionTool(workspace))
 	toolsRegistry.Register(tools.NewGPIOTool(cfg.Hardware.GPIO.Pins, cfg.Hardware.GPIO.Actions))
+	toolsRegistry.Register(tools.NewSystemTool(cfg, workspace))
 
 	// Ensure extensions directory is under .marubot
 	extensionDir := filepath.Join(marubotHome, "extensions")
