@@ -34,6 +34,7 @@ import (
 	"github.com/dirmich/marubot/pkg/providers"
 	"github.com/dirmich/marubot/pkg/skills"
 	"github.com/dirmich/marubot/pkg/voice"
+	"github.com/dirmich/marubot/pkg/hardware/gpio"
 
 	"github.com/chzyer/readline"
 )
@@ -551,6 +552,10 @@ func agentCmd() {
 	bus := bus.NewMessageBus()
 	agentLoop := agent.NewAgentLoop(cfg, bus, provider, version)
 
+	gpioService := gpio.NewGPIOService(cfg, bus)
+	gpioService.Start(context.Background())
+	defer gpioService.Stop()
+
 	if message != "" {
 		ctx := context.Background()
 		response, err := agentLoop.ProcessDirect(ctx, message, sessionKey)
@@ -666,6 +671,10 @@ func gatewayCmd() {
 
 	bus := bus.NewMessageBus()
 	agentLoop := agent.NewAgentLoop(cfg, bus, provider, version)
+
+	gpioService := gpio.NewGPIOService(cfg, bus)
+	gpioService.Start(context.Background())
+	defer gpioService.Stop()
 
 	cronStorePath := filepath.Join(filepath.Dir(getConfigPath()), "cron", "jobs.json")
 	cronService := cron.NewCronService(cronStorePath, func(job *cron.CronJob) (string, error) {
@@ -1539,6 +1548,10 @@ func startCmd() {
 	}
 
 	agentLoop := agent.NewAgentLoop(cfg, bus, provider, version)
+
+	gpioService := gpio.NewGPIOService(cfg, bus)
+	gpioService.Start(context.Background())
+	defer gpioService.Stop()
 
 	// Background Services
 	cronStorePath := filepath.Join(filepath.Dir(getConfigPath()), "cron", "jobs.json")
