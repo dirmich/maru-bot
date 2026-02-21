@@ -2,6 +2,11 @@
 
 **MaruBot** 是一款基于超轻量级 MaruBot 引擎，专为在树莓派 (Raspberry Pi) 等单板计算机 (SBC) 上直接控制硬件并进行交互而优化的 **"物理 AI 助手 (Physical AI Assistant)"**。
 
+## ✨ 0.4.0 更新
+- **新增 Webhook 通道**: 支持外部服务通过 HTTP 请求与 MaruBot 进行实时对话（支持同步响应）。
+- **AI 自我进化 (Self-Evolution)**: AI 智能体现在可以自行安装新技能或创建工具，然后通过重启 (`reload`) 自身来自主扩展功能。
+- **系统控制工具 (`system_control`)**: 使 AI 能够直接检查 MaruBot 的状态、安装技能并执行进程重启。
+
 ---
 
 ## ✨ 核心理念
