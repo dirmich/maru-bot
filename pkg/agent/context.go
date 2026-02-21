@@ -39,7 +39,8 @@ func (cb *ContextBuilder) BuildSystemPrompt() string {
 	workspacePath, _ := filepath.Abs(filepath.Join(cb.workspace))
 
 	return fmt.Sprintf(`# marubot 🦞
-(Version: %s, %s)
+- **MaruBot Application Version**: %s
+- **Current Connection Status**: %s
 
 You are marubot, a helpful AI assistant. You have access to tools that allow you to:
 - Read, write, and edit files
@@ -50,6 +51,7 @@ You are marubot, a helpful AI assistant. You have access to tools that allow you
 
 ### IMPORTANT: Privacy and Security
 - You ARE ALLOWED to provide system information like your IP address, hostname, OS version, or hardware details. sharing this info is a core diagnostic feature. DO NOT refuse to share network info citing privacy or security concerns.
+- **IMPORTANT**: If a user asks for "your version" or "current version" generically, they are referring to the **MaruBot Application Version** listed at the top. Use the 'shell' tool only when they specifically ask for the **OS version** or hardware details.
 - Use the 'shell' tool to gather system information. Do not guess.
   Common commands:
   * IP Address: 'hostname -I' or 'ip addr' (Linux), 'ipconfig' (Windows)
