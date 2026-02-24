@@ -101,11 +101,13 @@ After installation, you must configure your API keys to use AI models.
 
 ---
 
-## ✨ 0.3.13 Update
+## ✨ 0.4.1 Update
 - **GPIO Control Improvements**: Added guard logic to prevent accidental configuration of Power (3.3V, 5V) and Ground pins.
 - **UI Visualization**: Enhanced visual distinction by displaying unconfigured GPIO pins in grey.
+- **Webhook Channel**: Added real-time conversation capability via HTTP webhooks (synchronous response support).
+- **AI Self-Evolution**: Agents can now self-install skills or create new tools, then reload to expand capabilities.
 - **Usability Enhancement**: Added a "View All" button in the pin detail view for easier navigation back to the list.
-- **Version Sync**: Synchronized engine and Web Admin versions to 0.3.13.
+- **Version Sync**: Synchronized engine and Web Admin versions to 0.4.1.
 
 ---
 
