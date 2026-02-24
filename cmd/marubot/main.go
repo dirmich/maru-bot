@@ -12,13 +12,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
 	"os/user"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -39,7 +37,7 @@ import (
 	"github.com/chzyer/readline"
 )
 
-var version = "0.4.2"
+var version = config.Version
 
 const logo = "🦞"
 
@@ -1696,16 +1694,20 @@ func stopCmd() {
 }
 
 func upgradeCmd() {
+	autoConfirm := false
+	if len(os.Args) > 2 && os.Args[2] == "--yes" {
+		autoConfirm = true
+	}
+
 	fmt.Println("⚙️  Checking for updates...")
 
-	latest, err := getLatestVersion()
+	latest, err := config.CheckLatestVersion()
 	if err != nil {
 		fmt.Printf("⚠️  Failed to check latest version: %v\n", err)
 		fmt.Println("Proceeding with forced upgrade...")
 	} else {
-		// Simple string comparison for now, assuming semantic versioning format
-		if strings.TrimPrefix(latest, "v") == strings.TrimPrefix(version, "v") {
-			fmt.Printf("✅ You are already using the latest version (v%s).\n", version)
+		if !config.IsNewVersionAvailable(latest) && !autoConfirm {
+			fmt.Printf("✅ You are already using the latest version (v%s).\n", config.Version)
 			fmt.Print("Do you want to reinstall anyway? [y/N]: ")
 			reader := bufio.NewReader(os.Stdin)
 			response, _ := reader.ReadString('\n')
@@ -1713,8 +1715,8 @@ func upgradeCmd() {
 			if response != "y" && response != "yes" {
 				return
 			}
-		} else {
-			fmt.Printf("✨ New version available: v%s (Current: v%s)\n", latest, version)
+		} else if config.IsNewVersionAvailable(latest) && !autoConfirm {
+			fmt.Printf("✨ New version available: v%s (Current: v%s)\n", latest, config.Version)
 			fmt.Print("Do you want to upgrade? [Y/n]: ")
 			reader := bufio.NewReader(os.Stdin)
 			response, _ := reader.ReadString('\n')
@@ -1744,32 +1746,10 @@ func upgradeCmd() {
 		os.Exit(1)
 	}
 
-	fmt.Println("✨ Upgrade complete! You can now start the daemon with 'marubot start'")
+	fmt.Println("✨ Upgrade complete! Restarting MaruBot...")
+	reloadCmd()
 }
 
-func getLatestVersion() (string, error) {
-	// Check the source code on GitHub for the version variable
-	url := "https://raw.githubusercontent.com/dirmich/maru-bot/main/cmd/marubot/main.go"
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
+// Remove the old getLatestVersion as it's now in pkg/config
 
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed to fetch version file: %s", resp.Status)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	// Regex to find: var version = "0.3.4"
-	re := regexp.MustCompile(`var version = "([^"]+)"`)
-	matches := re.FindStringSubmatch(string(body))
-	if len(matches) > 1 {
-		return matches[1], nil
-	}
-	return "", fmt.Errorf("version string not found in remote file")
-}
+// getLatestVersion is removed (moved to pkg/config)
