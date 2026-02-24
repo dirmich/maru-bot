@@ -116,7 +116,7 @@ export function GpioSchematic({ configuredPins, selectedPin, onPinClick }: { con
                 </div>
             </div>
 
-            <div className="mt-8 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+            <div className="mt-8 flex flex-wrap justify-between gap-y-4 gap-x-6 border-t border-slate-800/50 pt-6">
                 <LegendItem type="power" label="VCC (3.3V/5V)" />
                 <LegendItem type="ground" label="GND (Ground)" />
                 <LegendItem type="gpio" label="GPIO (Configured)" isActive={true} />
@@ -169,9 +169,9 @@ function LegendItem({ type, label, isActive = true }: { type: PinProps['type'], 
         special: "bg-blue-600",
     };
     return (
-        <div className="flex items-center gap-2">
-            <div className={cn("w-3 h-3 rounded-sm", colors[type])}></div>
-            <span className="text-xs text-slate-400">{label}</span>
+        <div className="flex items-center gap-3 min-w-fit">
+            <div className={cn("w-4 h-4 rounded-sm shadow-sm", colors[type])}></div>
+            <span className="text-[11px] font-medium text-slate-400 whitespace-nowrap">{label}</span>
         </div>
     );
 }

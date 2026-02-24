@@ -37,10 +37,13 @@ import (
 	"github.com/chzyer/readline"
 )
 
-// version for compatibility with older binaries: var version = "0.4.5"
+// version for compatibility with older binaries: var version = "0.4.6"
 var version = config.Version
 
 const logo = "🦞"
+
+// 0.4.6: GPIO color guide (legend) layout improvement
+// 0.4.5: GPIO pin color improvements and legend update
 
 func copyDirectory(src, dst string) error {
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
@@ -1748,9 +1751,4 @@ func upgradeCmd() {
 	}
 
 	fmt.Println("✨ Upgrade complete! Restarting MaruBot...")
-	reloadCmd()
-}
-
-// Remove the old getLatestVersion as it's now in pkg/config
-
-// getLatestVersion is removed (moved to pkg/config)
+	reloadCm
