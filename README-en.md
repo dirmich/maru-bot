@@ -101,13 +101,11 @@ After installation, you must configure your API keys to use AI models.
 
 ---
 
-## ✨ 0.4.1 Update
-- **GPIO Control Improvements**: Added guard logic to prevent accidental configuration of Power (3.3V, 5V) and Ground pins.
-- **UI Visualization**: Enhanced visual distinction by displaying unconfigured GPIO pins in grey.
-- **Webhook Channel**: Added real-time conversation capability via HTTP webhooks (synchronous response support).
-- **AI Self-Evolution**: Agents can now self-install skills or create new tools, then reload to expand capabilities.
-- **Usability Enhancement**: Added a "View All" button in the pin detail view for easier navigation back to the list.
-- **Version Sync**: Synchronized engine and Web Admin versions to 0.4.1.
+## ✨ 0.4.2 Update
+- **GPIO Configuration Persistence**: Improved storage to include **Input/Output modes (IN, OUT, etc.)**, ensuring settings are preserved after refreshes.
+- **Pin Selection UX**: Replaced manual pin number input with a **Select box** of available GPIO pins to prevent duplicates and improve ease of use.
+- **Admin Password Protection**: Refined setup logic in `marubot onboard` and `install.sh` to preserve the existing password if the input is left empty.
+- **Enhanced AI Integration**: Updated AI tools to recognize and control pins based on user-defined labels.
 
 ---
 
