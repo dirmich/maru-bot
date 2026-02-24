@@ -76,9 +76,11 @@ export function GpioPage() {
                 // If data is in the format expected by the frontend
                 // Backend returns map[string]interface{}
                 // We might need to transform it if the frontend expects PinConfig[]
-                const pins: PinConfig[] = Object.entries(data).map(([label, pin]: [string, any]) => {
-                    if (typeof pin === 'number') {
-                        return { pin, mode: 'OUT', label };
+                const pins: PinConfig[] = Object.entries(data).map(([label, val]: [string, any]) => {
+                    if (typeof val === 'number') {
+                        return { pin: val, mode: 'OUT', label };
+                    } else if (val && typeof val === 'object' && 'pin' in val) {
+                        return { pin: val.pin, mode: val.mode || 'OUT', label };
                     }
                     return { pin: 0, mode: 'OUT', label }; // Fallback
                 });
@@ -94,7 +96,7 @@ export function GpioPage() {
             // Transform PinConfig[] back to map[string]interface{} for backend
             const pinMap: Record<string, any> = {};
             configuredPins.forEach(p => {
-                pinMap[p.label] = p.pin;
+                pinMap[p.label] = { pin: p.pin, mode: p.mode };
             });
 
             const res = await fetch('/api/gpio', {
@@ -173,12 +175,30 @@ export function GpioPage() {
                                         return (
                                             <TableRow key={idx}>
                                                 <TableCell className="font-mono">
-                                                    <input
-                                                        type="number"
-                                                        className="w-12 bg-transparent border-b border-dashed text-center"
-                                                        value={item.pin}
-                                                        onChange={(e) => handleUpdatePin(idx, 'pin', parseInt(e.target.value))}
-                                                    />
+                                                    <Select
+                                                        value={item.pin.toString()}
+                                                        onValueChange={(v) => handleUpdatePin(idx, 'pin', parseInt(v))}
+                                                    >
+                                                        <SelectTrigger className="w-20 h-8 text-xs font-mono">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {pinData
+                                                                .filter(p => p.type !== 'power' && p.type !== 'ground')
+                                                                .map(p => {
+                                                                    const isUsedByOthers = configuredPins.some((cp, cpidx) => cp.pin === p.number && cpidx !== idx);
+                                                                    return (
+                                                                        <SelectItem
+                                                                            key={p.number}
+                                                                            value={p.number.toString()}
+                                                                            disabled={isUsedByOthers}
+                                                                        >
+                                                                            {p.number} {isUsedByOthers ? '(Used)' : ''}
+                                                                        </SelectItem>
+                                                                    );
+                                                                })}
+                                                        </SelectContent>
+                                                    </Select>
                                                 </TableCell>
                                                 <TableCell>
                                                     <Select

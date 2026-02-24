@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/dirmich/marubot/pkg/bus"
@@ -35,10 +36,27 @@ func (s *GPIOService) Start(ctx context.Context) error {
 	s.running = true
 	log.Println("GPIO Monitoring Service started")
 
-	// Find pins that look like inputs (containing "button", "sensor")
 	for name, val := range s.cfg.Hardware.GPIO.Pins {
-		pinName := fmt.Sprintf("%v", val)
-		if IsInputPin(name) {
+		pinName := ""
+		mode := ""
+
+		switch v := val.(type) {
+		case int:
+			pinName = fmt.Sprintf("%d", v)
+		case float64:
+			pinName = fmt.Sprintf("%d", int(v))
+		case string:
+			pinName = v
+		case map[string]interface{}:
+			if pin, ok := v["pin"]; ok {
+				pinName = fmt.Sprintf("%v", pin)
+			}
+			if m, ok := v["mode"].(string); ok {
+				mode = m
+			}
+		}
+
+		if pinName != "" && (strings.ToUpper(mode) == "IN" || IsInputPin(name)) {
 			go s.monitorPin(ctx, name, pinName)
 		}
 	}
@@ -48,11 +66,11 @@ func (s *GPIOService) Start(ctx context.Context) error {
 
 func IsInputPin(name string) bool {
 	n := name
-	return (n == "button" || n == "sensor" || 
-			(len(n) > 6 && n[:6] == "button") || 
-			(len(n) > 6 && n[:6] == "sensor") ||
-			(len(n) > 7 && n[len(n)-7:] == "_button") ||
-			(len(n) > 7 && n[len(n)-7:] == "_sensor"))
+	return (n == "button" || n == "sensor" ||
+		(len(n) > 6 && n[:6] == "button") ||
+		(len(n) > 6 && n[:6] == "sensor") ||
+		(len(n) > 7 && n[len(n)-7:] == "_button") ||
+		(len(n) > 7 && n[len(n)-7:] == "_sensor"))
 }
 
 func (s *GPIOService) monitorPin(ctx context.Context, label, pinName string) {
@@ -83,7 +101,7 @@ func (s *GPIOService) monitorPin(ctx context.Context, label, pinName string) {
 					if newLevel == gpio.High {
 						event = "released"
 					}
-					
+
 					msg := fmt.Sprintf("[GPIO Event] %s (%s) has been %s", label, pinName, event)
 					log.Println(msg)
 
