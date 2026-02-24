@@ -1,1 +1,1 @@
-[v0.4.6] Fix: Restore missing variables in main.go and update walkthrough
+[v0.4.7] Feature: GPIO output toggle and intelligent nested pin mapping

@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Cpu, Save, Plus, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from "@/lib/i18n";
+import { Switch } from "@/components/ui/switch";
 
 import { GpioSchematic, pinData } from '@/components/gpio-schematic';
 import { ConfirmDialog } from '@/components/ui-custom-dialog';
@@ -14,6 +15,7 @@ interface PinConfig {
     pin: number;
     mode: string;
     label: string;
+    level?: number;
 }
 
 export function GpioPage() {
@@ -77,30 +79,51 @@ export function GpioPage() {
             const res = await fetch('/api/gpio');
             if (res.ok) {
                 const data = await res.json();
-                // If data is in the format expected by the frontend
-                // Backend returns map[string]interface{}
-                // We might need to transform it if the frontend expects PinConfig[]
-                const pins: PinConfig[] = Object.entries(data).map(([label, val]: [string, any]) => {
-                    if (typeof val === 'number') {
-                        return { pin: val, mode: 'OUT', label };
-                    } else if (val && typeof val === 'object' && 'pin' in val) {
-                        return { pin: val.pin, mode: val.mode || 'OUT', label };
-                    }
-                    return { pin: 0, mode: 'OUT', label }; // Fallback
+                // Data is now map[string]int (flattened)
+                const pins: PinConfig[] = Object.entries(data).map(([label, pin]: [string, any]) => {
+                    return {
+                        pin: pin as number,
+                        mode: isInput(label) ? 'IN' : 'OUT',
+                        label
+                    };
                 });
-                if (pins.length > 0) setConfiguredPins(pins);
+                if (pins.length >= 0) setConfiguredPins(pins);
             }
         } catch (e) {
             console.error("Failed to fetch GPIO", e);
         }
     };
 
+    const isInput = (label: string) => {
+        const l = label.toLowerCase();
+        return l === 'button' || l === 'sensor' || l.startsWith('button_') || l.startsWith('sensor_') || l.endsWith('_button') || l.endsWith('_sensor');
+    };
+
+    const handleToggle = async (pin: number, index: number) => {
+        try {
+            const res = await fetch('/api/gpio/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const newPins = [...configuredPins];
+                newPins[index].level = data.level;
+                setConfiguredPins(newPins);
+                toast.success(`Pin ${pin} toggled to ${data.level === 1 ? 'HIGH' : 'LOW'}`);
+            }
+        } catch (e) {
+            toast.error("Toggle failed");
+        }
+    };
+
     const handleSave = async () => {
         try {
-            // Transform PinConfig[] back to map[string]interface{} for backend
-            const pinMap: Record<string, any> = {};
+            // Transform PinConfig[] back to flat map for backend
+            const pinMap: Record<string, number> = {};
             configuredPins.forEach(p => {
-                pinMap[p.label] = { pin: p.pin, mode: p.mode };
+                pinMap[p.label] = p.pin;
             });
 
             const res = await fetch('/api/gpio', {
@@ -168,8 +191,9 @@ export function GpioPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>{t.gpio_pin}</TableHead>
-                                        <TableHead>{t.gpio_mode}</TableHead>
+                                        <TableHead className="w-12"></TableHead>
+                                        <TableHead className="w-24">{t.gpio_pin}</TableHead>
+                                        <TableHead className="w-28">{t.gpio_mode}</TableHead>
                                         <TableHead>{t.gpio_label}</TableHead>
                                         <TableHead className="w-10"></TableHead>
                                     </TableRow>
@@ -179,6 +203,14 @@ export function GpioPage() {
                                         if (selectedPin !== undefined && item.pin !== selectedPin) return null;
                                         return (
                                             <TableRow key={idx}>
+                                                <TableCell className="px-2">
+                                                    {item.mode === 'OUT' && (
+                                                        <Switch
+                                                            checked={item.level === 1}
+                                                            onCheckedChange={() => handleToggle(item.pin, idx)}
+                                                        />
+                                                    )}
+                                                </TableCell>
                                                 <TableCell className="font-mono">
                                                     <Select
                                                         value={item.pin.toString()}
