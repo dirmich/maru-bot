@@ -1751,4 +1751,9 @@ func upgradeCmd() {
 	}
 
 	fmt.Println("✨ Upgrade complete! Restarting MaruBot...")
-	reloadCm
+	reloadCmd()
+}
+
+// Remove the old getLatestVersion as it's now in pkg/config
+
+// getLatestVersion is removed (moved to pkg/config)
