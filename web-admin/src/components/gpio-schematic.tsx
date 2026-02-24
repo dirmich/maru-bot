@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-interface PinProps {
+export interface PinProps {
     number: number;
     label: string;
     type: 'power' | 'ground' | 'gpio' | 'special';
@@ -12,7 +12,7 @@ interface PinProps {
     isConfigured?: boolean;
 }
 
-const pinData: PinProps[] = [
+export const pinData: PinProps[] = [
     // Left Side (Odd)
     { number: 1, label: "3.3V", type: 'power' },
     { number: 3, label: "GPIO 2 (SDA)", type: 'gpio', name: "I2C SDA" },
@@ -116,10 +116,11 @@ export function GpioSchematic({ configuredPins, selectedPin, onPinClick }: { con
                 </div>
             </div>
 
-            <div className="mt-8 grid grid-cols-4 gap-2">
+            <div className="mt-8 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
                 <LegendItem type="power" label="Power (3.3V/5V)" />
                 <LegendItem type="ground" label="Ground" />
-                <LegendItem type="gpio" label="Digital GPIO" />
+                <LegendItem type="gpio" label="GPIO (Configured)" isActive={true} />
+                <LegendItem type="gpio" label="GPIO (Unconfigured)" isActive={false} />
                 <LegendItem type="special" label="Special / I2C" />
             </div>
         </Card>
@@ -130,7 +131,7 @@ function PinItem({ pin, isActive, isSelected, onClick }: { pin: PinProps, isActi
     const colors = {
         power: "bg-red-500 hover:bg-red-400 shadow-red-900/50",
         ground: "bg-black hover:bg-slate-900 shadow-black/50 border border-slate-700",
-        gpio: "bg-orange-500 hover:bg-orange-400 shadow-orange-900/50",
+        gpio: isActive ? "bg-orange-500 hover:bg-orange-400 shadow-orange-900/50" : "bg-slate-500 hover:bg-slate-400 shadow-slate-900/50",
         special: "bg-blue-500 hover:bg-blue-400 shadow-blue-900/50",
     };
 
@@ -160,11 +161,11 @@ function PinItem({ pin, isActive, isSelected, onClick }: { pin: PinProps, isActi
     );
 }
 
-function LegendItem({ type, label }: { type: PinProps['type'], label: string }) {
+function LegendItem({ type, label, isActive = true }: { type: PinProps['type'], label: string, isActive?: boolean }) {
     const colors = {
         power: "bg-red-500",
         ground: "bg-black border border-slate-700",
-        gpio: "bg-orange-500",
+        gpio: isActive ? "bg-orange-500" : "bg-slate-500",
         special: "bg-blue-500",
     };
     return (

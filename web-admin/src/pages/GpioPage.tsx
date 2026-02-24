@@ -7,7 +7,7 @@ import { Cpu, Save, Plus, Trash } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from "@/lib/i18n";
 
-import { GpioSchematic } from '@/components/gpio-schematic';
+import { GpioSchematic, pinData } from '@/components/gpio-schematic';
 
 interface PinConfig {
     pin: number;
@@ -28,6 +28,12 @@ export function GpioPage() {
     };
 
     const handlePinClick = (pin: number) => {
+        const pinInfo = pinData.find(p => p.number === pin);
+        if (pinInfo && (pinInfo.type === 'power' || pinInfo.type === 'ground')) {
+            toast.error(t.gpio_cannot_configure);
+            return;
+        }
+
         const existing = configuredPins.find(p => p.pin === pin);
         if (existing) {
             setSelectedPin(pin);
@@ -140,9 +146,16 @@ export function GpioPage() {
                                 <CardTitle className="text-lg">{t.gpio_configured_devices}</CardTitle>
                                 <CardDescription>{t.gpio_configured_desc}</CardDescription>
                             </div>
-                            <Button size="sm" onClick={handleAddPin} className="bg-orange-600 hover:bg-orange-700 text-white">
-                                <Plus className="w-4 h-4 mr-1" /> {t.gpio_add}
-                            </Button>
+                            <div className="flex gap-2">
+                                {selectedPin !== undefined && (
+                                    <Button size="sm" variant="outline" onClick={() => setSelectedPin(undefined)}>
+                                        {t.gpio_view_all}
+                                    </Button>
+                                )}
+                                <Button size="sm" onClick={handleAddPin} className="bg-orange-600 hover:bg-orange-700 text-white">
+                                    <Plus className="w-4 h-4 mr-1" /> {t.gpio_add}
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <Table>
