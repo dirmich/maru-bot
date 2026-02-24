@@ -39,7 +39,7 @@ import (
 	"github.com/chzyer/readline"
 )
 
-var version = "0.4.1"
+var version = "0.4.2"
 
 const logo = "🦞"
 
@@ -431,7 +431,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-0.4.1
+0.4.2
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
