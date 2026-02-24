@@ -62,6 +62,9 @@ export const translations = {
         gpio_no_pins: "No GPIO pins configured.",
         gpio_view_all: "View All",
         gpio_cannot_configure: "Power and Ground pins cannot be configured.",
+        gpio_add_confirm_title: "Add GPIO Configuration",
+        gpio_add_confirm_desc: "Do you want to add a configuration for pin",
+        gpio_add_confirm_suffix: "?",
 
         // Skills Page
         skills_title: "Skills & Tool Box",
@@ -166,6 +169,9 @@ export const translations = {
         gpio_no_pins: "설정된 GPIO 핀이 없습니다.",
         gpio_view_all: "전체 보기",
         gpio_cannot_configure: "전원 및 그라운드 핀은 설정할 수 없습니다.",
+        gpio_add_confirm_title: "GPIO 설정 추가",
+        gpio_add_confirm_desc: "해당 핀에 대한 설정을 추가하시겠습니까? (핀 번호: ",
+        gpio_add_confirm_suffix: ")",
 
         // Skills Page
         skills_title: "스킬 & 툴 박스",
@@ -270,6 +276,9 @@ export const translations = {
         gpio_no_pins: "設定されたGPIOピンはありません。",
         gpio_view_all: "すべて表示",
         gpio_cannot_configure: "電源とグランドピンは設定できません。",
+        gpio_add_confirm_title: "GPIO設定の追加",
+        gpio_add_confirm_desc: "このピンの設定を追加しますか？ (ピン: ",
+        gpio_add_confirm_suffix: ")",
 
         // Skills Page
         skills_title: "スキル＆ツールボックス",

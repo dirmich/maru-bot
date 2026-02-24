@@ -1,13 +1,13 @@
-// Client-side dialog placeholder (Mocking missing alert-dialog)
-export const useConfirmDialog = () => {
-    return {
-        show: (t: string, d: string, c: () => void) => {
-            if (window.confirm(`${t}\n\n${d}`)) {
-                c();
-            }
-        }
-    };
-};
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function ConfirmDialog({
     open,
@@ -15,18 +15,38 @@ export function ConfirmDialog({
     title,
     description,
     onConfirm
-}: any) {
-    if (!open) return null;
+}: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+}) {
     return (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div style={{ background: 'white', padding: '20px', borderRadius: '8px', color: 'black' }}>
-                <h2>{title}</h2>
-                <p>{description}</p>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                    <button onClick={() => onOpenChange(false)}>Cancel</button>
-                    <button onClick={() => { onConfirm(); onOpenChange(false); }}>Confirm</button>
-                </div>
-            </div>
-        </div>
-    )
+        <AlertDialog open={open} onOpenChange={onOpenChange}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{title}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        {description}
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={onConfirm} className="bg-orange-600 hover:bg-orange-700">
+                        Confirm
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
 }
+
+// Keeping a simple placeholder for useConfirmDialog if needed, but transitioning to declarative ConfirmDialog
+export const useConfirmDialog = () => {
+    return {
+        show: () => {
+            console.warn("useConfirmDialog.show is deprecated. Please use <ConfirmDialog /> component instead.");
+        }
+    };
+};

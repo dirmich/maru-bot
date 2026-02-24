@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useTranslation } from "@/lib/i18n";
 
 import { GpioSchematic, pinData } from '@/components/gpio-schematic';
+import { ConfirmDialog } from '@/components/ui-custom-dialog';
 
 interface PinConfig {
     pin: number;
@@ -19,6 +20,8 @@ export function GpioPage() {
     const t = useTranslation();
     const [configuredPins, setConfiguredPins] = useState<PinConfig[]>([]);
     const [selectedPin, setSelectedPin] = useState<number | undefined>(undefined);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [pendingPin, setPendingPin] = useState<number | null>(null);
 
     const handleAddPin = () => {
         // Find next available pin or just use 0 as placeholder
@@ -38,17 +41,18 @@ export function GpioPage() {
         if (existing) {
             setSelectedPin(pin);
         } else {
-            // Ask to add
-            if (window.confirm(`Add configuration for Pin ${pin}?`)) {
-                const newPin = { pin: pin, mode: 'OUT', label: `GPIO ${pin}` };
-                setConfiguredPins([...configuredPins, newPin]);
-                setSelectedPin(pin);
-            } else {
-                setSelectedPin(pin); // Just select it visually even if not configured? No, user said only configured.
-                // "if configured... select only this one... if not, ask to add"
-                // If they say no, maybe just select it on the schematic but show nothing in table?
-                setSelectedPin(pin);
-            }
+            // Ask to add using ConfirmDialog
+            setPendingPin(pin);
+            setConfirmOpen(true);
+        }
+    };
+
+    const handleConfirmAdd = () => {
+        if (pendingPin !== null) {
+            const newPin = { pin: pendingPin, mode: 'OUT', label: `GPIO ${pendingPin}` };
+            setConfiguredPins([...configuredPins, newPin]);
+            setSelectedPin(pendingPin);
+            setPendingPin(null);
         }
     };
 
@@ -255,6 +259,14 @@ export function GpioPage() {
                     </Card>
                 </div>
             </div>
+
+            <ConfirmDialog
+                open={confirmOpen}
+                onOpenChange={setConfirmOpen}
+                title={t.gpio_add_confirm_title}
+                description={`${t.gpio_add_confirm_desc} ${pendingPin}${t.gpio_add_confirm_suffix || "?"}`}
+                onConfirm={handleConfirmAdd}
+            />
         </div>
     );
 }
