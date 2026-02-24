@@ -9,15 +9,17 @@ import (
 	"periph.io/x/conn/v3/gpio/gpioreg"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/host/v3"
+
+	"github.com/dirmich/marubot/pkg/config"
 )
 
 type MotorTool struct {
-	pins map[string]interface{}
+	cfg *config.Config
 }
 
-func NewMotorTool(pins map[string]interface{}) *MotorTool {
+func NewMotorTool(cfg *config.Config) *MotorTool {
 	host.Init()
-	return &MotorTool{pins: pins}
+	return &MotorTool{cfg: cfg}
 }
 
 func (t *MotorTool) Name() string {
@@ -55,8 +57,8 @@ func (t *MotorTool) Execute(ctx context.Context, args map[string]interface{}) (s
 		speed = 0.5
 	}
 
-	motorA, _ := t.pins["motor_a"].(map[string]interface{})
-	motorB, _ := t.pins["motor_b"].(map[string]interface{})
+	motorA, _ := t.cfg.Hardware.GPIO.Pins["motor_a"].(map[string]interface{})
+	motorB, _ := t.cfg.Hardware.GPIO.Pins["motor_b"].(map[string]interface{})
 
 	if motorA == nil || motorB == nil {
 		return "", fmt.Errorf("motor pins not configured")

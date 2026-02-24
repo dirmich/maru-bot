@@ -8,15 +8,17 @@ import (
 	"periph.io/x/conn/v3/gpio"
 	"periph.io/x/conn/v3/gpio/gpioreg"
 	"periph.io/x/host/v3"
+
+	"github.com/dirmich/marubot/pkg/config"
 )
 
 type UltrasonicTool struct {
-	pins map[string]interface{}
+	cfg *config.Config
 }
 
-func NewUltrasonicTool(pins map[string]interface{}) *UltrasonicTool {
+func NewUltrasonicTool(cfg *config.Config) *UltrasonicTool {
 	host.Init()
-	return &UltrasonicTool{pins: pins}
+	return &UltrasonicTool{cfg: cfg}
 }
 
 func (t *UltrasonicTool) Name() string {
@@ -35,7 +37,7 @@ func (t *UltrasonicTool) Parameters() map[string]interface{} {
 }
 
 func (t *UltrasonicTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
-	config, _ := t.pins["ultrasonic"].(map[string]interface{})
+	config, _ := t.cfg.Hardware.GPIO.Pins["ultrasonic"].(map[string]interface{})
 	if config == nil {
 		return "", fmt.Errorf("ultrasonic pins not configured")
 	}
