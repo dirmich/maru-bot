@@ -2,11 +2,9 @@
 
 **MaruBot** is a **"Physical AI Assistant"** optimized for directly controlling hardware and interacting on SBCs (Single Board Computers) like Raspberry Pi, based on the ultra-lightweight MaruBot engine.
 
-## ✨ 0.4.4 Update
-- **GPIO Save Navigation**: Automatically returns to the pin list after saving settings in the Web Admin.
-- **AI Tool Sync**: AI tools now synchronize with GPIO configuration changes in real-time.
-- **Improved Prompting**: Fixed version reporting and system prompt formatting for better AI self-awareness.
-- **Upgrade Enhancements**: Refined the upgrade process for improved reliability and restart logic.
+## ✨ 0.4.5 Update
+- **GPIO UI Refinement**: Standardized pin colors (VCC: Red, GND: Black, Configured: Orange) and updated the color guide for better intuitive wiring.
+- **Identity Automation**: Fixed the issue where the AI agent would misidentify its version by automating the `IDENTITY.md` template.
 
 ---
 

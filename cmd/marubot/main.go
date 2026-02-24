@@ -37,7 +37,7 @@ import (
 	"github.com/chzyer/readline"
 )
 
-// version for compatibility with older binaries: var version = "0.4.4"
+// version for compatibility with older binaries: var version = "0.4.5"
 var version = config.Version
 
 const logo = "🦞"
