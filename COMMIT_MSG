@@ -1,1 +1,1 @@
-[v0.4.3] Release: Auto-restart on upgrade, AI update tools, and Shadcn UI dialogs
+[v0.4.3] Fix: Restore parsable version string in main.go for upgrade compatibility
