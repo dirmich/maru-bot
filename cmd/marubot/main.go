@@ -37,6 +37,11 @@ import (
 	"github.com/chzyer/readline"
 )
 
+// version for compatibility with older binaries: var version = "0.4.6"
+var version = config.Version
+
+const logo = "🦞"
+
 // 0.4.6: GPIO color guide (legend) layout improvement
 // 0.4.5: GPIO pin color improvements and legend update
 
