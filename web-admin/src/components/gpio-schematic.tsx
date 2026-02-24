@@ -117,11 +117,11 @@ export function GpioSchematic({ configuredPins, selectedPin, onPinClick }: { con
             </div>
 
             <div className="mt-8 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                <LegendItem type="power" label="Power (3.3V/5V)" />
-                <LegendItem type="ground" label="Ground" />
+                <LegendItem type="power" label="VCC (3.3V/5V)" />
+                <LegendItem type="ground" label="GND (Ground)" />
                 <LegendItem type="gpio" label="GPIO (Configured)" isActive={true} />
                 <LegendItem type="gpio" label="GPIO (Unconfigured)" isActive={false} />
-                <LegendItem type="special" label="Special / I2C" />
+                <LegendItem type="special" label="Special (ID_SC/SD)" />
             </div>
         </Card>
     );
@@ -129,10 +129,10 @@ export function GpioSchematic({ configuredPins, selectedPin, onPinClick }: { con
 
 function PinItem({ pin, isActive, isSelected, onClick }: { pin: PinProps, isActive: boolean, isSelected: boolean, onClick: () => void }) {
     const colors = {
-        power: "bg-red-500 hover:bg-red-400 shadow-red-900/50",
+        power: "bg-red-600 hover:bg-red-500 shadow-red-900/50",
         ground: "bg-black hover:bg-slate-900 shadow-black/50 border border-slate-700",
-        gpio: isActive ? "bg-orange-500 hover:bg-orange-400 shadow-orange-900/50" : "bg-slate-500 hover:bg-slate-400 shadow-slate-900/50",
-        special: "bg-blue-500 hover:bg-blue-400 shadow-blue-900/50",
+        gpio: isActive ? "bg-orange-500 hover:bg-orange-400 shadow-orange-900/50" : "bg-slate-400 hover:bg-slate-300 shadow-slate-900/50",
+        special: "bg-blue-600 hover:bg-blue-500 shadow-blue-900/50",
     };
 
     return (
@@ -163,10 +163,10 @@ function PinItem({ pin, isActive, isSelected, onClick }: { pin: PinProps, isActi
 
 function LegendItem({ type, label, isActive = true }: { type: PinProps['type'], label: string, isActive?: boolean }) {
     const colors = {
-        power: "bg-red-500",
+        power: "bg-red-600",
         ground: "bg-black border border-slate-700",
-        gpio: isActive ? "bg-orange-500" : "bg-slate-500",
-        special: "bg-blue-500",
+        gpio: isActive ? "bg-orange-500" : "bg-slate-400",
+        special: "bg-blue-600",
     };
     return (
         <div className="flex items-center gap-2">
