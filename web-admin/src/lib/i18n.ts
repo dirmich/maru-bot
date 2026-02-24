@@ -129,6 +129,12 @@ export const translations = {
         login_success: "Login successful",
         login_failed: "Invalid password",
         conn_error: "Connection error",
+
+        // Upgrade
+        upgrade_available: "New version available",
+        upgrade_button: "Upgrade Now",
+        upgrading: "Upgrading... System will restart.",
+        upgrade_confirm: "Do you want to upgrade to the latest version?",
     },
     ko: {
         // Sidebar
@@ -236,6 +242,12 @@ export const translations = {
         login_success: "로그인 성공",
         login_failed: "잘못된 암호입니다",
         conn_error: "연결 오류",
+
+        // Upgrade
+        upgrade_available: "새 버전 사용 가능",
+        upgrade_button: "지금 업그레이드",
+        upgrading: "업그레이드 중... 시스템이 재시작됩니다.",
+        upgrade_confirm: "최신 버전으로 업그레이드하시겠습니까?",
     },
     ja: {
         // Sidebar
@@ -343,6 +355,12 @@ export const translations = {
         login_success: "ログインに成功しました",
         login_failed: "パスワードが正しくありません",
         conn_error: "接続エラー",
+
+        // Upgrade
+        upgrade_available: "新しいバージョンが利用可能です",
+        upgrade_button: "今すぐアップグレード",
+        upgrading: "アップグレード中... システムが再起動します。",
+        upgrade_confirm: "最新バージョンにアップグレードしますか？",
     }
 };
 

@@ -1,1 +1,1 @@
-[v0.4.3] Fix: Restore parsable version string in main.go for upgrade compatibility
+[v0.4.3] Feature: Add version info and upgrade button to Web Admin sidebar

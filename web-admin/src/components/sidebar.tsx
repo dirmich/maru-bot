@@ -10,12 +10,14 @@ import {
     ChevronRight,
     Languages,
     ScrollText,
-    LayoutDashboard
+    LayoutDashboard,
+    ArrowUpCircle,
+    Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation, useLanguageStore, Language } from "@/lib/i18n";
 import { logout } from "@/lib/auth";
 import {
@@ -25,6 +27,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui-custom-dialog";
 
 export function Sidebar() {
     const t = useTranslation();
@@ -32,6 +36,55 @@ export function Sidebar() {
     const location = useLocation();
     const pathname = location.pathname;
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [versionInfo, setVersionInfo] = useState({
+        version: "v0.0.0",
+        latest_version: "",
+        is_update_available: false
+    });
+    const [isUpgrading, setIsUpgrading] = useState(false);
+    const [confirmUpgradeOpen, setConfirmUpgradeOpen] = useState(false);
+
+    useEffect(() => {
+        const fetchVersion = async () => {
+            try {
+                const resp = await fetch("/api/system/stats");
+                if (resp.ok) {
+                    const data = await resp.json();
+                    setVersionInfo({
+                        version: data.version || "v0.0.0",
+                        latest_version: data.latest_version || "",
+                        is_update_available: !!data.is_update_available
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to fetch version info", error);
+            }
+        };
+
+        fetchVersion();
+        const interval = setInterval(fetchVersion, 600000); // Check every 10 mins
+        return () => clearInterval(interval);
+    }, []);
+
+    const handleUpgrade = async () => {
+        setIsUpgrading(true);
+        try {
+            const resp = await fetch("/api/upgrade", { method: "POST" });
+            if (resp.ok) {
+                toast.success(t.upgrading);
+                // System will restart, wait 10 seconds and refresh
+                setTimeout(() => {
+                    window.location.reload();
+                }, 10000);
+            } else {
+                toast.error("Upgrade failed to start");
+                setIsUpgrading(false);
+            }
+        } catch (error) {
+            toast.error("Network error during upgrade");
+            setIsUpgrading(false);
+        }
+    };
 
     const menuItems = [
         { name: t.dashboard || "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -104,6 +157,29 @@ export function Sidebar() {
             </nav>
 
             <div className="p-4 border-t space-y-4">
+                {/* Upgrade Button */}
+                {versionInfo.is_update_available && (
+                    <div className={cn("px-2", isCollapsed ? "flex justify-center" : "")}>
+                        <Button
+                            variant="secondary"
+                            size={isCollapsed ? "icon" : "sm"}
+                            disabled={isUpgrading}
+                            onClick={() => setConfirmUpgradeOpen(true)}
+                            className={cn(
+                                "w-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border-none rounded-xl",
+                                isCollapsed ? "h-9 w-9 p-0" : "h-9 justify-start gap-3 px-3"
+                            )}
+                        >
+                            {isUpgrading ? (
+                                <Loader2 size={18} className="animate-spin" />
+                            ) : (
+                                <ArrowUpCircle size={18} className="animate-bounce" />
+                            )}
+                            {!isCollapsed && <span className="text-xs font-bold">{t.upgrade_button}</span>}
+                        </Button>
+                    </div>
+                )}
+
                 {/* Language Switcher */}
                 <div className={cn("px-2", isCollapsed ? "flex justify-center" : "")}>
                     <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
@@ -149,9 +225,19 @@ export function Sidebar() {
                     isCollapsed ? "text-center" : "flex justify-between"
                 )}>
                     {!isCollapsed && <span>{t.status_ok}</span>}
-                    <span>v0.3.12</span>
+                    <span className={cn(versionInfo.is_update_available && "text-indigo-500 font-bold")}>
+                        {versionInfo.version}
+                    </span>
                 </div>
             </div>
+
+            <ConfirmDialog
+                open={confirmUpgradeOpen}
+                onOpenChange={setConfirmUpgradeOpen}
+                title={t.upgrade_confirm}
+                description={t.upgrade_available + ": " + versionInfo.latest_version}
+                onConfirm={handleUpgrade}
+            />
         </aside>
     );
 }
