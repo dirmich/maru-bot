@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/caarlos0/env/v11"
@@ -256,7 +257,20 @@ func LoadConfig(path string) (*Config, error) {
 	// Load usersetting.json as override if exists
 	userSettingsPath := filepath.Join(filepath.Dir(path), "usersetting.json")
 	if userData, err := os.ReadFile(userSettingsPath); err == nil {
-		json.Unmarshal(userData, cfg)
+		var userCfg map[string]interface{}
+		if err := json.Unmarshal(userData, &userCfg); err == nil {
+			// Special handling for GPIO pins: if exists in usersetting, replace the entire map
+			// to prevent merging with defaults which might cause confusion
+			if hw, ok := userCfg["hardware"].(map[string]interface{}); ok {
+				if gp, ok := hw["gpio"].(map[string]interface{}); ok {
+					if pins, ok := gp["pins"].(map[string]interface{}); ok {
+						cfg.Hardware.GPIO.Pins = pins
+						delete(gp, "pins") // handled, remove to avoid double unmarshal if we used a partial struct
+					}
+				}
+			}
+			json.Unmarshal(userData, cfg)
+		}
 	}
 
 	if err := env.Parse(cfg); err != nil {
@@ -264,6 +278,52 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// FlattenPins converts nested pin maps into flat underscore-separated keys
+func FlattenPins(pins map[string]interface{}) map[string]int {
+	flat := make(map[string]int)
+	var flatten func(prefix string, m map[string]interface{})
+	flatten = func(prefix string, m map[string]interface{}) {
+		for k, v := range m {
+			key := k
+			if prefix != "" {
+				key = prefix + "_" + k
+			}
+
+			switch val := v.(type) {
+			case int:
+				flat[key] = val
+			case float64:
+				flat[key] = int(val)
+			case map[string]interface{}:
+				flatten(key, val)
+			}
+		}
+	}
+	flatten("", pins)
+	return flat
+}
+
+// UnflattenPins converts flat underscore-separated keys into nested maps
+func UnflattenPins(flat map[string]int) map[string]interface{} {
+	nested := make(map[string]interface{})
+
+	for key, val := range flat {
+		parts := strings.Split(key, "_")
+		curr := nested
+
+		for i := 0; i < len(parts)-1; i++ {
+			part := parts[i]
+			if _, ok := curr[part]; !ok {
+				curr[part] = make(map[string]interface{})
+			}
+			curr = curr[part].(map[string]interface{})
+		}
+		curr[parts[len(parts)-1]] = val
+	}
+
+	return nested
 }
 
 func SaveConfig(path string, cfg *Config) error {

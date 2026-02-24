@@ -42,8 +42,9 @@ var version = config.Version
 
 const logo = "🦞"
 
+// 0.4.7: GPIO output control, config precedence fix, flattened nested pins
+// 0.4.7: GPIO Output toggle and nested pin mapping
 // 0.4.6: GPIO color guide (legend) layout improvement
-// 0.4.5: GPIO pin color improvements and legend update
 
 func copyDirectory(src, dst string) error {
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
