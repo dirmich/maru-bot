@@ -2,10 +2,11 @@
 
 **MaruBot** is a **"Physical AI Assistant"** optimized for directly controlling hardware and interacting on SBCs (Single Board Computers) like Raspberry Pi, based on the ultra-lightweight MaruBot engine.
 
-## ✨ 0.4.0 Update
-- **Webhook Channel**: Support for real-time interaction with MaruBot via HTTP requests (Synchronous response supported).
-- **AI Self-Evolution**: AI agents can now install new skills, create custom tools, and reload themselves (`reload`) to expand their capabilities autonomously.
-- **System Control Tool (`system_control`)**: Empowers the AI to directly check MaruBot's status, install skills, and restart the process.
+## ✨ 0.4.3 Update
+- **Upgrade & Auto-Restart**: Improved `marubot upgrade` to automatically restart the system after completion.
+- **AI Version Control**: Added tools for the AI agent to check its own version and perform upgrades upon user request.
+- **Shadcn UI Dialogs**: Replaced all native browser dialogs in the Web Admin with modern Shadcn UI dialogs for a consistent UX.
+- **Centralized Versioning**: Integrated version management logic within the engine for better update tracking.
 
 ---
 
