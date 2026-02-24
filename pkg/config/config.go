@@ -41,6 +41,15 @@ type ChannelsConfig struct {
 	Feishu   FeishuConfig   `json:"feishu"`
 	Discord  DiscordConfig  `json:"discord"`
 	MaixCam  MaixCamConfig  `json:"maixcam"`
+	Webhook  WebhookConfig  `json:"webhook"`
+}
+
+type WebhookConfig struct {
+	Enabled   bool     `json:"enabled" env:"MARUBOT_CHANNELS_WEBHOOK_ENABLED"`
+	Port      int      `json:"port" env:"MARUBOT_CHANNELS_WEBHOOK_PORT"`
+	Path      string   `json:"path" env:"MARUBOT_CHANNELS_WEBHOOK_PATH"`
+	Secret    string   `json:"secret" env:"MARUBOT_CHANNELS_WEBHOOK_SECRET"`
+	AllowFrom []string `json:"allow_from" env:"MARUBOT_CHANNELS_WEBHOOK_ALLOW_FROM"`
 }
 
 type WhatsAppConfig struct {
@@ -173,6 +182,13 @@ func DefaultConfig() *Config {
 				Enabled:   false,
 				Host:      "0.0.0.0",
 				Port:      18790,
+				AllowFrom: []string{},
+			},
+			Webhook: WebhookConfig{
+				Enabled:   false,
+				Port:      0, // 0 means use default port (e.g. dashboard port or gateway port)
+				Path:      "/api/channels/webhook",
+				Secret:    "",
 				AllowFrom: []string{},
 			},
 		},

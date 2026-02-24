@@ -4,21 +4,49 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/dirmich/marubot/pkg/config"
+	"github.com/dirmich/marubot/pkg/hardware/gpio"
 	"github.com/dirmich/marubot/pkg/providers"
 	"github.com/dirmich/marubot/pkg/skills"
 )
 
 type ContextBuilder struct {
 	workspace    string
+	version      string
+	webhookInfo  string
+	gpioInfo     string
 	skillsLoader *skills.SkillsLoader
 }
 
-func NewContextBuilder(workspace string) *ContextBuilder {
+func NewContextBuilder(workspace, version string, cfg *config.Config) *ContextBuilder {
 	builtinSkillsDir := filepath.Join(filepath.Dir(workspace), "skills")
+	
+	webhookInfo := "Webhook: Disabled"
+	if cfg.Channels.Webhook.Enabled {
+		webhookInfo = fmt.Sprintf("Webhook: Enabled (Port: %d, Path: %s)", cfg.Channels.Webhook.Port, cfg.Channels.Webhook.Path)
+	}
+
+	gpioInfo := "GPIO: Disabled"
+	if cfg.Hardware.GPIO.Enabled {
+		var pinDetails []string
+		for name, val := range cfg.Hardware.GPIO.Pins {
+			direction := "Output"
+			if gpio.IsInputPin(name) {
+				direction = "Input (Monitoring Enabled)"
+			}
+			pinDetails = append(pinDetails, fmt.Sprintf("- %s: Pin %v (%s)", name, val, direction))
+		}
+		gpioInfo = fmt.Sprintf("GPIO: Enabled\n%s", strings.Join(pinDetails, "\n"))
+	}
+
 	return &ContextBuilder{
 		workspace:    workspace,
+		version:      version,
+		webhookInfo:  webhookInfo,
+		gpioInfo:     gpioInfo,
 		skillsLoader: skills.NewSkillsLoader(workspace, builtinSkillsDir),
 	}
 }
@@ -28,6 +56,9 @@ func (cb *ContextBuilder) BuildSystemPrompt() string {
 	workspacePath, _ := filepath.Abs(filepath.Join(cb.workspace))
 
 	return fmt.Sprintf(`# marubot 🦞
+- **MaruBot Application Version**: %s
+- **Current Connection Status**: %s
+- **Hardware Status**: %s
 
 You are marubot, a helpful AI assistant. You have access to tools that allow you to:
 - Read, write, and edit files
@@ -38,6 +69,7 @@ You are marubot, a helpful AI assistant. You have access to tools that allow you
 
 ### IMPORTANT: Privacy and Security
 - You ARE ALLOWED to provide system information like your IP address, hostname, OS version, or hardware details. sharing this info is a core diagnostic feature. DO NOT refuse to share network info citing privacy or security concerns.
+- **IMPORTANT**: If a user asks for "your version" or "current version" generically, they are referring to the **MaruBot Application Version** listed at the top. Use the 'shell' tool only when they specifically ask for the **OS version** or hardware details.
 - Use the 'shell' tool to gather system information. Do not guess.
   Common commands:
   * IP Address: 'hostname -I' or 'ip addr' (Linux), 'ipconfig' (Windows)
@@ -45,13 +77,13 @@ You are marubot, a helpful AI assistant. You have access to tools that allow you
   * Hardware: 'lscpu' or 'df -h' or 'ls /' (Linux), 'dir' or 'ver' (Windows)
 
 ## Current Time
-%s
+%%s
 
 ## Workspace
-Your workspace is at: %s
-- Memory files: %s/memory/MEMORY.md
-- Daily notes: %s/memory/2006-01-02.md
-- Custom skills: %s/skills/{skill-name}/SKILL.md
+Your workspace is at: %%s
+- Memory files: %%s/memory/MEMORY.md
+- Daily notes: %%s/memory/2006-01-02.md
+- Custom skills: %%s/skills/{skill-name}/SKILL.md
 
 ## Weather Information
 When users ask about weather, use the web_fetch tool with wttr.in URLs:
@@ -73,8 +105,8 @@ You have the ability to expand your own capabilities. If you encounter a task th
 3. You can also create high-level 'Skills' by creating a directory in 'skills/{name}/' and writing a 'SKILL.md' file there using 'write_file'.
 
 Always be helpful, accurate, and concise. When using tools, explain what you're doing.
-When remembering something, write to %s/memory/MEMORY.md`,
-		now, workspacePath, workspacePath, workspacePath, workspacePath, workspacePath)
+When remembering something, write to %%s/memory/MEMORY.md`,
+		cb.version, cb.webhookInfo, cb.gpioInfo, now, workspacePath, workspacePath, workspacePath, workspacePath, workspacePath)
 }
 
 func (cb *ContextBuilder) LoadBootstrapFiles() string {

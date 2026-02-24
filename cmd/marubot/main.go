@@ -29,6 +29,7 @@ import (
 	"github.com/dirmich/marubot/pkg/channels"
 	"github.com/dirmich/marubot/pkg/config"
 	"github.com/dirmich/marubot/pkg/cron"
+	"github.com/dirmich/marubot/pkg/hardware/gpio"
 	"github.com/dirmich/marubot/pkg/heartbeat"
 	"github.com/dirmich/marubot/pkg/logger"
 	"github.com/dirmich/marubot/pkg/providers"
@@ -38,7 +39,7 @@ import (
 	"github.com/chzyer/readline"
 )
 
-var version = "0.3.13"
+var version = "0.4.1"
 
 const logo = "🦞"
 
@@ -413,7 +414,8 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-0.3.13
+## Version
+0.4.1
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
@@ -549,7 +551,11 @@ func agentCmd() {
 	}
 
 	bus := bus.NewMessageBus()
-	agentLoop := agent.NewAgentLoop(cfg, bus, provider)
+	agentLoop := agent.NewAgentLoop(cfg, bus, provider, version)
+
+	gpioService := gpio.NewGPIOService(cfg, bus)
+	gpioService.Start(context.Background())
+	defer gpioService.Stop()
 
 	if message != "" {
 		ctx := context.Background()
@@ -665,7 +671,11 @@ func gatewayCmd() {
 	}
 
 	bus := bus.NewMessageBus()
-	agentLoop := agent.NewAgentLoop(cfg, bus, provider)
+	agentLoop := agent.NewAgentLoop(cfg, bus, provider, version)
+
+	gpioService := gpio.NewGPIOService(cfg, bus)
+	gpioService.Start(context.Background())
+	defer gpioService.Stop()
 
 	cronStorePath := filepath.Join(filepath.Dir(getConfigPath()), "cron", "jobs.json")
 	cronService := cron.NewCronService(cronStorePath, func(job *cron.CronJob) (string, error) {
@@ -1538,7 +1548,11 @@ func startCmd() {
 		}
 	}
 
-	agentLoop := agent.NewAgentLoop(cfg, bus, provider)
+	agentLoop := agent.NewAgentLoop(cfg, bus, provider, version)
+
+	gpioService := gpio.NewGPIOService(cfg, bus)
+	gpioService.Start(context.Background())
+	defer gpioService.Stop()
 
 	// Background Services
 	cronStorePath := filepath.Join(filepath.Dir(getConfigPath()), "cron", "jobs.json")

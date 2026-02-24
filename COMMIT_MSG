@@ -1,1 +1,8 @@
-웹어드민 버전 업데이트 및 빌드 0.3.12
+feat: release v0.4.0 - Webhook support and AI Self-Evolution (Multilingual)
+
+- Implement Webhook channel with synchronous response support
+- Add system_control tool for AI-driven skill installation and reloading
+- Enable AI self-evolution through create_custom_tool and process reload
+- Bump version to v0.4.0 in main.go and web-admin
+- Update READMEs in all supported languages (KO, EN, JA, CN)
+- Update task.md with completed Phase 15 and 16
