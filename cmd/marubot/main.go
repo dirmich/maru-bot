@@ -35,16 +35,11 @@ import (
 	"github.com/dirmich/marubot/pkg/providers"
 	"github.com/dirmich/marubot/pkg/skills"
 	"github.com/dirmich/marubot/pkg/voice"
-	"github.com/dirmich/marubot/pkg/hardware/gpio"
 
 	"github.com/chzyer/readline"
 )
 
-<<<<<<< HEAD
-var version = "0.4.0"
-=======
 var version = "0.4.1"
->>>>>>> 17242c0 ([v0.4.1] GPIO 제어 기능 개선 및 0.4.0 기능 통합 업데이트)
 
 const logo = "🦞"
 
@@ -419,12 +414,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-<<<<<<< HEAD
-0.4.0
-=======
-## Version
 0.4.1
->>>>>>> 17242c0 ([v0.4.1] GPIO 제어 기능 개선 및 0.4.0 기능 통합 업데이트)
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
