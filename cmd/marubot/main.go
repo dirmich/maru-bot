@@ -256,16 +256,33 @@ func onboard() {
 		}
 	}
 
+	// Load existing config if available to preserve some settings like password
 	cfg := config.DefaultConfig()
+	existingCfg, err := config.LoadConfig(configPath)
+	if err == nil {
+		cfg.AdminPassword = existingCfg.AdminPassword
+	}
 
-	fmt.Print("Set Admin Password for Web Dashboard: ")
+	fmt.Printf("Set Admin Password for Web Dashboard [%s]: ", func() string {
+		if cfg.AdminPassword != "" {
+			return cfg.AdminPassword
+		}
+		return "admin"
+	}())
+
 	var password string
 	fmt.Scanln(&password)
+
 	if password == "" {
-		password = "admin" // default
-		fmt.Println("No password entered. Defaulting to 'admin'.")
+		if cfg.AdminPassword == "" {
+			cfg.AdminPassword = "admin"
+			fmt.Println("No password entered. Defaulting to 'admin'.")
+		} else {
+			fmt.Printf("No password entered. Keeping existing password.\n")
+		}
+	} else {
+		cfg.AdminPassword = password
 	}
-	cfg.AdminPassword = password
 
 	if err := config.SaveConfig(configPath, cfg); err != nil {
 		fmt.Printf("Error saving config: %v\n", err)
