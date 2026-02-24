@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -63,6 +64,7 @@ func (s *Server) Start() error {
 	mux.Handle("/api/gpio", s.authMiddleware(http.HandlerFunc(s.handleGpio)))
 	mux.Handle("/api/logs", s.authMiddleware(http.HandlerFunc(s.handleLogs)))
 	mux.Handle("/api/system/stats", s.authMiddleware(http.HandlerFunc(s.handleSystemStats)))
+	mux.Handle("/api/upgrade", s.authMiddleware(http.HandlerFunc(s.handleUpgrade)))
 
 	// Static File Serving (SPA Fallback)
 	fileServer := http.FileServer(http.FS(distFS))
@@ -322,5 +324,44 @@ func (s *Server) handleSystemStats(w http.ResponseWriter, r *http.Request) {
 	stats := getPlatformStats()
 	stats["version"] = s.version
 
+	latest, err := config.CheckLatestVersion()
+	if err == nil {
+		stats["latest_version"] = latest
+		stats["is_update_available"] = config.IsNewVersionAvailable(latest)
+	} else {
+		stats["latest_version"] = ""
+		stats["is_update_available"] = false
+	}
+
 	json.NewEncoder(w).Encode(stats)
+}
+
+func (s *Server) handleUpgrade(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Trigger upgrade in background
+	go func() {
+		// Wait 1 second to let response finish
+		time.Sleep(1 * time.Second)
+
+		exe, _ := os.Executable()
+		// Use --yes for non-interactive upgrade
+		cmd := exec.Command(exe, "upgrade", "--yes")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("Dashboard-triggered upgrade failed: %v\n", err)
+			return
+		}
+	}()
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "ok",
+		"message": "Upgrade started. The system will restart automatically.",
+	})
 }
