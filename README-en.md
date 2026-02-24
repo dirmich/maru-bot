@@ -2,11 +2,11 @@
 
 **MaruBot** is a **"Physical AI Assistant"** optimized for directly controlling hardware and interacting on SBCs (Single Board Computers) like Raspberry Pi, based on the ultra-lightweight MaruBot engine.
 
-## ✨ 0.4.3 Update
-- **Upgrade & Auto-Restart**: Improved `marubot upgrade` to automatically restart the system after completion.
-- **AI Version Control**: Added tools for the AI agent to check its own version and perform upgrades upon user request.
-- **Shadcn UI Dialogs**: Replaced all native browser dialogs in the Web Admin with modern Shadcn UI dialogs for a consistent UX.
-- **Centralized Versioning**: Integrated version management logic within the engine for better update tracking.
+## ✨ 0.4.4 Update
+- **GPIO Save Navigation**: Automatically returns to the pin list after saving settings in the Web Admin.
+- **AI Tool Sync**: AI tools now synchronize with GPIO configuration changes in real-time.
+- **Improved Prompting**: Fixed version reporting and system prompt formatting for better AI self-awareness.
+- **Upgrade Enhancements**: Refined the upgrade process for improved reliability and restart logic.
 
 ---
 
@@ -102,11 +102,7 @@ After installation, you must configure your API keys to use AI models.
 
 ---
 
-## ✨ 0.4.2 Update
-- **GPIO Configuration Persistence**: Improved storage to include **Input/Output modes (IN, OUT, etc.)**, ensuring settings are preserved after refreshes.
-- **Pin Selection UX**: Replaced manual pin number input with a **Select box** of available GPIO pins to prevent duplicates and improve ease of use.
-- **Admin Password Protection**: Refined setup logic in `marubot onboard` and `install.sh` to preserve the existing password if the input is left empty.
-- **Enhanced AI Integration**: Updated AI tools to recognize and control pins based on user-defined labels.
+---
 
 ---
 
