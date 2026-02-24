@@ -40,8 +40,20 @@ func (t *UltrasonicTool) Execute(ctx context.Context, args map[string]interface{
 		return "", fmt.Errorf("ultrasonic pins not configured")
 	}
 
-	trigPin := gpioreg.ByName(fmt.Sprintf("%v", config["trigger"]))
-	echoPin := gpioreg.ByName(fmt.Sprintf("%v", config["echo"]))
+	getPin := func(v interface{}) string {
+		switch pv := v.(type) {
+		case map[string]interface{}:
+			if pin, ok := pv["pin"]; ok {
+				return fmt.Sprintf("%v", pin)
+			}
+		default:
+			return fmt.Sprintf("%v", v)
+		}
+		return ""
+	}
+
+	trigPin := gpioreg.ByName(getPin(config["trigger"]))
+	echoPin := gpioreg.ByName(getPin(config["echo"]))
 
 	if trigPin == nil || echoPin == nil {
 		return "", fmt.Errorf("failed to find trigger or echo pins")

@@ -86,9 +86,21 @@ func (t *MotorTool) Execute(ctx context.Context, args map[string]interface{}) (s
 }
 
 func (t *MotorTool) setMotor(config map[string]interface{}, speed float64, forward bool) {
-	enPin := gpioreg.ByName(fmt.Sprintf("%v", config["en"]))
-	in1Pin := gpioreg.ByName(fmt.Sprintf("%v", config["in1"]))
-	in2Pin := gpioreg.ByName(fmt.Sprintf("%v", config["in2"]))
+	getPin := func(v interface{}) string {
+		switch pv := v.(type) {
+		case map[string]interface{}:
+			if pin, ok := pv["pin"]; ok {
+				return fmt.Sprintf("%v", pin)
+			}
+		default:
+			return fmt.Sprintf("%v", v)
+		}
+		return ""
+	}
+
+	enPin := gpioreg.ByName(getPin(config["en"]))
+	in1Pin := gpioreg.ByName(getPin(config["in1"]))
+	in2Pin := gpioreg.ByName(getPin(config["in2"]))
 
 	if enPin == nil || in1Pin == nil || in2Pin == nil {
 		return
