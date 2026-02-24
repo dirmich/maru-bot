@@ -111,6 +111,7 @@ export function GpioPage() {
 
             if (res.ok) {
                 toast.success(t.gpio_save_success);
+                setSelectedPin(undefined); // Return to view all pins
             } else {
                 toast.error('Error (HTTP ' + res.status + ')');
             }

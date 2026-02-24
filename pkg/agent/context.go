@@ -23,7 +23,7 @@ type ContextBuilder struct {
 
 func NewContextBuilder(workspace, version string, cfg *config.Config) *ContextBuilder {
 	builtinSkillsDir := filepath.Join(filepath.Dir(workspace), "skills")
-	
+
 	webhookInfo := "Webhook: Disabled"
 	if cfg.Channels.Webhook.Enabled {
 		webhookInfo = fmt.Sprintf("Webhook: Enabled (Port: %d, Path: %s)", cfg.Channels.Webhook.Port, cfg.Channels.Webhook.Path)
@@ -77,13 +77,13 @@ You are marubot, a helpful AI assistant. You have access to tools that allow you
   * Hardware: 'lscpu' or 'df -h' or 'ls /' (Linux), 'dir' or 'ver' (Windows)
 
 ## Current Time
-%%s
+%s
 
 ## Workspace
-Your workspace is at: %%s
-- Memory files: %%s/memory/MEMORY.md
-- Daily notes: %%s/memory/2006-01-02.md
-- Custom skills: %%s/skills/{skill-name}/SKILL.md
+Your workspace is at: %s
+- Memory files: %s/memory/MEMORY.md
+- Daily notes: %s/memory/2006-01-02.md
+- Custom skills: %s/skills/{skill-name}/SKILL.md
 
 ## Weather Information
 When users ask about weather, use the web_fetch tool with wttr.in URLs:
@@ -105,7 +105,7 @@ You have the ability to expand your own capabilities. If you encounter a task th
 3. You can also create high-level 'Skills' by creating a directory in 'skills/{name}/' and writing a 'SKILL.md' file there using 'write_file'.
 
 Always be helpful, accurate, and concise. When using tools, explain what you're doing.
-When remembering something, write to %%s/memory/MEMORY.md`,
+When remembering something, write to %s/memory/MEMORY.md`,
 		cb.version, cb.webhookInfo, cb.gpioInfo, now, workspacePath, workspacePath, workspacePath, workspacePath, workspacePath)
 }
 
