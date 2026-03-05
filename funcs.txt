@@ -1,0 +1,40 @@
+49:func copyDirectory(src, dst string) error {
+83:func main() {
+168:func uninstallCmd() {
+229:func printHelp() {
+248:func onboard() {
+309:func createWorkspaceTemplates(workspace string) {
+540:func agentCmd() {
+593:func interactiveMode(agentLoop *agent.AgentLoop, sessionKey string) {
+644:func simpleInteractiveMode(agentLoop *agent.AgentLoop, sessionKey string) {
+679:func gatewayCmd() {
+776:func statusCmd() {
+848:func getResourceDir() string {
+853:func getConfigPath() string {
+857:func loadConfig() (*config.Config, error) {
+861:func cronCmd() {
+893:func cronHelp() {
+911:func cronListCmd(storePath string) {
+950:func cronAddCmd(storePath string) {
+1038:func cronRemoveCmd(storePath, jobID string) {
+1047:func cronEnableCmd(storePath string, disable bool) {
+1069:func skillsCmd() {
+1112:func skillsHelp() {
+1130:func skillsListCmd(loader *skills.SkillsLoader) {
+1155:func skillsInstallCmd(installer *skills.SkillInstaller) {
+1176:func skillsRemoveCmd(installer *skills.SkillInstaller, skillName string) {
+1187:func skillsInstallBuiltinCmd(workspace string) {
+1228:func skillsListBuiltinCmd() {
+1279:func skillsSearchCmd(installer *skills.SkillInstaller) {
+1312:func skillsShowCmd(loader *skills.SkillsLoader, skillName string) {
+1323:func configCmd() {
+1372:func configHelp() {
+1379:func statusCmd() {
+1451:func getResourceDir() string {
+1456:func getConfigPath() string {
+1460:func installAndRunSystemdService(exePath string) error {
+1517:func reloadCmd() {
+1564:func startCmd() {
+1729:func getPidFilePath() string {
+1733:func stopCmd() {
+1795:func upgradeCmd() {

@@ -1,0 +1,4 @@
+🦞 marubot Status
+
+Config: C:\Users\user\.marubot\config.json ✗
+Workspace: C:\Users\user/.marubot/workspace ✗

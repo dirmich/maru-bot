@@ -1,1 +1,5 @@
-웹 어드민 버전 수동 하드코딩 오류 수정 (v0.3.10 -> v0.3.12)
+[fix] marubot status 출력 안정화 및 usersetting.json 병합 로직 개선
+
+- 윈도우 터미널(MINGW64) 출력 단절 해결을 위해 status 출력 문자를 ASCII로 교체
+- config.json이 없는 환경에서도 usersetting.json 로드 및 병합되도록 LoadConfig 로직 개선
+- vLLM/Local API 설정 정보 표시 및 API Key 마스킹 처리 추가

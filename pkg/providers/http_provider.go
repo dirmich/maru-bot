@@ -185,6 +185,15 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 	}
 
 	switch {
+	case strings.HasSuffix(lowerModel, ".gguf") || strings.HasSuffix(lowerModel, ".bin"):
+		// Local model files should use VLLM provider if configured
+		if cfg.Providers.VLLM.APIBase != "" {
+			apiKey = cfg.Providers.VLLM.APIKey
+			apiBase = cfg.Providers.VLLM.APIBase
+		} else {
+			return nil, fmt.Errorf("local model detected (.gguf/.bin) but VLLM API base is not configured")
+		}
+
 	case strings.HasPrefix(model, "openrouter/") || strings.HasPrefix(model, "anthropic/") || strings.HasPrefix(model, "openai/") || strings.HasPrefix(model, "meta-llama/") || strings.HasPrefix(model, "deepseek/") || strings.HasPrefix(model, "google/"):
 		apiKey = cfg.Providers.OpenRouter.APIKey
 		if cfg.Providers.OpenRouter.APIBase != "" {
@@ -226,15 +235,6 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 		apiBase = cfg.Providers.Groq.APIBase
 		if apiBase == "" {
 			apiBase = "https://api.groq.com/openai/v1"
-		}
-
-	case strings.HasSuffix(lowerModel, ".gguf") || strings.HasSuffix(lowerModel, ".bin"):
-		// Local model files should use VLLM provider if configured
-		if cfg.Providers.VLLM.APIBase != "" {
-			apiKey = cfg.Providers.VLLM.APIKey
-			apiBase = cfg.Providers.VLLM.APIBase
-		} else {
-			return nil, fmt.Errorf("local model detected (.gguf/.bin) but VLLM API base is not configured")
 		}
 
 	case cfg.Providers.VLLM.APIBase != "" && apiKey == "":
