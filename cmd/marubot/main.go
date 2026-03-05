@@ -42,8 +42,8 @@ var version = config.Version
 
 const logo = "🦞"
 
+// 0.4.8: Local model (vLLM/llama.cpp) provider matching and auth improvement
 // 0.4.7: GPIO output control, config precedence fix, flattened nested pins
-// 0.4.7: GPIO Output toggle and nested pin mapping
 // 0.4.6: GPIO color guide (legend) layout improvement
 
 func copyDirectory(src, dst string) error {
