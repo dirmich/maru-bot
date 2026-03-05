@@ -243,14 +243,11 @@ func LoadConfig(path string) (*Config, error) {
 	cfg := DefaultConfig()
 
 	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return cfg, nil
+	if err == nil {
+		if err := json.Unmarshal(data, cfg); err != nil {
+			return nil, err
 		}
-		return nil, err
-	}
-
-	if err := json.Unmarshal(data, cfg); err != nil {
+	} else if !os.IsNotExist(err) {
 		return nil, err
 	}
 
@@ -260,16 +257,19 @@ func LoadConfig(path string) (*Config, error) {
 		var userCfg map[string]interface{}
 		if err := json.Unmarshal(userData, &userCfg); err == nil {
 			// Special handling for GPIO pins: if exists in usersetting, replace the entire map
-			// to prevent merging with defaults which might cause confusion
 			if hw, ok := userCfg["hardware"].(map[string]interface{}); ok {
 				if gp, ok := hw["gpio"].(map[string]interface{}); ok {
 					if pins, ok := gp["pins"].(map[string]interface{}); ok {
 						cfg.Hardware.GPIO.Pins = pins
-						delete(gp, "pins") // handled, remove to avoid double unmarshal if we used a partial struct
+						delete(gp, "pins")
 					}
 				}
 			}
-			json.Unmarshal(userData, cfg)
+
+			// Final unmarshal for everything else (merges into cfg)
+			if err := json.Unmarshal(userData, cfg); err != nil {
+				return nil, err
+			}
 		}
 	}
 

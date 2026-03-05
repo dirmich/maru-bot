@@ -40,7 +40,7 @@ import (
 // version for compatibility with older binaries: var version = "0.4.6"
 var version = config.Version
 
-const logo = "🦞"
+const logo = "[MaruBot]"
 
 // 0.4.8: Local model (vLLM/llama.cpp) provider matching and auth improvement
 // 0.4.7: GPIO output control, config precedence fix, flattened nested pins
@@ -773,70 +773,6 @@ func gatewayCmd() {
 	fmt.Println("✓ Gateway stopped")
 }
 
-func statusCmd() {
-	cfg, err := loadConfig()
-	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
-		return
-	}
-
-	configPath := getConfigPath()
-
-	fmt.Printf("%s marubot Status\n\n", logo)
-
-	if _, err := os.Stat(configPath); err == nil {
-		fmt.Println("Config:", configPath, "✓")
-	} else {
-		fmt.Println("Config:", configPath, "✗")
-	}
-
-	workspace := cfg.WorkspacePath()
-	if _, err := os.Stat(workspace); err == nil {
-		fmt.Println("Workspace:", workspace, "✓")
-	} else {
-		fmt.Println("Workspace:", workspace, "✗")
-	}
-
-	if _, err := os.Stat(configPath); err == nil {
-		fmt.Printf("Model: %s\n", cfg.Agents.Defaults.Model)
-
-		hasOpenRouter := cfg.Providers.OpenRouter.APIKey != ""
-		hasAnthropic := cfg.Providers.Anthropic.APIKey != ""
-		hasOpenAI := cfg.Providers.OpenAI.APIKey != ""
-		hasGemini := cfg.Providers.Gemini.APIKey != ""
-		hasZhipu := cfg.Providers.Zhipu.APIKey != ""
-		hasGroq := cfg.Providers.Groq.APIKey != ""
-		hasVLLM := cfg.Providers.VLLM.APIBase != ""
-
-		status := func(enabled bool) string {
-			if enabled {
-				return "✓"
-			}
-			return "not set"
-		}
-		fmt.Println("OpenRouter API:", status(hasOpenRouter))
-		fmt.Println("Anthropic API:", status(hasAnthropic))
-		fmt.Println("OpenAI API:", status(hasOpenAI))
-		fmt.Println("Gemini API:", status(hasGemini))
-		fmt.Println("Zhipu API:", status(hasZhipu))
-		fmt.Println("Groq API:", status(hasGroq))
-		if hasVLLM {
-			fmt.Printf("vLLM/Local: ✓ %s\n", cfg.Providers.VLLM.APIBase)
-		} else {
-			fmt.Println("vLLM/Local: not set")
-		}
-	}
-}
-
-func getResourceDir() string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".marubot")
-}
-
-func getConfigPath() string {
-	return filepath.Join(getResourceDir(), "config.json")
-}
-
 func loadConfig() (*config.Config, error) {
 	return config.LoadConfig(getConfigPath())
 }
@@ -1359,6 +1295,77 @@ func configHelp() {
 	fmt.Println("  show              Show merged configuration")
 }
 
+func statusCmd() {
+	cfg, err := loadConfig()
+	if err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
+		return
+	}
+
+	configPath := getConfigPath()
+	workspace := cfg.WorkspacePath()
+
+	fmt.Printf("%s Status\n\n", logo)
+
+	fmt.Printf("Config: %s\n", configPath)
+	fmt.Printf("Workspace: %s\n", workspace)
+	fmt.Printf("Model: %s\n", cfg.Agents.Defaults.Model)
+
+	userSettingsPath := filepath.Join(filepath.Dir(configPath), "usersetting.json")
+	if _, err := os.Stat(userSettingsPath); err == nil {
+		fmt.Printf("User Settings: %s (OK)\n", userSettingsPath)
+	}
+
+	hasOpenRouter := cfg.Providers.OpenRouter.APIKey != ""
+	hasAnthropic := cfg.Providers.Anthropic.APIKey != ""
+	hasOpenAI := cfg.Providers.OpenAI.APIKey != ""
+	hasGemini := cfg.Providers.Gemini.APIKey != ""
+	hasZhipu := cfg.Providers.Zhipu.APIKey != ""
+	hasGroq := cfg.Providers.Groq.APIKey != ""
+	hasVLLM := cfg.Providers.VLLM.APIBase != ""
+
+	maskKey := func(key string) string {
+		if key == "" {
+			return "not set"
+		}
+		if len(key) <= 8 {
+			return "(set)"
+		}
+		return fmt.Sprintf("%s...%s", key[:4], key[len(key)-4:])
+	}
+
+	status := func(enabled bool) string {
+		if enabled {
+			return "(OK)"
+		}
+		return "not set"
+	}
+
+	fmt.Printf("OpenRouter API: %s\n", status(hasOpenRouter))
+	fmt.Printf("Anthropic API: %s\n", status(hasAnthropic))
+	fmt.Printf("OpenAI API: %s\n", status(hasOpenAI))
+	fmt.Printf("Gemini API: %s\n", status(hasGemini))
+	fmt.Printf("Zhipu API: %s\n", status(hasZhipu))
+	fmt.Printf("Groq API: %s\n", status(hasGroq))
+
+	if hasVLLM {
+		fmt.Printf("vLLM/Local API: (OK)\n")
+		fmt.Printf("  - Base: %s\n", cfg.Providers.VLLM.APIBase)
+		fmt.Printf("  - Key:  %s\n", maskKey(cfg.Providers.VLLM.APIKey))
+	} else {
+		fmt.Printf("vLLM/Local: not set\n")
+	}
+}
+
+func getResourceDir() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".marubot")
+}
+
+func getConfigPath() string {
+	return filepath.Join(getResourceDir(), "config.json")
+}
+
 func installAndRunSystemdService(exePath string) error {
 	_, err := exec.LookPath("systemctl")
 	if err != nil {
@@ -1529,10 +1536,6 @@ func startCmd() {
 			// For simplicity in this cross-platform Go app without syscalls:
 			// We will just let it run. Stdout/Stderr are discarded by the parent anyway.
 			// But creating a log file is good practice.
-
-			// Simple redirect for fmt.Printf if we wanted to overload it, but let's just use logger.
-			// Or better, redirect file descriptors if on Linux, but Windows is tricky.
-			// We'll keep it simple: Agent/Server logs should go to file via logger package if configured.
 		}
 		defer f.Close()
 	}
@@ -1754,7 +1757,3 @@ func upgradeCmd() {
 	fmt.Println("✨ Upgrade complete! Restarting MaruBot...")
 	reloadCmd()
 }
-
-// Remove the old getLatestVersion as it's now in pkg/config
-
-// getLatestVersion is removed (moved to pkg/config)
