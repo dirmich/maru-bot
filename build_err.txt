@@ -1,2 +1,0 @@
-# github.com/dirmich/marubot/cmd/marubot
-cmd\marubot\main.go:1760:1: syntax error: non-declaration statement outside function body
