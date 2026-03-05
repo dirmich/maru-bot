@@ -172,6 +172,18 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 
 	lowerModel := strings.ToLower(model)
 
+	// Explicit provider prefixes
+	if strings.HasPrefix(lowerModel, "vllm/") || strings.HasPrefix(lowerModel, "local/") {
+		apiKey = cfg.Providers.VLLM.APIKey
+		apiBase = cfg.Providers.VLLM.APIBase
+		if apiBase == "" {
+			return nil, fmt.Errorf("VLLM API base not configured for model: %s", model)
+		}
+		// Set a dummy key if empty to pass the later check, if needed,
+		// but we'll modify the check instead.
+		return NewHTTPProvider(apiKey, apiBase), nil
+	}
+
 	switch {
 	case strings.HasPrefix(model, "openrouter/") || strings.HasPrefix(model, "anthropic/") || strings.HasPrefix(model, "openai/") || strings.HasPrefix(model, "meta-llama/") || strings.HasPrefix(model, "deepseek/") || strings.HasPrefix(model, "google/"):
 		apiKey = cfg.Providers.OpenRouter.APIKey
@@ -216,7 +228,17 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 			apiBase = "https://api.groq.com/openai/v1"
 		}
 
-	case cfg.Providers.VLLM.APIBase != "":
+	case strings.HasSuffix(lowerModel, ".gguf") || strings.HasSuffix(lowerModel, ".bin"):
+		// Local model files should use VLLM provider if configured
+		if cfg.Providers.VLLM.APIBase != "" {
+			apiKey = cfg.Providers.VLLM.APIKey
+			apiBase = cfg.Providers.VLLM.APIBase
+		} else {
+			return nil, fmt.Errorf("local model detected (.gguf/.bin) but VLLM API base is not configured")
+		}
+
+	case cfg.Providers.VLLM.APIBase != "" && apiKey == "":
+		// Fallback to VLLM if specifically configured and no other provider matched yet
 		apiKey = cfg.Providers.VLLM.APIKey
 		apiBase = cfg.Providers.VLLM.APIBase
 
@@ -234,7 +256,11 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 	}
 
 	if apiKey == "" && !strings.HasPrefix(model, "bedrock/") {
-		return nil, fmt.Errorf("no API key configured for provider (model: %s)", model)
+		// If it's VLLM/local, allow empty API key
+		isLocal := apiBase != "" && (strings.Contains(apiBase, "localhost") || strings.Contains(apiBase, "127.0.0.1") || strings.Contains(apiBase, "0.0.0.0"))
+		if !isLocal && apiBase != cfg.Providers.VLLM.APIBase {
+			return nil, fmt.Errorf("no API key configured for provider (model: %s)", model)
+		}
 	}
 
 	if apiBase == "" {
