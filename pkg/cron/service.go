@@ -56,6 +56,7 @@ type JobHandler func(job *CronJob) (string, error)
 type CronService struct {
 	storePath string
 	store     *CronStore
+	lastMod   time.Time
 	onJob     JobHandler
 	mu        sync.RWMutex
 	running   bool
@@ -122,6 +123,8 @@ func (cs *CronService) runLoop() {
 }
 
 func (cs *CronService) checkJobs() {
+	cs.reloadIfNeeded()
+
 	cs.mu.RLock()
 	if !cs.running {
 		cs.mu.RUnlock()
@@ -256,6 +259,10 @@ func (cs *CronService) loadStore() error {
 		return err
 	}
 
+	if stat, err := os.Stat(cs.storePath); err == nil {
+		cs.lastMod = stat.ModTime()
+	}
+
 	return json.Unmarshal(data, cs.store)
 }
 
@@ -270,7 +277,32 @@ func (cs *CronService) saveStore() error {
 		return err
 	}
 
-	return os.WriteFile(cs.storePath, data, 0644)
+	if err := os.WriteFile(cs.storePath, data, 0644); err != nil {
+		return err
+	}
+
+	if stat, err := os.Stat(cs.storePath); err == nil {
+		cs.lastMod = stat.ModTime()
+	}
+
+	return nil
+}
+
+func (cs *CronService) reloadIfNeeded() {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+
+	stat, err := os.Stat(cs.storePath)
+	if err != nil {
+		return // File might not exist yet
+	}
+
+	// If file is strictly newer than our last known modification time
+	if stat.ModTime().After(cs.lastMod) {
+		if err := cs.loadStore(); err == nil {
+			cs.recomputeNextRuns()
+		}
+	}
 }
 
 func (cs *CronService) AddJob(name string, schedule CronSchedule, message string, deliver bool, channel, to string) (*CronJob, error) {

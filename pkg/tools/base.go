@@ -2,6 +2,13 @@ package tools
 
 import "context"
 
+type ContextKey string
+
+const (
+	CtxKeyChannel ContextKey = "channel"
+	CtxKeyChatID  ContextKey = "chat_id"
+)
+
 type Tool interface {
 	Name() string
 	Description() string
