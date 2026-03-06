@@ -1,15 +1,10 @@
-# 🤖 MaruBot (마루봇)
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.11) 🦞
 
 **MaruBot**은 MaruBot의 초경량 엔진을 기반으로, Raspberry Pi와 같은 SBC(Single Board Computer)에서 하드웨어를 직접 제어하고 소통하기 위해 최적화된 **"Physical AI Assistant"**입니다.
 
-## ✨ 0.4.0 업데이트
-- **Webhook 채널 추가**: 외부 서비스에서 HTTP 요청을 통해 마루봇과 실시간 대화가 가능합니다. (동기적 응답 지원)
-- **AI 자기 진화 (Self-Evolution)**: AI 에이전트가 스스로 새로운 기술을 설치하거나 도구를 생성한 뒤, 자신을 재시작(`reload`)하여 기능을 확장할 수 있습니다.
-- **시스템 제어 도구 (`system_control`)**: AI가 직접 마루봇의 상태를 확인하고, 기술 설치 및 프로세스 재시작을 수행할 수 있는 역량을 갖췄습니다.
-
-## ✨ 0.3.2 업데이트
-- **자가 업그레이드(Self Upgrade)**: `marubot upgrade` 명령어로 간편하게 최신 버전으로 업데이트할 수 있습니다.
-- **Web Admin 통합**: 더 이상 별도의 Node.js 설치가 필요 없습니다. Web Admin이 Go 바이너리에 내장되어 단일 파일로 실행됩니다.
+## ✨ 0.4.6 업데이트
+- **GPIO 컬러 범례 개선**: GPIO 컬러 가이드의 레이아웃과 스타일을 개선하여 가독성을 높였습니다.
+- **시각적 최적화**: Web Admin 대시보드에서 컬러 박스 정렬 및 겹침 문제를 해결했습니다.
 
 ---
 

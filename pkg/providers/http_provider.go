@@ -172,7 +172,30 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 
 	lowerModel := strings.ToLower(model)
 
+	// Explicit provider prefixes
+	if strings.HasPrefix(lowerModel, "vllm/") || strings.HasPrefix(lowerModel, "ollama/") || strings.HasPrefix(lowerModel, "local/") {
+		apiKey = cfg.Providers.VLLM.APIKey
+		apiBase = cfg.Providers.VLLM.APIBase
+		if strings.HasPrefix(model, "vllm/") {
+			model = strings.TrimPrefix(model, "vllm/")
+		} else if strings.HasPrefix(model, "ollama/") {
+			model = strings.TrimPrefix(model, "ollama/")
+		} else {
+			model = strings.TrimPrefix(model, "local/")
+		}
+		return NewHTTPProvider(apiKey, apiBase), nil
+	}
+
 	switch {
+	case strings.HasSuffix(lowerModel, ".gguf") || strings.HasSuffix(lowerModel, ".bin"):
+		// Local model files should use VLLM provider if configured
+		if cfg.Providers.VLLM.APIBase != "" {
+			apiKey = cfg.Providers.VLLM.APIKey
+			apiBase = cfg.Providers.VLLM.APIBase
+		} else {
+			return nil, fmt.Errorf("local model detected (.gguf/.bin) but VLLM API base is not configured")
+		}
+
 	case strings.HasPrefix(model, "openrouter/") || strings.HasPrefix(model, "anthropic/") || strings.HasPrefix(model, "openai/") || strings.HasPrefix(model, "meta-llama/") || strings.HasPrefix(model, "deepseek/") || strings.HasPrefix(model, "google/"):
 		apiKey = cfg.Providers.OpenRouter.APIKey
 		if cfg.Providers.OpenRouter.APIBase != "" {
@@ -181,21 +204,21 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 			apiBase = "https://openrouter.ai/api/v1"
 		}
 
-	case strings.Contains(lowerModel, "claude") || strings.HasPrefix(model, "anthropic/"):
+	case strings.HasPrefix(model, "anthropic/") || strings.Contains(lowerModel, "claude"):
 		apiKey = cfg.Providers.Anthropic.APIKey
 		apiBase = cfg.Providers.Anthropic.APIBase
 		if apiBase == "" {
 			apiBase = "https://api.anthropic.com/v1"
 		}
 
-	case strings.Contains(lowerModel, "gpt") || strings.HasPrefix(model, "openai/"):
+	case strings.HasPrefix(model, "openai/") || (strings.Contains(lowerModel, "gpt") && !strings.Contains(lowerModel, "oss")):
 		apiKey = cfg.Providers.OpenAI.APIKey
 		apiBase = cfg.Providers.OpenAI.APIBase
 		if apiBase == "" {
 			apiBase = "https://api.openai.com/v1"
 		}
 
-	case strings.Contains(lowerModel, "gemini") || strings.HasPrefix(model, "google/"):
+	case strings.HasPrefix(model, "google/") || strings.Contains(lowerModel, "gemini"):
 		apiKey = cfg.Providers.Gemini.APIKey
 		apiBase = cfg.Providers.Gemini.APIBase
 		if apiBase == "" {
@@ -209,14 +232,15 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 			apiBase = "https://open.bigmodel.cn/api/paas/v4"
 		}
 
-	case strings.Contains(lowerModel, "groq") || strings.HasPrefix(model, "groq/"):
+	case strings.HasPrefix(model, "groq/") || strings.Contains(lowerModel, "groq"):
 		apiKey = cfg.Providers.Groq.APIKey
 		apiBase = cfg.Providers.Groq.APIBase
 		if apiBase == "" {
 			apiBase = "https://api.groq.com/openai/v1"
 		}
 
-	case cfg.Providers.VLLM.APIBase != "":
+	case cfg.Providers.VLLM.APIBase != "" && apiKey == "":
+		// Fallback to VLLM if specifically configured and no other provider matched yet
 		apiKey = cfg.Providers.VLLM.APIKey
 		apiBase = cfg.Providers.VLLM.APIBase
 
@@ -234,7 +258,11 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 	}
 
 	if apiKey == "" && !strings.HasPrefix(model, "bedrock/") {
-		return nil, fmt.Errorf("no API key configured for provider (model: %s)", model)
+		// If it's VLLM/local, allow empty API key
+		isLocal := apiBase != "" && (strings.Contains(apiBase, "localhost") || strings.Contains(apiBase, "127.0.0.1") || strings.Contains(apiBase, "0.0.0.0"))
+		if !isLocal && apiBase != cfg.Providers.VLLM.APIBase {
+			return nil, fmt.Errorf("no API key configured for provider (model: %s)", model)
+		}
 	}
 
 	if apiBase == "" {

@@ -9,15 +9,17 @@ import (
 	"periph.io/x/conn/v3/gpio/gpioreg"
 	"periph.io/x/conn/v3/physic"
 	"periph.io/x/host/v3"
+
+	"github.com/dirmich/marubot/pkg/config"
 )
 
 type MotorTool struct {
-	pins map[string]interface{}
+	cfg *config.Config
 }
 
-func NewMotorTool(pins map[string]interface{}) *MotorTool {
+func NewMotorTool(cfg *config.Config) *MotorTool {
 	host.Init()
-	return &MotorTool{pins: pins}
+	return &MotorTool{cfg: cfg}
 }
 
 func (t *MotorTool) Name() string {
@@ -55,8 +57,8 @@ func (t *MotorTool) Execute(ctx context.Context, args map[string]interface{}) (s
 		speed = 0.5
 	}
 
-	motorA, _ := t.pins["motor_a"].(map[string]interface{})
-	motorB, _ := t.pins["motor_b"].(map[string]interface{})
+	motorA, _ := t.cfg.Hardware.GPIO.Pins["motor_a"].(map[string]interface{})
+	motorB, _ := t.cfg.Hardware.GPIO.Pins["motor_b"].(map[string]interface{})
 
 	if motorA == nil || motorB == nil {
 		return "", fmt.Errorf("motor pins not configured")
@@ -86,9 +88,21 @@ func (t *MotorTool) Execute(ctx context.Context, args map[string]interface{}) (s
 }
 
 func (t *MotorTool) setMotor(config map[string]interface{}, speed float64, forward bool) {
-	enPin := gpioreg.ByName(fmt.Sprintf("%v", config["en"]))
-	in1Pin := gpioreg.ByName(fmt.Sprintf("%v", config["in1"]))
-	in2Pin := gpioreg.ByName(fmt.Sprintf("%v", config["in2"]))
+	getPin := func(v interface{}) string {
+		switch pv := v.(type) {
+		case map[string]interface{}:
+			if pin, ok := pv["pin"]; ok {
+				return fmt.Sprintf("%v", pin)
+			}
+		default:
+			return fmt.Sprintf("%v", v)
+		}
+		return ""
+	}
+
+	enPin := gpioreg.ByName(getPin(config["en"]))
+	in1Pin := gpioreg.ByName(getPin(config["in1"]))
+	in2Pin := gpioreg.ByName(getPin(config["in2"]))
 
 	if enPin == nil || in1Pin == nil || in2Pin == nil {
 		return

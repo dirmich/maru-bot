@@ -49,15 +49,18 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	toolsRegistry.Register(tools.NewConfigTool(configPath, cfg))
 	toolsRegistry.Register(tools.NewExecTool(workspace))
 
+	cronStorePath := filepath.Join(marubotHome, "cron", "jobs.json")
+	toolsRegistry.Register(tools.NewCronTool(cronStorePath))
+
 	braveAPIKey := cfg.Tools.Web.Search.APIKey
 	toolsRegistry.Register(tools.NewWebSearchTool(braveAPIKey, cfg.Tools.Web.Search.MaxResults))
 	toolsRegistry.Register(tools.NewWebFetchTool(50000))
 	toolsRegistry.Register(tools.NewCameraTool(workspace))
-	toolsRegistry.Register(tools.NewMotorTool(cfg.Hardware.GPIO.Pins))
-	toolsRegistry.Register(tools.NewUltrasonicTool(cfg.Hardware.GPIO.Pins))
+	toolsRegistry.Register(tools.NewMotorTool(cfg))
+	toolsRegistry.Register(tools.NewUltrasonicTool(cfg))
 	toolsRegistry.Register(tools.NewIMUTool())
 	toolsRegistry.Register(tools.NewVisionTool(workspace))
-	toolsRegistry.Register(tools.NewGPIOTool(cfg.Hardware.GPIO.Pins, cfg.Hardware.GPIO.Actions))
+	toolsRegistry.Register(tools.NewGPIOTool(cfg, cfg.Hardware.GPIO.Actions))
 	toolsRegistry.Register(tools.NewSystemTool(cfg, workspace))
 
 	// Ensure extensions directory is under .marubot
@@ -140,6 +143,9 @@ func (al *AgentLoop) ProcessDirect(ctx context.Context, content, sessionKey stri
 }
 
 func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage) (string, error) {
+	ctx = context.WithValue(ctx, tools.CtxKeyChannel, msg.Channel)
+	ctx = context.WithValue(ctx, tools.CtxKeyChatID, msg.ChatID)
+
 	messages := al.contextBuilder.BuildMessages(
 		al.sessions.GetHistory(msg.SessionKey),
 		msg.Content,

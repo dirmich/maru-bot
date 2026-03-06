@@ -8,15 +8,17 @@ import (
 	"periph.io/x/conn/v3/gpio"
 	"periph.io/x/conn/v3/gpio/gpioreg"
 	"periph.io/x/host/v3"
+
+	"github.com/dirmich/marubot/pkg/config"
 )
 
 type UltrasonicTool struct {
-	pins map[string]interface{}
+	cfg *config.Config
 }
 
-func NewUltrasonicTool(pins map[string]interface{}) *UltrasonicTool {
+func NewUltrasonicTool(cfg *config.Config) *UltrasonicTool {
 	host.Init()
-	return &UltrasonicTool{pins: pins}
+	return &UltrasonicTool{cfg: cfg}
 }
 
 func (t *UltrasonicTool) Name() string {
@@ -35,13 +37,25 @@ func (t *UltrasonicTool) Parameters() map[string]interface{} {
 }
 
 func (t *UltrasonicTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
-	config, _ := t.pins["ultrasonic"].(map[string]interface{})
+	config, _ := t.cfg.Hardware.GPIO.Pins["ultrasonic"].(map[string]interface{})
 	if config == nil {
 		return "", fmt.Errorf("ultrasonic pins not configured")
 	}
 
-	trigPin := gpioreg.ByName(fmt.Sprintf("%v", config["trigger"]))
-	echoPin := gpioreg.ByName(fmt.Sprintf("%v", config["echo"]))
+	getPin := func(v interface{}) string {
+		switch pv := v.(type) {
+		case map[string]interface{}:
+			if pin, ok := pv["pin"]; ok {
+				return fmt.Sprintf("%v", pin)
+			}
+		default:
+			return fmt.Sprintf("%v", v)
+		}
+		return ""
+	}
+
+	trigPin := gpioreg.ByName(getPin(config["trigger"]))
+	echoPin := gpioreg.ByName(getPin(config["echo"]))
 
 	if trigPin == nil || echoPin == nil {
 		return "", fmt.Errorf("failed to find trigger or echo pins")

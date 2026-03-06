@@ -40,13 +40,24 @@ case $LANG_CHOICE in
     *) MARUBOT_LANG="en" ;;
 esac
 
-# 0-1. Admin Password Selection
+# Check for existing password in config.json
+EXISTING_PWD=""
+if [ -f "$HOME/.marubot/config.json" ]; then
+    # Try to extract existing password using sed and grep
+    EXISTING_PWD=$(grep -oP '"admin_password":\s*"\K[^"]+' "$HOME/.marubot/config.json" || true)
+fi
+
+PROMPT_PWD_SUFFIX=" [Default: admin]"
+if [ ! -z "$EXISTING_PWD" ]; then
+    PROMPT_PWD_SUFFIX=" [Default: (Current)]"
+fi
+
 if [ "$MARUBOT_LANG" = "ko" ]; then
-    PROMPT_PWD="웹 대시보드 관리자 암호를 설정하세요 [기본값: admin]: "
+    PROMPT_PWD="웹 대시보드 관리자 암호를 설정하세요$PROMPT_PWD_SUFFIX: "
 elif [ "$MARUBOT_LANG" = "ja" ]; then
-    PROMPT_PWD="Webダッシュボードの管理パスワードを設定してください [デフォルト: admin]: "
+    PROMPT_PWD="Webダッシュボードの管理パスワードを設定してください$PROMPT_PWD_SUFFIX: "
 else
-    PROMPT_PWD="Set Admin Password for Web Dashboard [Default: admin]: "
+    PROMPT_PWD="Set Admin Password for Web Dashboard$PROMPT_PWD_SUFFIX: "
 fi
 
 if [ -c /dev/tty ]; then
@@ -55,12 +66,18 @@ else
     if [ -t 0 ]; then
         read -p "$PROMPT_PWD" MARUBOT_PWD
     else
-        MARUBOT_PWD="admin"
+        MARUBOT_PWD="" # Will check later
     fi
 fi
 
 if [ -z "$MARUBOT_PWD" ]; then
-    MARUBOT_PWD="admin"
+    if [ ! -z "$EXISTING_PWD" ]; then
+        MARUBOT_PWD="$EXISTING_PWD"
+        echo "Keeping existing password."
+    else
+        MARUBOT_PWD="admin"
+        echo "Defaulting to 'admin'."
+    fi
 fi
 
 # Translations

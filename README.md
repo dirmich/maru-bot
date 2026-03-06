@@ -1,11 +1,10 @@
-# 🤖 MaruBot
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.11) 🦞
 
 **MaruBot** is a **"Physical AI Assistant"** optimized for directly controlling hardware and interacting on SBCs (Single Board Computers) like Raspberry Pi, based on the ultra-lightweight MaruBot engine.
 
-## ✨ 0.4.0 Update
-- **Webhook Channel**: Support for real-time interaction with MaruBot via HTTP requests (Synchronous response supported).
-- **AI Self-Evolution**: AI agents can now install new skills, create custom tools, and reload themselves (`reload`) to expand their capabilities autonomously.
-- **System Control Tool (`system_control`)**: Empowers the AI to directly check MaruBot's status, install skills, and restart the process.
+## ✨ 0.4.6 Update
+- **GPIO Legend Fix**: Improved the layout and styling of the GPIO color guide for better readability.
+- **Visual Refinement**: Fixed color boxes alignment and overlap issues in the Web Admin dashboard.
 
 ---
 
@@ -94,9 +93,14 @@ After installation, you must configure your API keys to use AI models.
 
 2. **Manual File Edit**:
    ```bash
+   ```
    nano ~/.marubot/config.json
    ```
    Locate the `providers` section and enter your key for the service you wish to use (e.g., openai, gemini).
+
+---
+
+---
 
 ---
 

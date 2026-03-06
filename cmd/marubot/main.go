@@ -12,13 +12,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
 	"os/user"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -29,19 +27,24 @@ import (
 	"github.com/dirmich/marubot/pkg/channels"
 	"github.com/dirmich/marubot/pkg/config"
 	"github.com/dirmich/marubot/pkg/cron"
+	"github.com/dirmich/marubot/pkg/hardware/gpio"
 	"github.com/dirmich/marubot/pkg/heartbeat"
 	"github.com/dirmich/marubot/pkg/logger"
 	"github.com/dirmich/marubot/pkg/providers"
 	"github.com/dirmich/marubot/pkg/skills"
 	"github.com/dirmich/marubot/pkg/voice"
-	"github.com/dirmich/marubot/pkg/hardware/gpio"
 
 	"github.com/chzyer/readline"
 )
 
-var version = "0.4.0"
+// version for compatibility with older binaries: var version = "0.4.6"
+var version = config.Version
 
-const logo = "🦞"
+const logo = "[MaruBot]"
+
+// 0.4.8: Local model (vLLM/llama.cpp) provider matching and auth improvement
+// 0.4.7: GPIO output control, config precedence fix, flattened nested pins
+// 0.4.6: GPIO color guide (legend) layout improvement
 
 func copyDirectory(src, dst string) error {
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
@@ -256,16 +259,33 @@ func onboard() {
 		}
 	}
 
+	// Load existing config if available to preserve some settings like password
 	cfg := config.DefaultConfig()
+	existingCfg, err := config.LoadConfig(configPath)
+	if err == nil {
+		cfg.AdminPassword = existingCfg.AdminPassword
+	}
 
-	fmt.Print("Set Admin Password for Web Dashboard: ")
+	fmt.Printf("Set Admin Password for Web Dashboard [%s]: ", func() string {
+		if cfg.AdminPassword != "" {
+			return cfg.AdminPassword
+		}
+		return "admin"
+	}())
+
 	var password string
 	fmt.Scanln(&password)
+
 	if password == "" {
-		password = "admin" // default
-		fmt.Println("No password entered. Defaulting to 'admin'.")
+		if cfg.AdminPassword == "" {
+			cfg.AdminPassword = "admin"
+			fmt.Println("No password entered. Defaulting to 'admin'.")
+		} else {
+			fmt.Printf("No password entered. Keeping existing password.\n")
+		}
+	} else {
+		cfg.AdminPassword = password
 	}
-	cfg.AdminPassword = password
 
 	if err := config.SaveConfig(configPath, cfg); err != nil {
 		fmt.Printf("Error saving config: %v\n", err)
@@ -414,7 +434,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-0.4.0
+" + config.Version + "
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
@@ -751,70 +771,6 @@ func gatewayCmd() {
 	agentLoop.Stop()
 	channelManager.StopAll(ctx)
 	fmt.Println("✓ Gateway stopped")
-}
-
-func statusCmd() {
-	cfg, err := loadConfig()
-	if err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
-		return
-	}
-
-	configPath := getConfigPath()
-
-	fmt.Printf("%s marubot Status\n\n", logo)
-
-	if _, err := os.Stat(configPath); err == nil {
-		fmt.Println("Config:", configPath, "✓")
-	} else {
-		fmt.Println("Config:", configPath, "✗")
-	}
-
-	workspace := cfg.WorkspacePath()
-	if _, err := os.Stat(workspace); err == nil {
-		fmt.Println("Workspace:", workspace, "✓")
-	} else {
-		fmt.Println("Workspace:", workspace, "✗")
-	}
-
-	if _, err := os.Stat(configPath); err == nil {
-		fmt.Printf("Model: %s\n", cfg.Agents.Defaults.Model)
-
-		hasOpenRouter := cfg.Providers.OpenRouter.APIKey != ""
-		hasAnthropic := cfg.Providers.Anthropic.APIKey != ""
-		hasOpenAI := cfg.Providers.OpenAI.APIKey != ""
-		hasGemini := cfg.Providers.Gemini.APIKey != ""
-		hasZhipu := cfg.Providers.Zhipu.APIKey != ""
-		hasGroq := cfg.Providers.Groq.APIKey != ""
-		hasVLLM := cfg.Providers.VLLM.APIBase != ""
-
-		status := func(enabled bool) string {
-			if enabled {
-				return "✓"
-			}
-			return "not set"
-		}
-		fmt.Println("OpenRouter API:", status(hasOpenRouter))
-		fmt.Println("Anthropic API:", status(hasAnthropic))
-		fmt.Println("OpenAI API:", status(hasOpenAI))
-		fmt.Println("Gemini API:", status(hasGemini))
-		fmt.Println("Zhipu API:", status(hasZhipu))
-		fmt.Println("Groq API:", status(hasGroq))
-		if hasVLLM {
-			fmt.Printf("vLLM/Local: ✓ %s\n", cfg.Providers.VLLM.APIBase)
-		} else {
-			fmt.Println("vLLM/Local: not set")
-		}
-	}
-}
-
-func getResourceDir() string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".marubot")
-}
-
-func getConfigPath() string {
-	return filepath.Join(getResourceDir(), "config.json")
 }
 
 func loadConfig() (*config.Config, error) {
@@ -1339,6 +1295,77 @@ func configHelp() {
 	fmt.Println("  show              Show merged configuration")
 }
 
+func statusCmd() {
+	cfg, err := loadConfig()
+	if err != nil {
+		fmt.Printf("Error loading config: %v\n", err)
+		return
+	}
+
+	configPath := getConfigPath()
+	workspace := cfg.WorkspacePath()
+
+	fmt.Printf("%s Status\n\n", logo)
+
+	fmt.Printf("Config: %s\n", configPath)
+	fmt.Printf("Workspace: %s\n", workspace)
+	fmt.Printf("Model: %s\n", cfg.Agents.Defaults.Model)
+
+	userSettingsPath := filepath.Join(filepath.Dir(configPath), "usersetting.json")
+	if _, err := os.Stat(userSettingsPath); err == nil {
+		fmt.Printf("User Settings: %s (OK)\n", userSettingsPath)
+	}
+
+	hasOpenRouter := cfg.Providers.OpenRouter.APIKey != ""
+	hasAnthropic := cfg.Providers.Anthropic.APIKey != ""
+	hasOpenAI := cfg.Providers.OpenAI.APIKey != ""
+	hasGemini := cfg.Providers.Gemini.APIKey != ""
+	hasZhipu := cfg.Providers.Zhipu.APIKey != ""
+	hasGroq := cfg.Providers.Groq.APIKey != ""
+	hasVLLM := cfg.Providers.VLLM.APIBase != ""
+
+	maskKey := func(key string) string {
+		if key == "" {
+			return "not set"
+		}
+		if len(key) <= 8 {
+			return "(set)"
+		}
+		return fmt.Sprintf("%s...%s", key[:4], key[len(key)-4:])
+	}
+
+	status := func(enabled bool) string {
+		if enabled {
+			return "(OK)"
+		}
+		return "not set"
+	}
+
+	fmt.Printf("OpenRouter API: %s\n", status(hasOpenRouter))
+	fmt.Printf("Anthropic API: %s\n", status(hasAnthropic))
+	fmt.Printf("OpenAI API: %s\n", status(hasOpenAI))
+	fmt.Printf("Gemini API: %s\n", status(hasGemini))
+	fmt.Printf("Zhipu API: %s\n", status(hasZhipu))
+	fmt.Printf("Groq API: %s\n", status(hasGroq))
+
+	if hasVLLM {
+		fmt.Printf("vLLM/Local API: (OK)\n")
+		fmt.Printf("  - Base: %s\n", cfg.Providers.VLLM.APIBase)
+		fmt.Printf("  - Key:  %s\n", maskKey(cfg.Providers.VLLM.APIKey))
+	} else {
+		fmt.Printf("vLLM/Local: not set\n")
+	}
+}
+
+func getResourceDir() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".marubot")
+}
+
+func getConfigPath() string {
+	return filepath.Join(getResourceDir(), "config.json")
+}
+
 func installAndRunSystemdService(exePath string) error {
 	_, err := exec.LookPath("systemctl")
 	if err != nil {
@@ -1509,10 +1536,6 @@ func startCmd() {
 			// For simplicity in this cross-platform Go app without syscalls:
 			// We will just let it run. Stdout/Stderr are discarded by the parent anyway.
 			// But creating a log file is good practice.
-
-			// Simple redirect for fmt.Printf if we wanted to overload it, but let's just use logger.
-			// Or better, redirect file descriptors if on Linux, but Windows is tricky.
-			// We'll keep it simple: Agent/Server logs should go to file via logger package if configured.
 		}
 		defer f.Close()
 	}
@@ -1679,16 +1702,20 @@ func stopCmd() {
 }
 
 func upgradeCmd() {
+	autoConfirm := false
+	if len(os.Args) > 2 && os.Args[2] == "--yes" {
+		autoConfirm = true
+	}
+
 	fmt.Println("⚙️  Checking for updates...")
 
-	latest, err := getLatestVersion()
+	latest, err := config.CheckLatestVersion()
 	if err != nil {
 		fmt.Printf("⚠️  Failed to check latest version: %v\n", err)
 		fmt.Println("Proceeding with forced upgrade...")
 	} else {
-		// Simple string comparison for now, assuming semantic versioning format
-		if strings.TrimPrefix(latest, "v") == strings.TrimPrefix(version, "v") {
-			fmt.Printf("✅ You are already using the latest version (v%s).\n", version)
+		if !config.IsNewVersionAvailable(latest) && !autoConfirm {
+			fmt.Printf("✅ You are already using the latest version (v%s).\n", config.Version)
 			fmt.Print("Do you want to reinstall anyway? [y/N]: ")
 			reader := bufio.NewReader(os.Stdin)
 			response, _ := reader.ReadString('\n')
@@ -1696,8 +1723,8 @@ func upgradeCmd() {
 			if response != "y" && response != "yes" {
 				return
 			}
-		} else {
-			fmt.Printf("✨ New version available: v%s (Current: v%s)\n", latest, version)
+		} else if config.IsNewVersionAvailable(latest) && !autoConfirm {
+			fmt.Printf("✨ New version available: v%s (Current: v%s)\n", latest, config.Version)
 			fmt.Print("Do you want to upgrade? [Y/n]: ")
 			reader := bufio.NewReader(os.Stdin)
 			response, _ := reader.ReadString('\n')
@@ -1727,32 +1754,6 @@ func upgradeCmd() {
 		os.Exit(1)
 	}
 
-	fmt.Println("✨ Upgrade complete! You can now start the daemon with 'marubot start'")
-}
-
-func getLatestVersion() (string, error) {
-	// Check the source code on GitHub for the version variable
-	url := "https://raw.githubusercontent.com/dirmich/maru-bot/main/cmd/marubot/main.go"
-	resp, err := http.Get(url)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed to fetch version file: %s", resp.Status)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	// Regex to find: var version = "0.3.4"
-	re := regexp.MustCompile(`var version = "([^"]+)"`)
-	matches := re.FindStringSubmatch(string(body))
-	if len(matches) > 1 {
-		return matches[1], nil
-	}
-	return "", fmt.Errorf("version string not found in remote file")
+	fmt.Println("✨ Upgrade complete! Restarting MaruBot...")
+	reloadCmd()
 }

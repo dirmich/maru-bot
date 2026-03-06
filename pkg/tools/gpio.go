@@ -9,17 +9,19 @@ import (
 	"periph.io/x/conn/v3/gpio"
 	"periph.io/x/conn/v3/gpio/gpioreg"
 	"periph.io/x/host/v3"
+
+	"github.com/dirmich/marubot/pkg/config"
 )
 
 type GPIOTool struct {
-	pins    map[string]interface{}
+	cfg     *config.Config
 	actions map[string]map[string]int
 }
 
-func NewGPIOTool(pins map[string]interface{}, actions map[string]map[string]int) *GPIOTool {
+func NewGPIOTool(cfg *config.Config, actions map[string]map[string]int) *GPIOTool {
 	host.Init()
 	return &GPIOTool{
-		pins:    pins,
+		cfg:     cfg,
 		actions: actions,
 	}
 }
@@ -91,10 +93,21 @@ func (t *GPIOTool) Execute(ctx context.Context, args map[string]interface{}) (st
 }
 
 func (t *GPIOTool) resolvePin(pinIdentifier string) gpio.PinIO {
-	// 1. Check if it's a configured name in t.pins
-	if val, ok := t.pins[pinIdentifier]; ok {
-		// It might be a number or string
-		return gpioreg.ByName(fmt.Sprintf("%v", val))
+	// 1. Check if it's a configured name in t.cfg.Hardware.GPIO.Pins
+	if val, ok := t.cfg.Hardware.GPIO.Pins[pinIdentifier]; ok {
+		// It might be a number, string, or map[string]interface{}
+		switch v := val.(type) {
+		case int:
+			return gpioreg.ByName(fmt.Sprintf("%d", v))
+		case float64:
+			return gpioreg.ByName(fmt.Sprintf("%d", int(v)))
+		case string:
+			return gpioreg.ByName(v)
+		case map[string]interface{}:
+			if pin, ok := v["pin"]; ok {
+				return gpioreg.ByName(fmt.Sprintf("%v", pin))
+			}
+		}
 	}
 	// 2. Try direct lookup (e.g. "GPIO18", "18")
 	return gpioreg.ByName(pinIdentifier)
@@ -106,8 +119,22 @@ func (t *GPIOTool) readPin(pinIdentifier string) (string, error) {
 		return "", fmt.Errorf("pin '%s' not found", pinIdentifier)
 	}
 
+	// Default to no pull unless specified or previously set
+	pull := gpio.PullNoChange
+
+	// Check if we have a specific mode in config
+	if val, ok := t.cfg.Hardware.GPIO.Pins[pinIdentifier]; ok {
+		if v, ok := val.(map[string]interface{}); ok {
+			if mode, ok := v["mode"].(string); ok {
+				if strings.ToUpper(mode) == "IN" || strings.ToUpper(mode) == "INPUT" {
+					pull = gpio.PullUp // Default to pull-up for generic inputs
+				}
+			}
+		}
+	}
+
 	// Set as input
-	if err := p.In(gpio.PullNoChange, gpio.NoEdge); err != nil {
+	if err := p.In(pull, gpio.NoEdge); err != nil {
 		return "", fmt.Errorf("failed to set read mode: %v", err)
 	}
 

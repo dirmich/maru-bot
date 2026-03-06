@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -16,6 +17,8 @@ import (
 	"github.com/dirmich/marubot/pkg/agent"
 	"github.com/dirmich/marubot/pkg/config"
 	"github.com/dirmich/marubot/pkg/skills"
+	"periph.io/x/conn/v3/gpio"
+	"periph.io/x/conn/v3/gpio/gpioreg"
 )
 
 //go:embed dist
@@ -61,8 +64,10 @@ func (s *Server) Start() error {
 	mux.Handle("/api/config", s.authMiddleware(http.HandlerFunc(s.handleConfig)))
 	mux.Handle("/api/skills", s.authMiddleware(http.HandlerFunc(s.handleSkills)))
 	mux.Handle("/api/gpio", s.authMiddleware(http.HandlerFunc(s.handleGpio)))
+	mux.Handle("/api/gpio/toggle", s.authMiddleware(http.HandlerFunc(s.handleGpioToggle)))
 	mux.Handle("/api/logs", s.authMiddleware(http.HandlerFunc(s.handleLogs)))
 	mux.Handle("/api/system/stats", s.authMiddleware(http.HandlerFunc(s.handleSystemStats)))
+	mux.Handle("/api/upgrade", s.authMiddleware(http.HandlerFunc(s.handleUpgrade)))
 
 	// Static File Serving (SPA Fallback)
 	fileServer := http.FileServer(http.FS(distFS))
@@ -269,27 +274,95 @@ func (s *Server) handleGpio(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method == "GET" {
-		json.NewEncoder(w).Encode(s.config.Hardware.GPIO.Pins)
+		// Return flattened pins for easy UI consumption
+		flat := config.FlattenPins(s.config.Hardware.GPIO.Pins)
+		json.NewEncoder(w).Encode(flat)
 		return
 	}
 
 	if r.Method == "POST" {
-		var pins map[string]interface{}
-		if err := json.NewDecoder(r.Body).Decode(&pins); err != nil {
+		var flatPins map[string]int
+		if err := json.NewDecoder(r.Body).Decode(&flatPins); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
+		// Unflatten before saving to maintain nested structure in config
+		pins := config.UnflattenPins(flatPins)
 		s.config.Hardware.GPIO.Pins = pins
 
 		// Save config
 		home, _ := os.UserHomeDir()
 		userSettingsPath := filepath.Join(home, ".marubot", "usersetting.json")
-		data, _ := json.MarshalIndent(s.config, "", "  ")
-		os.WriteFile(userSettingsPath, data, 0644)
+
+		// Re-load settings to merge properly
+		var settings map[string]interface{}
+		data, err := os.ReadFile(userSettingsPath)
+		if err == nil {
+			json.Unmarshal(data, &settings)
+		} else {
+			settings = make(map[string]interface{})
+		}
+
+		if settings["hardware"] == nil {
+			settings["hardware"] = make(map[string]interface{})
+		}
+		hw := settings["hardware"].(map[string]interface{})
+		if hw["gpio"] == nil {
+			hw["gpio"] = make(map[string]interface{})
+		}
+		gp := hw["gpio"].(map[string]interface{})
+		gp["pins"] = pins
+
+		newData, _ := json.MarshalIndent(settings, "", "  ")
+		os.WriteFile(userSettingsPath, newData, 0644)
 
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	}
+}
+
+func (s *Server) handleGpioToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Pin int `json:"pin"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	// use periph.io to toggle the pin
+	p := gpioreg.ByName(fmt.Sprintf("%d", req.Pin))
+	if p == nil {
+		http.Error(w, "Pin not found", http.StatusNotFound)
+		return
+	}
+
+	// If not already output, change to output
+	level := p.Read()
+	newLevel := gpio.High
+	if level == gpio.High {
+		newLevel = gpio.Low
+	}
+
+	if err := p.Out(newLevel); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to toggle pin: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	levelInt := 0
+	if newLevel == gpio.High {
+		levelInt = 1
+	}
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "ok",
+		"level":  levelInt,
+	})
 }
 func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -322,5 +395,44 @@ func (s *Server) handleSystemStats(w http.ResponseWriter, r *http.Request) {
 	stats := getPlatformStats()
 	stats["version"] = s.version
 
+	latest, err := config.CheckLatestVersion()
+	if err == nil {
+		stats["latest_version"] = latest
+		stats["is_update_available"] = config.IsNewVersionAvailable(latest)
+	} else {
+		stats["latest_version"] = ""
+		stats["is_update_available"] = false
+	}
+
 	json.NewEncoder(w).Encode(stats)
+}
+
+func (s *Server) handleUpgrade(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Trigger upgrade in background
+	go func() {
+		// Wait 1 second to let response finish
+		time.Sleep(1 * time.Second)
+
+		exe, _ := os.Executable()
+		// Use --yes for non-interactive upgrade
+		cmd := exec.Command(exe, "upgrade", "--yes")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("Dashboard-triggered upgrade failed: %v\n", err)
+			return
+		}
+	}()
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "ok",
+		"message": "Upgrade started. The system will restart automatically.",
+	})
 }
