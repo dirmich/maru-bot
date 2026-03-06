@@ -1,4 +1,4 @@
-# 🤖 MaruBot (마루봇)
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.11) 🦞
 
 **MaruBot**은 MaruBot의 초경량 엔진을 기반으로, Raspberry Pi와 같은 SBC(Single Board Computer)에서 하드웨어를 직접 제어하고 소통하기 위해 최적화된 **"Physical AI Assistant"**입니다.
 

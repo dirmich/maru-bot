@@ -173,14 +173,16 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 	lowerModel := strings.ToLower(model)
 
 	// Explicit provider prefixes
-	if strings.HasPrefix(lowerModel, "vllm/") || strings.HasPrefix(lowerModel, "local/") {
+	if strings.HasPrefix(lowerModel, "vllm/") || strings.HasPrefix(lowerModel, "ollama/") || strings.HasPrefix(lowerModel, "local/") {
 		apiKey = cfg.Providers.VLLM.APIKey
 		apiBase = cfg.Providers.VLLM.APIBase
-		if apiBase == "" {
-			return nil, fmt.Errorf("VLLM API base not configured for model: %s", model)
+		if strings.HasPrefix(model, "vllm/") {
+			model = strings.TrimPrefix(model, "vllm/")
+		} else if strings.HasPrefix(model, "ollama/") {
+			model = strings.TrimPrefix(model, "ollama/")
+		} else {
+			model = strings.TrimPrefix(model, "local/")
 		}
-		// Set a dummy key if empty to pass the later check, if needed,
-		// but we'll modify the check instead.
 		return NewHTTPProvider(apiKey, apiBase), nil
 	}
 
@@ -202,21 +204,21 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 			apiBase = "https://openrouter.ai/api/v1"
 		}
 
-	case strings.Contains(lowerModel, "claude") || strings.HasPrefix(model, "anthropic/"):
+	case strings.HasPrefix(model, "anthropic/") || strings.Contains(lowerModel, "claude"):
 		apiKey = cfg.Providers.Anthropic.APIKey
 		apiBase = cfg.Providers.Anthropic.APIBase
 		if apiBase == "" {
 			apiBase = "https://api.anthropic.com/v1"
 		}
 
-	case strings.Contains(lowerModel, "gpt") || strings.HasPrefix(model, "openai/"):
+	case strings.HasPrefix(model, "openai/") || (strings.Contains(lowerModel, "gpt") && !strings.Contains(lowerModel, "oss")):
 		apiKey = cfg.Providers.OpenAI.APIKey
 		apiBase = cfg.Providers.OpenAI.APIBase
 		if apiBase == "" {
 			apiBase = "https://api.openai.com/v1"
 		}
 
-	case strings.Contains(lowerModel, "gemini") || strings.HasPrefix(model, "google/"):
+	case strings.HasPrefix(model, "google/") || strings.Contains(lowerModel, "gemini"):
 		apiKey = cfg.Providers.Gemini.APIKey
 		apiBase = cfg.Providers.Gemini.APIBase
 		if apiBase == "" {
@@ -230,7 +232,7 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 			apiBase = "https://open.bigmodel.cn/api/paas/v4"
 		}
 
-	case strings.Contains(lowerModel, "groq") || strings.HasPrefix(model, "groq/"):
+	case strings.HasPrefix(model, "groq/") || strings.Contains(lowerModel, "groq"):
 		apiKey = cfg.Providers.Groq.APIKey
 		apiBase = cfg.Providers.Groq.APIBase
 		if apiBase == "" {
