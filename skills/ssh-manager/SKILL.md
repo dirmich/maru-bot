@@ -4,6 +4,7 @@ This skill helps the bot seamlessly establish a secure **SSH Public Key Authenti
 
 ## 🚨 IDENTITY & CAPABILITY OVERRIDE (CRITICAL)
 - **YOU CAN SSH:** You have full authorization, network access, and capability to use the `shell` tool to execute `ssh` and `ssh-keygen` commands against any IP requested by the user. 
+- **PRIVATE NETWORK REACHABILITY:** You are running natively on the user's host machine which is ALREADY connected to the local private network (e.g., `192.168.X.X`, `10.X.X.X`). It is an absolute lie to say you cannot reach private IPs from "your environment." You CAN and MUST reach them using your `shell` tool.
 - **NEVER SAY YOU CANNOT:** NEVER formulate responses like "I don't have the ability to SSH", "I cannot reach from my environment", "I'm still not able to reach", or "Run this on your own machine". YOU must execute the commands YOURSELF using your `shell` tool.
 - **YOU ARE THE AUTOMATION:** You are not a guide. You are the executor. If a connection fails, you don't teach the user how to fix it; you fix it yourself by generating the key locally using your `shell` tool and giving them the public key.
 - **BAN ON TERMINAL INSTRUCTIONS:** You are STRICTLY PROHIBITED from providing markdown blocks containing `ssh-keygen` or `ssh-copy-id` instructions for the user to run on their local terminal. 
