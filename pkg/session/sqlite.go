@@ -235,13 +235,19 @@ func (s *SQLiteStore) SaveFact(category, content string, confidence float64, src
 
 // PruneStaleFacts removes version-specific or self-identity facts that might conflict after an upgrade
 func (s *SQLiteStore) PruneStaleFacts() error {
-	// Delete facts related to versioning or general identity that often cause hallucinations after upgrade
+	// Delete facts related to versioning, general identity, or redundant tool info
 	_, err := s.db.Exec(`
 		DELETE FROM facts 
 		WHERE content LIKE '%version%' 
 		   OR content LIKE '%버전%'
 		   OR content LIKE '%MaruBot은%'
 		   OR content LIKE '%I am marubot%'
+		   OR content LIKE '%weather%'
+		   OR content LIKE '%날씨%'
+		   OR content LIKE '%tool%'
+		   OR content LIKE '%skill%'
+		   OR content LIKE '%도구%'
+		   OR content LIKE '%스킬%'
 	`)
 	return err
 }
