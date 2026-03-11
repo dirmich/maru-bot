@@ -572,9 +572,11 @@ func agentCmd() {
 	bus := bus.NewMessageBus()
 	agentLoop := agent.NewAgentLoop(cfg, bus, provider, version)
 
-	gpioService := gpio.NewGPIOService(cfg, bus)
-	gpioService.Start(context.Background())
-	defer gpioService.Stop()
+	if runtime.GOOS == "linux" {
+		gpioService := gpio.NewGPIOService(cfg, bus)
+		gpioService.Start(context.Background())
+		defer gpioService.Stop()
+	}
 
 	if message != "" {
 		ctx := context.Background()
