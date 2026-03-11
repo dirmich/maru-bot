@@ -83,6 +83,15 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	// Auto migrate old JSON sessions to SQLite
 	sessionsManager.MigrateJSONToSQLite()
 
+	// Check if version changed to prune stale system facts
+	versionFile := filepath.Join(marubotHome, ".version_stamp")
+	lastVersion, _ := os.ReadFile(versionFile)
+	if string(lastVersion) != version {
+		fmt.Printf("🚀 Version change detected (%s -> %s). Pruning stale system facts...\n", string(lastVersion), version)
+		sessionsManager.PruneStaleFacts()
+		os.WriteFile(versionFile, []byte(version), 0644)
+	}
+
 	return &AgentLoop{
 		bus:            bus,
 		provider:       provider,

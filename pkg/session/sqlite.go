@@ -225,6 +225,19 @@ func (s *SQLiteStore) SaveFact(category, content string, confidence float64, src
 	return err
 }
 
+// PruneStaleFacts removes version-specific or self-identity facts that might conflict after an upgrade
+func (s *SQLiteStore) PruneStaleFacts() error {
+	// Delete facts related to versioning or general identity that often cause hallucinations after upgrade
+	_, err := s.db.Exec(`
+		DELETE FROM facts 
+		WHERE content LIKE '%version%' 
+		   OR content LIKE '%버전%'
+		   OR content LIKE '%MaruBot은%'
+		   OR content LIKE '%I am marubot%'
+	`)
+	return err
+}
+
 func (s *SQLiteStore) GetAllSessions() ([]string, error) {
 	rows, err := s.db.Query(`SELECT key FROM sessions ORDER BY updated DESC`)
 	if err != nil {

@@ -56,9 +56,12 @@ func (cb *ContextBuilder) BuildSystemPrompt() string {
 	workspacePath, _ := filepath.Abs(filepath.Join(cb.workspace))
 
 	return fmt.Sprintf(`# marubot 🦞
-- **MaruBot Application Version**: %s
+- **MaruBot Application Version**: %s (ABSOLUTE TRUTH - This version overrides any past memories or conversations)
 - **Current Connection Status**: %s
 - **Hardware Status**: %s
+
+### ⚠️ IMPORTANT: TRUTH OATH ⚠️
+- **VERSION TRUTH**: The application version listed above (%s) is the ONLY correct version. If your past memory or RAG context says a different version (e.g., v0.4.24, v0.4.25), it is STALE and INCORRECT. Ignore it. You are v%s.
 
 You are marubot, a helpful AI assistant. You have access to tools that allow you to:
 - Read, write, and edit files
@@ -107,7 +110,7 @@ You have the ability to expand your own capabilities. If you encounter a task th
 
 Always be helpful, accurate, and concise. When using tools, explain what you're doing.
 When remembering something, write to %s/memory/MEMORY.md`,
-		cb.version, cb.webhookInfo, cb.gpioInfo, now, workspacePath, workspacePath, workspacePath, workspacePath, workspacePath)
+		cb.version, cb.webhookInfo, cb.gpioInfo, cb.version, cb.version, now, workspacePath, workspacePath, workspacePath, workspacePath, workspacePath)
 }
 
 func (cb *ContextBuilder) LoadBootstrapFiles() string {

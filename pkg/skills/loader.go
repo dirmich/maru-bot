@@ -46,8 +46,9 @@ func NewSkillsLoader(workspace string, builtinSkills string) *SkillsLoader {
 }
 
 func (sl *SkillsLoader) ListSkills(filterUnavailable bool) []SkillInfo {
-	skills := make([]SkillInfo, 0)
+	skillMap := make(map[string]SkillInfo)
 
+	// Load from workspace skills first (they override builtins)
 	if sl.workspaceSkills != "" {
 		if dirs, err := os.ReadDir(sl.workspaceSkills); err == nil {
 			for _, dir := range dirs {
@@ -69,30 +70,24 @@ func (sl *SkillsLoader) ListSkills(filterUnavailable bool) []SkillInfo {
 						} else {
 							info.Available = true
 						}
-						skills = append(skills, info)
+						skillMap[info.Name] = info
 					}
 				}
 			}
 		}
 	}
 
+	// Load from builtin skills
 	if sl.builtinSkills != "" {
 		if dirs, err := os.ReadDir(sl.builtinSkills); err == nil {
 			for _, dir := range dirs {
 				if dir.IsDir() {
+					if _, exists := skillMap[dir.Name()]; exists {
+						continue
+					}
+
 					skillFile := filepath.Join(sl.builtinSkills, dir.Name(), "SKILL.md")
 					if _, err := os.Stat(skillFile); err == nil {
-						exists := false
-						for _, s := range skills {
-							if s.Name == dir.Name() && s.Source == "workspace" {
-								exists = true
-								break
-							}
-						}
-						if exists {
-							continue
-						}
-
 						info := SkillInfo{
 							Name:   dir.Name(),
 							Path:   skillFile,
@@ -108,24 +103,22 @@ func (sl *SkillsLoader) ListSkills(filterUnavailable bool) []SkillInfo {
 						} else {
 							info.Available = true
 						}
-						skills = append(skills, info)
+						skillMap[info.Name] = info
 					}
 				}
 			}
 		}
 	}
 
-	if filterUnavailable {
-		filtered := make([]SkillInfo, 0)
-		for _, s := range skills {
-			if s.Available {
-				filtered = append(filtered, s)
-			}
+	result := make([]SkillInfo, 0, len(skillMap))
+	for _, s := range skillMap {
+		if filterUnavailable && !s.Available {
+			continue
 		}
-		return filtered
+		result = append(result, s)
 	}
 
-	return skills
+	return result
 }
 
 func (sl *SkillsLoader) LoadSkill(name string) (string, bool) {
