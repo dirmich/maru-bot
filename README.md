@@ -1,9 +1,9 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.31) 🦞
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.32) 🦞
 
-## ✨ 0.4.31 Update (Advanced Memory System)
+## ✨ 0.4.32 Update (Memory System & Hotfix)
 - **Intelligent Long-term Memory (RAG)**: Uses SQLite-based FTS5 to retrieve and recall past conversations contextually.
+- **Reload Hotfix**: Resolved the issue where the version was not immediately reflected on Telegram after an upgrade by adding `systemd daemon-reload`.
 - **Divided Memory Architecture**: Separates Short-term Memory (recent messages) and Long-term Memory (historical facts/chunks) for optimal performance.
-- **Auto Data Migration**: Seamlessly moves existing JSON sessions to the high-performance SQLite database.
 - **Enhanced SSH Stability**: Resolved LLM's network hallucinations regarding private IP access.
 
 ---

@@ -1,11 +1,11 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.31) 🦞
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.32) 🦞
 
 **MaruBot**은 MaruBot의 초경량 엔진을 기반으로, Raspberry Pi와 같은 SBC(Single Board Computer)에서 하드웨어를 직접 제어하고 소통하기 위해 최적화된 **"Physical AI Assistant"**입니다.
 
-## ✨ 0.4.31 업데이트 (RAG 기억 시스템)
+## ✨ 0.4.32 업데이트 (RAG 기억 시스템 & 핫픽스)
 - **똑똑한 장기 기억 (LTM)**: SQLite 기반 RAG(Retrieval-Augmented Generation) 시스템을 도입하여 수개월 전의 대화도 키워드로 찾아내 답변합니다.
 - **STM/LTM 분리**: 최근 대화(단기)는 인메모리로 빠르게, 오래된 대화(장기)는 DB 검색을 통해 효율적으로 처리하는 3단계 기억 아키텍처를 구현했습니다.
-- **자동 마이그레이션**: 기존 JSON 대화 내역을 새로운 DB로 자동 변환해 줍니다.
+- **업그레이드 재시작 핫픽스**: `marubot upgrade` 후 텔레그램에서 버전이 즉시 반영되지 않던 문제를 `systemd daemon-reload` 도입으로 해결했습니다.
 - **SSH 안정성 개선**: 사설망 접근 시 발생하던 AI의 환각(접근 거부) 문제를 해결하고 SSH 자동화를 강화했습니다.
 
 ---
