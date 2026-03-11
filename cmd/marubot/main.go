@@ -1456,13 +1456,20 @@ func reloadCmd() {
 			}
 			servicePath := filepath.Join(serviceDir, "marubot.service")
 			if _, err := os.Stat(servicePath); err == nil {
-				cmd := exec.Command("systemctl", "--user", "restart", "marubot.service")
+				// Ensure systemd knows about potential binary or service file changes
+				daemonReload := exec.Command("systemctl", "--user", "daemon-reload")
+				restart := exec.Command("systemctl", "--user", "restart", "marubot.service")
+				
 				if os.Getenv("XDG_RUNTIME_DIR") == "" && uid != "" {
-					cmd.Env = append(os.Environ(), fmt.Sprintf("XDG_RUNTIME_DIR=/run/user/%s", uid))
+					daemonReload.Env = append(os.Environ(), fmt.Sprintf("XDG_RUNTIME_DIR=/run/user/%s", uid))
+					restart.Env = append(os.Environ(), fmt.Sprintf("XDG_RUNTIME_DIR=/run/user/%s", uid))
 				} else {
-					cmd.Env = os.Environ()
+					daemonReload.Env = os.Environ()
+					restart.Env = os.Environ()
 				}
-				if err := cmd.Run(); err == nil {
+				
+				daemonReload.Run()
+				if err := restart.Run(); err == nil {
 					fmt.Println("✓ Reloaded via systemd.")
 					return
 				}
