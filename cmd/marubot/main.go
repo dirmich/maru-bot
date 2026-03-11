@@ -448,6 +448,7 @@ Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 - File system operations (read, write, edit)
 - Shell command execution
 - Multi-channel messaging (Telegram, WhatsApp, Feishu)
+- SSH & Remote System Access (Automated execution via shell)
 - Skill-based extensibility
 - Memory and context management
 
