@@ -175,11 +175,27 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 	relevantContent := ""
 	relevantMsgs := al.sessions.SearchRelevant(msg.Content, 5)
 	if len(relevantMsgs) > 0 {
-		relevantContent = "\n\n### 📚 Relevant Past Context (RAG):\n"
+		seen := make(map[string]bool)
+		uniqueMsgs := []providers.Message{}
 		for _, rm := range relevantMsgs {
-			relevantContent += fmt.Sprintf("- [%s]: %s\n", rm.Role, rm.Content)
+			// Basic deduplication based on content snippet to avoid repeating the same large info blocks
+			contentKey := rm.Content
+			if len(contentKey) > 100 {
+				contentKey = contentKey[:100]
+			}
+			if !seen[contentKey] {
+				seen[contentKey] = true
+				uniqueMsgs = append(uniqueMsgs, rm)
+			}
 		}
-		relevantContent += "\nUse this information ONLY if it directly clarifies the user's intent."
+
+		if len(uniqueMsgs) > 0 {
+			relevantContent = "\n\n### 📚 Relevant Past Context (RAG):\n"
+			for _, rm := range uniqueMsgs {
+				relevantContent += fmt.Sprintf("- [%s]: %s\n", rm.Role, rm.Content)
+			}
+			relevantContent += "\nUse this information ONLY if it directly clarifies the user's intent."
+		}
 	}
 
 	// Build messages with current history + injected Facts + LTM

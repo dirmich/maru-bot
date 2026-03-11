@@ -235,7 +235,7 @@ func (s *SQLiteStore) SaveFact(category, content string, confidence float64, src
 
 // PruneStaleFacts removes version-specific or self-identity facts that might conflict after an upgrade
 func (s *SQLiteStore) PruneStaleFacts() error {
-	// Delete facts related to versioning, general identity, or redundant tool info
+	// 1. Delete facts related to versioning, general identity, or redundant tool info
 	_, err := s.db.Exec(`
 		DELETE FROM facts 
 		WHERE content LIKE '%version%' 
@@ -249,6 +249,33 @@ func (s *SQLiteStore) PruneStaleFacts() error {
 		   OR content LIKE '%도구%'
 		   OR content LIKE '%스킬%'
 	`)
+	if err != nil {
+		return err
+	}
+
+	// 2. Delete messages containing identity tables to avoid RAG pollution
+	// We target messages that looks like the "marubot정보" output (contain emojis and version info)
+	_, err = s.db.Exec(`
+		DELETE FROM messages 
+		WHERE (content LIKE '%| 버전 |%' OR content LIKE '%| 항목 |%')
+		  AND (content LIKE '%v0.4.%' OR content LIKE '%weather%')
+	`)
+	if err != nil {
+		return err
+	}
+
+	// 3. Clear memory_fts to ensure the above deletions are reflected in search
+	// FTS5 tables don't automatically delete entries when the source is deleted in this setup
+	// although we have a trigger for INSERT, we might need one for DELETE.
+	// For simplicity during upgrade, we can partially rebuild or just trust the next crawl.
+	// Actually, let's just delete from FTS directly
+	_, err = s.db.Exec(`
+		DELETE FROM memory_fts 
+		WHERE content LIKE '%| 버전 |%' 
+		   OR content LIKE '%weather%'
+		   OR content LIKE '%v0.4.%'
+	`)
+
 	return err
 }
 
