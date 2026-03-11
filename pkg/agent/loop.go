@@ -80,6 +80,8 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	sessionsDir := filepath.Join(marubotHome, "sessions")
 	os.MkdirAll(sessionsDir, 0755)
 	sessionsManager := session.NewSessionManager(sessionsDir)
+	// Auto migrate old JSON sessions to SQLite
+	sessionsManager.MigrateJSONToSQLite()
 
 	return &AgentLoop{
 		bus:            bus,
@@ -146,9 +148,25 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 	ctx = context.WithValue(ctx, tools.CtxKeyChannel, msg.Channel)
 	ctx = context.WithValue(ctx, tools.CtxKeyChatID, msg.ChatID)
 
+	// --- 🧠 STM & LTM Management (RAG) ---
+	// 1. STM (Short-term Memory): Get recent 20 messages for direct flow
+	history := al.sessions.GetHistory(msg.SessionKey)
+	
+	// 2. LTM (Long-term Memory): Search past context for relevant info
+	relevantContent := ""
+	relevantMsgs := al.sessions.SearchRelevant(msg.Content, 5)
+	if len(relevantMsgs) > 0 {
+		relevantContent = "\n\n### 📚 Relevant Past Context (Long-term Memory):\n"
+		for _, rm := range relevantMsgs {
+			relevantContent += fmt.Sprintf("- [%s]: %s\n", rm.Role, rm.Content)
+		}
+		relevantContent += "Use this information only if it is relevant to the current user request."
+	}
+
+	// Build messages with current history + injected LTM if found
 	messages := al.contextBuilder.BuildMessages(
-		al.sessions.GetHistory(msg.SessionKey),
-		msg.Content,
+		history,
+		msg.Content+relevantContent,
 		nil,
 	)
 
@@ -251,7 +269,6 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 
 	al.sessions.AddMessage(msg.SessionKey, "user", msg.Content)
 	al.sessions.AddMessage(msg.SessionKey, "assistant", finalContent)
-	al.sessions.Save(al.sessions.GetOrCreate(msg.SessionKey))
 
 	return finalContent, nil
 }
