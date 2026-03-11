@@ -210,13 +210,9 @@ func (sl *SkillsLoader) GetAlwaysSkills() []string {
 }
 
 func (sl *SkillsLoader) getSkillMetadata(skillPath string) *SkillMetadata {
-	content, err := os.ReadFile(skillPath)
+	manifestPath := filepath.Join(filepath.Dir(skillPath), "manifest.json")
+	content, err := os.ReadFile(manifestPath)
 	if err != nil {
-		return nil
-	}
-
-	frontmatter := sl.extractFrontmatter(string(content))
-	if frontmatter == "" {
 		return &SkillMetadata{
 			Name: filepath.Base(filepath.Dir(skillPath)),
 		}
@@ -229,8 +225,10 @@ func (sl *SkillsLoader) getSkillMetadata(skillPath string) *SkillMetadata {
 		Requires    *SkillRequirements `json:"requires"`
 	}
 
-	if err := json.Unmarshal([]byte(frontmatter), &metadata); err != nil {
-		return nil
+	if err := json.Unmarshal(content, &metadata); err != nil {
+		return &SkillMetadata{
+			Name: filepath.Base(filepath.Dir(skillPath)),
+		}
 	}
 
 	return &SkillMetadata{
@@ -239,15 +237,6 @@ func (sl *SkillsLoader) getSkillMetadata(skillPath string) *SkillMetadata {
 		Always:      metadata.Always,
 		Requires:    metadata.Requires,
 	}
-}
-
-func (sl *SkillsLoader) extractFrontmatter(content string) string {
-	re := regexp.MustCompile(`^---\n(.*?)\n---`)
-	match := re.FindStringSubmatch(content)
-	if len(match) > 1 {
-		return match[1]
-	}
-	return ""
 }
 
 func (sl *SkillsLoader) stripFrontmatter(content string) string {
