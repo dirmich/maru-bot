@@ -111,15 +111,26 @@ else
 fi
 
 # 1. Check Architecture and OS
-if [[ "$(uname -m)" != "aarch64" && "$(uname -m)" != "armv7l" ]]; then
-    echo -e "${RED}${MSG_ARCH_ERR}${NC}"
-    exit 1
+IS_PI=false
+if [[ "$(uname -m)" == "aarch64" || "$(uname -m)" == "armv7l" ]]; then
+    IS_PI=true
+fi
+
+if [ "$IS_PI" = false ]; then
+    echo -e "${YELLOW}⚠️ Notice: This environment is not Raspberry Pi (ARM). Hardware-specific features (GPIO, etc.) will be disabled.${NC}"
 fi
 
 # 2. Install Required Packages
 echo -e "${BLUE}${MSG_PKG_INST}${NC}"
-sudo apt update
-sudo apt install -y git make libcamera-apps alsa-utils vlc-plugin-base curl wget
+if command -v apt >/dev/null 2>&1; then
+    sudo apt update
+    sudo apt install -y git make curl wget
+    if [ "$IS_PI" = true ]; then
+        sudo apt install -y libcamera-apps alsa-utils vlc-plugin-base
+    fi
+else
+    echo -e "${YELLOW}⚠️ 'apt' not found. Skipping system package installation. Ensure git, make, curl, and wget are installed manually.${NC}"
+fi
 
 # Install Go (1.24+)
 GO_REQUIRED="1.24"
@@ -284,9 +295,11 @@ if [ -d "$RESOURCE_DIR/web-admin" ]; then
     rm -rf "$RESOURCE_DIR/web-admin"
 fi
 
-# 7. Hardware Setup
-chmod +x maru-setup.sh
-./maru-setup.sh
+# 7. Hardware Setup (Only for Raspberry Pi)
+if [ "$IS_PI" = true ] && [ -f "./maru-setup.sh" ]; then
+    chmod +x maru-setup.sh
+    ./maru-setup.sh
+fi
 
 # 8. Finalize PATH and Config
 if grep -q "marubot/build" ~/.bashrc 2>/dev/null; then

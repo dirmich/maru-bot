@@ -65,7 +65,18 @@ else
     exit 1
 fi
 
-# 5. README 파일 재정리 (공개 레포용: EN이 메인)
+# 5. 빌드 바이너리 동기화 (기존 빌드 결과물이 있을 경우)
+echo "📦 빌드된 바이너리들을 releases 폴더로 수집 중..."
+RELEASE_DIR="$TARGET_DIR/releases"
+mkdir -p "$RELEASE_DIR"
+if [ -d "$SOURCE_DIR/build" ]; then
+    cp "$SOURCE_DIR/build/marubot"* "$RELEASE_DIR/"
+    echo "  ✓ 빌드 바이너리 복사 완료 (Path: $RELEASE_DIR)"
+else
+    echo "  ⚠️ build 폴더를 찾을 수 없어 바이너리 복사 건너뜜"
+fi
+
+# 6. README 파일 재정리 (공개 레포용: EN이 메인)
 echo "📝 README 다국어 정리 중..."
 cp "$SOURCE_DIR/README-en.md" "$TARGET_DIR/README.md"
 cp "$SOURCE_DIR/README.md" "$TARGET_DIR/README-kor.md"

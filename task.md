@@ -23,9 +23,12 @@
     - [x] `get_distance` 도구 추가
 - [x] v0.4.37: 업그레이드 정합성 핫픽스 (바이너리 오버라이드 제거)
 - [x] v0.4.38: 업그레이드 실행 엔진 복구 (cmd.Run 누락 수정) 및 강제 재빌드 로직 보강
-    - [x] `main.go` 내 누락된 `cmd.Run()` 복구
-    - [x] `install.sh` 내 `make clean` 및 `sudo install` 안정화 로직 적용
-    - [x] 양쪽 저장소(`maruminibot`, `maru-bot`) v0.4.38 배포 완료
+- [x] v0.4.39: RAG 중복 제거 및 정체성 데이터 청소 (툴/스킬 중복 해결)
+- [x] v0.4.40: 범용 플랫폼 지원 (Generic Linux, Windows) 지원 확장
+- [x] v0.4.41: 윈도우 32/64bit 멀티 아키텍처 지원 및 배포 자동화
+    - [x] `Makefile` 내 `windows/386` 타겟 추가 및 명명 규칙 개선
+    - [x] `publish.sh` 바이너리 자동 수집 로직 보강
+    - [x] `maru-bot/.gitignore` 수정을 통해 공개 저장소 전용 바이너리 배포 정책 적용 및 완료
 - [x] **Task 2.3: IMU(MPU6050) 가속도/자이로 센서 연동**
     - [x] I2C 통신 기반 센서 데이터 읽기
     - [x] 로봇의 기울기 및 방향(Bearing) 계산 도구 구현
