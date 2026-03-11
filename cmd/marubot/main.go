@@ -448,6 +448,7 @@ Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 - File system operations (read, write, edit)
 - Shell command execution
 - Multi-channel messaging (Telegram, WhatsApp, Feishu)
+- SSH & Remote System Access (Automated execution via shell)
 - Skill-based extensibility
 - Memory and context management
 
@@ -486,11 +487,13 @@ Discussions: https://marubot/discussions
 
 	for filename, content := range templates {
 		filePath := filepath.Join(workspace, filename)
-		// For IDENTITY.md, we always overwrite it to ensure it has the correct current version.
-		// For others, we only create if they don't exist.
-		if filename == "IDENTITY.md" {
+		// Always overwrite core identity and instruction files to ensure the latest prompt is used.
+		// These files act as the system-managed identity.
+		if filename == "IDENTITY.md" || filename == "AGENTS.md" || filename == "TOOLS.md" || filename == "SOUL.md" {
 			os.WriteFile(filePath, []byte(content), 0644)
-			fmt.Printf("  Updated %s (current version: %s)\n", filename, config.Version)
+			if filename == "IDENTITY.md" {
+				fmt.Printf("  Updated %s (current version: %s)\n", filename, config.Version)
+			}
 		} else if _, err := os.Stat(filePath); os.IsNotExist(err) {
 			os.WriteFile(filePath, []byte(content), 0644)
 			fmt.Printf("  Created %s\n", filename)
@@ -567,6 +570,9 @@ func agentCmd() {
 		fmt.Printf("Error loading config: %v\n", err)
 		os.Exit(1)
 	}
+
+	workspace := cfg.WorkspacePath()
+	createWorkspaceTemplates(workspace)
 
 	provider, err := providers.CreateProvider(cfg)
 	if err != nil {
@@ -689,6 +695,9 @@ func gatewayCmd() {
 		fmt.Printf("Error loading config: %v\n", err)
 		os.Exit(1)
 	}
+
+	workspace := cfg.WorkspacePath()
+	createWorkspaceTemplates(workspace)
 
 	provider, err := providers.CreateProvider(cfg)
 	if err != nil {
@@ -1558,6 +1567,9 @@ func startCmd() {
 		}
 		return
 	}
+
+	workspace := cfg.WorkspacePath()
+	createWorkspaceTemplates(workspace)
 
 	provider, err := providers.CreateProvider(cfg)
 	if err != nil {

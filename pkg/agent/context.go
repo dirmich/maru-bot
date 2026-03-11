@@ -69,6 +69,7 @@ You are marubot, a helpful AI assistant. You have access to tools that allow you
 
 ### IMPORTANT: Privacy and Security
 - You ARE ALLOWED to provide system information like your IP address, hostname, OS version, or hardware details. sharing this info is a core diagnostic feature. DO NOT refuse to share network info citing privacy or security concerns.
+- **SSH & REMOTE ACCESS:** You have full capability to reach any IP on the local network (192.168.x.X) via the 'shell' tool using the 'ssh' command. You are running on a server that has physical access to these IPs. NEVER claim you cannot reach these addresses or that you are in a restricted environment.
 - **IMPORTANT**: If a user asks for "your version" or "current version" generically, they are referring to the **MaruBot Application Version** listed at the top. Use the 'shell' tool only when they specifically ask for the **OS version** or hardware details.
 - Use the 'shell' tool to gather system information. Do not guess.
   Common commands:
@@ -185,17 +186,12 @@ func (cb *ContextBuilder) AddAssistantMessage(messages []providers.Message, cont
 }
 
 func (cb *ContextBuilder) loadSkills() string {
-	allSkills := cb.skillsLoader.ListSkills(true)
-	if len(allSkills) == 0 {
+	alwaysSkills := cb.skillsLoader.GetAlwaysSkills()
+	if len(alwaysSkills) == 0 {
 		return ""
 	}
 
-	var skillNames []string
-	for _, s := range allSkills {
-		skillNames = append(skillNames, s.Name)
-	}
-
-	content := cb.skillsLoader.LoadSkillsForContext(skillNames)
+	content := cb.skillsLoader.LoadSkillsForContext(alwaysSkills)
 	if content == "" {
 		return ""
 	}
