@@ -48,20 +48,41 @@ curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | 
 ### 2. Run on Windows
 Download the appropriate `exe` for your architecture from the [Public Release Page](https://github.com/dirmich/maru-bot/tree/main/releases).
 
-### 3. Setup API Keys
+### 3. Setup API Keys & Default Model
 ```bash
 # Example for OpenAI API Key
 marubot config set providers.openai.api_key "YOUR_KEY"
 
-# Select default model
+# Select default model (e.g. gpt-4o, gemini-2.5-flash, etc.)
 marubot config set agents.defaults.model "gpt-4o"
 ```
+*💡 If the default model fails to connect, MaruBot will automatically fallback to other providers if their API keys are configured!*
 
 ### 4. Start Interaction
 ```bash
 marubot agent
 ```
 *(Or use `marubot start` for the Web Dashboard at http://localhost:8080)*
+
+---
+
+## 🧩 Extension Guide (Skills & Tools)
+MaruBot allows users to easily expand its capabilities.
+
+### Adding a Tool
+To register a simple action or script, just ask the AI directly:
+```text
+"Write a python script to show system information and register it as a new tool"
+```
+The AI will autonomously code and save the script with its metadata to the **`extensions` folder**, making it available instantly.
+
+### Adding a Skill
+For complex workflows, knowledge bases or prompt templates, you can create a skill:
+```text
+"Create a new skill for coding templates"
+marubot skills show <skill-name>
+```
+Simply create a directory under `~/.marubot/workspace/skills/<skill-name>` and author a `SKILL.md` file inside it. MaruBot will automatically load and learn it.
 
 ---
 

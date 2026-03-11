@@ -48,20 +48,41 @@ curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | 
 ### 2. Windows에서 실행
 [공개 저장소 Releases](https://github.com/dirmich/maru-bot/tree/main/releases)에서 본인의 아키텍처에 맞는 `exe` 파일을 다운로드하여 실행하세요.
 
-### 3. 필수 설정 (API 키 등록)
+### 3. 필수 설정 (API 키 및 기본 모델 등록)
 ```bash
 # OpenAI API 키 설정 예시
 marubot config set providers.openai.api_key "YOUR_KEY"
 
-# 기본 모델 선택
+# 기본 모델 선택 (예: gpt-4o, gemini-2.5-flash 등)
 marubot config set agents.defaults.model "gpt-4o"
 ```
+*💡 기본 모델 연결이 실패하더라도 다른 프로바이더의 API 키가 존재하면 자동으로 Fallback 됩니다!*
 
 ### 4. 에이전트 대화 시작
 ```bash
 marubot agent
 ```
 *(또는 `marubot start`를 통해 웹 대시보드 http://localhost:8080 이용 가능)*
+
+---
+
+## 🧩 확장 가이드 (Skills & Tools)
+MaruBot은 사용자가 쉽게 기능을 확장할 수 있습니다.
+
+### 도구(Tool) 추가하기
+단일 스크립트 실행 등 단순한 동작을 등록하려면 AI에게 직접 요청하세요.
+```text
+"시스템 정보를 보여주는 파이썬 스크립트를 작성해서 새로운 도구로 등록해줘"
+```
+AI가 스스로 **`extensions` 폴더**에 스크립트와 메타데이터를 저장하고 런타임에 즉시 활용합니다.
+
+### 스킬(Skill) 추가하기
+복합적인 워크플로우나 프롬프트 템플릿 제어가 필요하다면 스킬을 제작합니다.
+```text
+"새 코딩 템플릿 스킬을 만들어줘"
+marubot skills show <skill-name>
+```
+물리적으로 `~/.marubot/workspace/skills/<스킬명>` 디렉토리를 만들어 그 안에 `SKILL.md`를 작성하면 자동 연동됩니다.
 
 ---
 
