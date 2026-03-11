@@ -251,18 +251,14 @@ func (sl *SkillsLoader) checkRequirements(requires *SkillRequirements) bool {
 
 	for _, bin := range requires.Bins {
 		if _, err := exec.LookPath(bin); err != nil {
-			continue
-		} else {
-			return true
+			return false
 		}
 	}
-
 	for _, env := range requires.Env {
 		if os.Getenv(env) == "" {
 			return false
 		}
 	}
-
 	return true
 }
 
