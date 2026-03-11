@@ -3,39 +3,39 @@
 # MaruBot RPi Hardware Setup Script
 # Version: 1.0.0
 
-echo "🚀 MaruBot 설정을 시작합니다..."
+echo "🚀 Starting MaruBot setup..."
 
-# 1. MaruBot 엔진 확인
-# 시스템 PATH 또는 로컬 build 폴더에서 확인
+# 1. Check MaruBot Engine
+# Check system PATH or local build folder
 if command -v marubot > /dev/null || [ -f "./build/marubot" ] || [ -f "./build/marubot" ]; then
-    echo "✅ MaruBot 엔진이 감지되었습니다."
+    echo "✅ MaruBot engine detected."
 else
-    echo "❌ MaruBot 엔진을 찾을 수 없습니다. 빌드(make build)를 먼저 완료해주세요."
+    echo "❌ MaruBot engine not found. Please complete the build (make build) first."
     exit 1
 fi
 
-# 2. 하드웨어 접근 권한 설정 (라즈베리 파이 전용)
-echo "📦 하드웨어 접근 권한을 설정합니다..."
-# GPIO 사용 권한 추가
+# 2. Setup Hardware Access Permissions (Raspberry Pi only)
+echo "📦 Setting up hardware access permissions..."
+# Add GPIO permission
 sudo usermod -aG gpio $USER 2>/dev/null
-# I2C/SPI 인터페이스 활성화 가이드
-echo "ℹ️ I2C 및 SPI 인터페이스가 활성화되어 있는지 raspi-config에서 확인하세요."
+# I2C/SPI interface enablement guide
+echo "ℹ️ Please check raspi-config to ensure I2C and SPI interfaces are enabled."
 
-# 3. 필수 도구 설치 확인
-echo "🛠️ 필수 멀티미디어 도구를 확인합니다..."
+# 3. Check Required Tools
+echo "🛠️ Checking essential multimedia tools..."
 for tool in libcamera-apps alsa-utils; do
     if dpkg -s $tool > /dev/null 2>&1; then
-        echo "✅ $tool 이 설치되어 있습니다."
+        echo "✅ $tool is installed."
     else
-        echo "⚠️ $tool 이 없습니다. 설치를 권장합니다: sudo apt install $tool"
+        echo "⚠️ $tool is missing. Installation is recommended: sudo apt install $tool"
     fi
 done
 
-# 4. 설정 파일 연결
-echo "📝 MaruBot 설정을 MaruBot에 적용합니다..."
+# 4. Link Configuration Files
+echo "📝 Applying MaruBot configuration..."
 mkdir -p ~/.marubot
-# -n 옵션으로 기존 설정이 있으면 덮어씌우지 않음
+# Use -n option to prevent overwriting existing configurations
 cp -n ./config/maru-config.json ~/.marubot/config.json
-echo "✅ 설정 완료! 이제 'marubot agent'로 마루봇과 소통하세요."
+echo "✅ Setup complete! You can now communicate with MaruBot using 'marubot agent'."
 
-echo "🎉 MaruBot 준비 완료!"
+echo "🎉 MaruBot is ready!"
