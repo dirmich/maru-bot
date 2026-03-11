@@ -1,0 +1,7 @@
+{
+  "name": "ssh-manager",
+  "version": "1.0.0",
+  "description": "Manage auto SSH connection and authentication setup via public key.",
+  "required_tools": ["shell"],
+  "permissions": ["execute_command"]
+}
