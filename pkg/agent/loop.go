@@ -81,6 +81,7 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	os.MkdirAll(extensionDir, 0755)
 
 	toolsRegistry.Register(tools.NewCreateToolTool(toolsRegistry, extensionDir))
+	toolsRegistry.Register(tools.NewCreateSkillTool(workspace))
 	tools.LoadDynamicTools(toolsRegistry, extensionDir)
 	if cfg.Drone.Enabled {
 		toolsRegistry.Register(tools.NewDroneTool(cfg.Drone.Connection, cfg.Drone.SysID, cfg.Drone.CompID))
