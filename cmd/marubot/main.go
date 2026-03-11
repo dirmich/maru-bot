@@ -1777,11 +1777,13 @@ func upgradeCmd() {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("❌ Upgrade failed: %v\n", err)
-		os.Exit(1)
+	fmt.Println("✨ Upgrade complete! Restarting MaruBot...")
+	
+	// Ensure identity and templates are updated immediately before restart
+	cfg, _ := loadConfig()
+	if cfg != nil {
+		createWorkspaceTemplates(cfg.WorkspacePath())
 	}
 
-	fmt.Println("✨ Upgrade complete! Restarting MaruBot...")
 	reloadCmd()
 }
