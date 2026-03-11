@@ -228,16 +228,16 @@ fi
 # 5-2. Go Build
 echo -e "${BLUE}    ${MSG_GO_BUILD}${NC}"
 $GO_CMD mod tidy
-make GO="$GO_CMD" build
+$GO_CMD clean -cache # Ensure new code is recompiled
+make GO="$GO_CMD" clean build
 
 # 6. Install System and Deploy Resources
 echo -e "${BLUE}🏗️ Installing system and deploying resources...${NC}"
 
 if [ -f "build/marubot" ]; then
-    echo "  📦 Copying executable to /usr/local/bin/marubot..."
-    sudo rm -f /usr/local/bin/marubot
-    sudo cp build/marubot /usr/local/bin/
-    sudo chmod +x /usr/local/bin/marubot
+    echo "  📦 Installing executable to /usr/local/bin/marubot..."
+    # Using 'install' is more reliable for replacing busy binaries
+    sudo install -m 755 build/marubot /usr/local/bin/marubot
     
     # 6-1. Clean up potential duplicate binaries to prevent PATH confusion
     if [ -f "$HOME/go/bin/marubot" ]; then
