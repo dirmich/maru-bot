@@ -78,6 +78,13 @@ func (sm *SessionManager) GetActiveFacts(category string) ([]string, error) {
 	return sm.db.GetActiveFacts(category)
 }
 
+func (sm *SessionManager) PruneStaleFacts() error {
+	if sm.db == nil {
+		return nil
+	}
+	return sm.db.PruneStaleFacts()
+}
+
 func (sm *SessionManager) Close() error {
 	if sm.db != nil {
 		return sm.db.Close()
