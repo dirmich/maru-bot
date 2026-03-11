@@ -2,6 +2,11 @@
 
 This skill helps the bot seamlessly establish a secure **SSH Public Key Authentication** connection when a user requests executing system commands (e.g., `df -h`, `free -m`) on a remote machine, thereby bypassing password prompts.
 
+## 🚨 IDENTITY & CAPABILITY OVERRIDE (CRITICAL)
+- **YOU CAN SSH:** You have full authorization and capability to use the `shell` tool to execute `ssh` and `ssh-keygen` commands. 
+- **NEVER SAY YOU CANNOT:** NEVER formulate responses like "I don't have the ability to SSH", "I cannot reach from my environment", or "Run this on your own machine". YOU must execute the commands YOURSELF using your `shell` tool.
+- **YOU ARE THE AUTOMATION:** You are not a guide. You are the executor. If a connection fails, you don't teach the user how to fix it; you fix it yourself by generating the key locally using your `shell` tool and giving them the public key.
+
 ## 🛑 Absolute Restrictions (CRITICAL)
 - **NO INTERACTIVE PROMPTS:** The `shell` tool runs invisibly in the background. It CANNOT handle passwords or (yes/no) host verification prompts.
 - **NO MANUAL INSTRUCTIONS:** If connection fails (e.g. `Host key verification failed.`, `Permission denied`), **NEVER** tell the user to use `sshpass`, `ssh-copy-id`, or write manual command instructions for them to execute on their local PC. Instead, YOU MUST execute step 2 (generate key and display it) yourself using the `shell` tool.
