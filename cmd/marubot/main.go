@@ -1778,12 +1778,5 @@ func upgradeCmd() {
 	cmd.Stdin = os.Stdin
 
 	fmt.Println("✨ Upgrade complete! Restarting MaruBot...")
-	
-	// Ensure identity and templates are updated immediately before restart
-	cfg, _ := loadConfig()
-	if cfg != nil {
-		createWorkspaceTemplates(cfg.WorkspacePath())
-	}
-
 	reloadCmd()
 }

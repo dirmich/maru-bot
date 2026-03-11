@@ -158,34 +158,22 @@ func (sl *SkillsLoader) LoadSkillsForContext(skillNames []string) string {
 func (sl *SkillsLoader) BuildSkillsSummary() string {
 	allSkills := sl.ListSkills(false)
 	if len(allSkills) == 0 {
-		return ""
+		return "No specialized skills available."
 	}
 
 	var lines []string
-	lines = append(lines, "<skills>")
 	for _, s := range allSkills {
-		escapedName := escapeXML(s.Name)
-		escapedDesc := escapeXML(s.Description)
-		escapedPath := escapeXML(s.Path)
-
-		available := "true"
+		status := "✅ Available"
 		if !s.Available {
-			available = "false"
+			status = "❌ Missing Dependencies"
 		}
 
-		lines = append(lines, fmt.Sprintf("  <skill available=\"%s\">", available))
-		lines = append(lines, fmt.Sprintf("    <name>%s</name>", escapedName))
-		lines = append(lines, fmt.Sprintf("    <description>%s</description>", escapedDesc))
-		lines = append(lines, fmt.Sprintf("    <location>%s</location>", escapedPath))
-
+		line := fmt.Sprintf("- **%s**: %s (%s)", s.Name, s.Description, status)
 		if !s.Available && s.Missing != "" {
-			escapedMissing := escapeXML(s.Missing)
-			lines = append(lines, fmt.Sprintf("    <requires>%s</requires>", escapedMissing))
+			line += fmt.Sprintf(" - Requires: %s", s.Missing)
 		}
-
-		lines = append(lines, "  </skill>")
+		lines = append(lines, line)
 	}
-	lines = append(lines, "</skills>")
 
 	return strings.Join(lines, "\n")
 }

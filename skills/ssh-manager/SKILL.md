@@ -15,7 +15,11 @@ This skill helps the bot seamlessly establish a secure **SSH Public Key Authenti
 
 ## 🤖 Bot Workflow Guidelines
 
-Whenever a user asks to check or run something on a remote location with a specific IP and account (e.g., `pi@192.168.0.108`), you must follow these steps:
+### Step 0. Local Key Readiness Check (CRITICAL)
+Before any connection attempt, YOU must ensure the local machine has at least one valid SSH key.
+1. Check for any existing keys: `ls ~/.ssh/id_ed25519` or `ls ~/.ssh/id_rsa`.
+2. If NO keys exist, YOU must generate a default one immediately: `ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519`.
+3. Do not wait for a connection failure to do this. Be proactive.
 
 ### Step 1. Pre-connection Test
 First, verify if passwordless connection to the target host is possible via the `shell` tool.
