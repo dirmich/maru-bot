@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/dirmich/marubot/pkg/providers"
@@ -157,6 +159,12 @@ func (s *SQLiteStore) GetMessages(sessionKey string, limit int) ([]providers.Mes
 
 func (s *SQLiteStore) SearchRelevant(query string, limit int) ([]providers.Message, error) {
 	// 📚 Combined search across messages and memory chunks
+	// Clean query for FTS5 to avoid syntax errors with special chars (~, *, ", etc)
+	cleanQuery := sanitizeFTSQuery(query)
+	if cleanQuery == "" {
+		return nil, nil
+	}
+
 	sqlQuery := `
 		SELECT f.source_type, m.role, m.content 
 		FROM memory_fts f
@@ -165,7 +173,7 @@ func (s *SQLiteStore) SearchRelevant(query string, limit int) ([]providers.Messa
 		ORDER BY rank 
 		LIMIT ?`
 	
-	rows, err := s.db.Query(sqlQuery, query, limit)
+	rows, err := s.db.Query(sqlQuery, cleanQuery, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -254,4 +262,12 @@ func (s *SQLiteStore) GetAllSessions() ([]string, error) {
 		keys = append(keys, k)
 	}
 	return keys, nil
+}
+
+func sanitizeFTSQuery(query string) string {
+	// Remove FTS5 special operators that cause syntax errors when used as plain text
+	// We want to keep alphanumeric and spaces
+	reg := regexp.MustCompile(`[^\w\s가-힣ㄱ-ㅎㅏ-ㅣ]`)
+	clean := reg.ReplaceAllString(query, " ")
+	return strings.TrimSpace(clean)
 }

@@ -411,6 +411,7 @@ This document describes the tools available to marubot.
 - Send messages to chat channels
 - Supports Telegram, WhatsApp, Feishu
 - Used for notifications and responses
+- Supports rich markdown (tables, bold, italic) but avoid HTML tags like <br>
 
 ## AI Capabilities
 
@@ -451,6 +452,7 @@ Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 - SSH & Remote System Access (Automated execution via shell)
 - Skill-based extensibility
 - Memory and context management
+- GPIO/Hardware control and monitoring
 
 ## Philosophy
 
@@ -1775,11 +1777,13 @@ func upgradeCmd() {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("❌ Upgrade failed: %v\n", err)
-		os.Exit(1)
+	fmt.Println("✨ Upgrade complete! Restarting MaruBot...")
+	
+	// Ensure identity and templates are updated immediately before restart
+	cfg, _ := loadConfig()
+	if cfg != nil {
+		createWorkspaceTemplates(cfg.WorkspacePath())
 	}
 
-	fmt.Println("✨ Upgrade complete! Restarting MaruBot...")
 	reloadCmd()
 }
