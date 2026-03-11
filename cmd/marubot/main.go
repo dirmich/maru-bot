@@ -1776,6 +1776,10 @@ func upgradeCmd() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("❌ Upgrade failed: %v\n", err)
+		os.Exit(1)
+	}
 
 	fmt.Println("✨ Upgrade complete! Restarting MaruBot...")
 	reloadCmd()
