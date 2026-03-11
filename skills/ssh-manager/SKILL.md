@@ -1,44 +1,44 @@
 # SSH Connection Automation Guide
 
-이 스킬은 사용자가 원격 컴퓨터에 접속하여 시스템 명령(예: `df -h`, `free -m` 등)을 실행하도록 지시할 때, 비밀번호 프롬프트에 막히지 않고 안전하게 **SSH 공개키 인증** 통신을 구축하도록 봇을 돕습니다.
+This skill helps the bot seamlessly establish a secure **SSH Public Key Authentication** connection when a user requests executing system commands (e.g., `df -h`, `free -m`) on a remote machine, thereby bypassing password prompts.
 
-## 🛑 핵심 제약사항
-- 제공되는 `shell` 도구는 TTY가 없는 백그라운드 환경이므로 비밀번호를 묻는 인터랙티브 프롬프트 입력이 불가능합니다.
-- 따라서 절대로 `ssh pi@host` 명령어를 날린 뒤 무작정 응답을 기다리거나, "비밀번호를 알려주세요"라고 사용자에게 묻지 마세요!
+## 🛑 Core Restrictions
+- The provided `shell` tool runs in a background environment without a TTY, meaning it **cannot handle interactive password prompts**.
+- Therefore, NEVER blindly run an `ssh [user]@[host]` command and wait for a response, nor should you ask the user for the password.
 
-## 🤖 봇 행동 지침 (Work Flow)
+## 🤖 Bot Workflow Guidelines
 
-사용자가 특정 IP 주소와 계정(예: `pi@192.168.0.108`)으로 원격지에 접속하여 무언가를 확인해 달라고 할 때마다, 당신은 다음 절차를 따릅니다.
+Whenever a user asks to check or run something on a remote location with a specific IP and account (e.g., `pi@192.168.0.108`), you must follow these steps:
 
-### Step 1. 사전 접속 테스트
-먼저 대상 접속지에 비밀번호 없이 접속이 가능한지 `shell` 도구를 통해 확인합니다.
-명령어 예시: `ssh -o BatchMode=yes -o ConnectTimeout=5 [user]@[host] "echo ok"`
-- `-o BatchMode=yes` 옵션은 비밀번호를 묻지 않고 실패 시 즉각 종료되게 하는 옵션입니다.
-- 결과가 `ok` 라면, 즉시 사용자가 지시한 명령(예: `ssh [user]@[host] "df -h"`)을 실행하고 그 결과를 보고합니다.
+### Step 1. Pre-connection Test
+First, verify if passwordless connection to the target host is possible via the `shell` tool.
+Command example: `ssh -o BatchMode=yes -o ConnectTimeout=5 [user]@[host] "echo ok"`
+- The `-o BatchMode=yes` option prevents password prompts and immediately fails if authentication is required.
+- If the result is `ok`, instantly execute the user's requested command (e.g., `ssh [user]@[host] "df -h"`) and report the outcome.
 
-### Step 2. 공개키 인증 구축 (접속 실패 시)
-Step 1이 실패했다면, 로컬 머신(사용자가 아닌 봇의 현재 구동 환경)에 인증용 키가 없거나, 타겟 머신이 그 키를 모르는 것입니다.
-중요: 보안과 관리를 위해 호스트별로 별도의 키를 분리해서 사용합니다.
+### Step 2. Public Key Setup (On Connection Failure)
+If Step 1 fails, it means the local machine (the bot's current runtime environment, not the user's) lacks an authentication key, or the target machine does not recognize it.
+Important: For security and management purposes, use separate, isolated keys for each host.
 
-1. 로컬 환경의 `~/.ssh/` 디렉토리를 확인합니다.
-2. 타겟 머신을 위한 키, 예를 들어 `~/.ssh/id_ed25519_[host]` 형태의 키가 존재하는지 확인합니다.
-3. 만약 없다면, `shell` 도구로 다음 명령을 실행하여 **해당 호스트 전용 키 쌍을 새로 생성**합니다.
+1. Check the `~/.ssh/` directory in the local environment.
+2. Check if a host-specific key exists, e.g., `~/.ssh/id_ed25519_[host]`.
+3. If it does not exist, use the `shell` tool to **generate a new dedicated key pair for that host** by running:
    - `ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519_[host]` 
-4. 생성된 혹은 기존에 존재하던 `*.pub` (예: `id_ed25519_[host].pub`) 공개키 파일의 내용을 `shell`을 통해 읽어들입니다.
-5. 사용자에게 다음과 같이 알립니다. (반드시 한글로)
-   > "현재 해당 기기([host])에 비밀번호 없이 접속할 수 있는 권한이 없습니다. 
-   > 귀하의 기기에 접속하신 뒤, `~/.ssh/authorized_keys` 파일에 아래 서버용 공개키를 추가해 주세요.
+4. Read the contents of the generated or existing public key file `*.pub` (e.g., `id_ed25519_[host].pub`) using the `shell` tool.
+5. Notify the user with the following message:
+   > "I currently do not have passwordless access to the target machine ([host]). 
+   > Please log in to your machine and append the following public key to the `~/.ssh/authorized_keys` file.
    > 
-   > `(읽은 공개키 내용 출력)`
+   > `(Output the parsed public key content here)`
    > 
-   > 추가를 완료하신 후 '완료했어' 라고 알려주시면 다시 명령을 수행하겠습니다!"
+   > Let me know when you are 'done' or 'finished', and I will retry the command!"
 
-### Step 3. 호스트 접속 정보 구성 및 재시도 (사용자의 설정 완료 통지 이후)
-사용자가 "설정했어" 또는 "완료했어"라고 말하면, 봇은 다음을 수행합니다.
-1. `~/.ssh/config` (또는 `ssh` 접속 시 `-i` 옵션 직접 지정) 파일이나 명령어 구성을 통해 특정 호스트에 접속할 때 우리가 생성했던 특정 키(`id_ed25519_[host]`)를 사용하도록 설정합니다.
-   - (명령어 예시: `ssh -i ~/.ssh/id_ed25519_[host] -o BatchMode=yes [user]@[host] "명령어"`)
-2. 즉각 다시 Step 1처럼 접속할 수 있는지 확인하거나, 바로 사용자가 최초로 지시했던 원격 명령을 수행하여 결과를 반환합니다.
+### Step 3. Host Configuration & Retry (After User Confirmation)
+When the user replies "done" or "finished", the bot must do the following:
+1. Configure the connection to use the newly created specific key (`id_ed25519_[host]`) for that host. This can be done by specifying the `-i` option inline.
+   - (Command example: `ssh -i ~/.ssh/id_ed25519_[host] -o BatchMode=yes [user]@[host] "command"`)
+2. Immediately verify if a connection can be established, similar to Step 1, or directly execute the user's initially requested remote command and return the result.
 
-## 💡 호스트 정보 저장 (메모리)
-- 사용자가 별도로 IP를 언급하지 않아도 이전 접속에 성공했던 기기 정보를 바탕으로 `[user]@[host]`와 연동된 키 정보(`~/.ssh/id_ed25519_[host]`)를 기억해 주세요. 
-- (선택) `skills/ssh-manager/hosts.json` 등에 이전 성공 호스트 기록을 남기는 `shell` 명령어(`echo '{"host": "...", "key": "..."}' > hosts.json`)를 구사해도 좋습니다.
+## 💡 Storing Host Information (Memory)
+- Memorize the mapping of `[user]@[host]` and the corresponding key path (`~/.ssh/id_ed25519_[host]`) based on successful connections. This way, if the user doesn't specify the IP again, you can reuse the context. 
+- (Optional) You may run a `shell` command to log successfully connected hosts into a file, like `skills/ssh-manager/hosts.json` (`echo '{"host": "...", "key": "..."}' > hosts.json`), to persist this knowledge.
