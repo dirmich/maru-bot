@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/dirmich/marubot/pkg/bus"
@@ -55,12 +56,24 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	braveAPIKey := cfg.Tools.Web.Search.APIKey
 	toolsRegistry.Register(tools.NewWebSearchTool(braveAPIKey, cfg.Tools.Web.Search.MaxResults))
 	toolsRegistry.Register(tools.NewWebFetchTool(50000))
-	toolsRegistry.Register(tools.NewCameraTool(workspace))
-	toolsRegistry.Register(tools.NewMotorTool(cfg))
-	toolsRegistry.Register(tools.NewUltrasonicTool(cfg))
-	toolsRegistry.Register(tools.NewIMUTool())
-	toolsRegistry.Register(tools.NewVisionTool(workspace))
-	toolsRegistry.Register(tools.NewGPIOTool(cfg, cfg.Hardware.GPIO.Actions))
+
+	// Hardware tools registration based on platform
+	isLinux := runtime.GOOS == "linux"
+	isARM := runtime.GOARCH == "arm" || runtime.GOARCH == "arm64"
+
+	if isLinux && isARM {
+		toolsRegistry.Register(tools.NewCameraTool(workspace))
+		toolsRegistry.Register(tools.NewMotorTool(cfg))
+		toolsRegistry.Register(tools.NewUltrasonicTool(cfg))
+		toolsRegistry.Register(tools.NewIMUTool())
+		toolsRegistry.Register(tools.NewVisionTool(workspace))
+		toolsRegistry.Register(tools.NewGPIOTool(cfg, cfg.Hardware.GPIO.Actions))
+	} else if isLinux {
+		// Generic Linux (EC2, etc) - Support Camera if USB webcam might be available
+		toolsRegistry.Register(tools.NewCameraTool(workspace))
+		toolsRegistry.Register(tools.NewVisionTool(workspace))
+	}
+
 	toolsRegistry.Register(tools.NewSystemTool(cfg, workspace))
 
 	// Ensure extensions directory is under .marubot
