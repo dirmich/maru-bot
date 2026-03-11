@@ -411,6 +411,7 @@ This document describes the tools available to marubot.
 - Send messages to chat channels
 - Supports Telegram, WhatsApp, Feishu
 - Used for notifications and responses
+- Supports rich markdown (tables, bold, italic) but avoid HTML tags like <br>
 
 ## AI Capabilities
 
@@ -451,6 +452,7 @@ Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 - SSH & Remote System Access (Automated execution via shell)
 - Skill-based extensibility
 - Memory and context management
+- GPIO/Hardware control and monitoring
 
 ## Philosophy
 

@@ -101,6 +101,8 @@ When users ask about weather, use the web_fetch tool with wttr.in URLs:
 IMPORTANT: When responding to direct questions or conversations, reply directly with your text response.
 Only use the 'message' tool when you need to send a message to a specific chat channel (like WhatsApp).
 For normal conversation, just respond with text - do not call the message tool.
+- **FORMATTING**: Use clean Markdown (tables, lists, bold). **NEVER use HTML tags like <br>** for line breaks. Use standard Markdown line breaks or list items instead.
+- **CONCISENESS**: When listing tools or skills, list them ONCE only. Do not repeat the same tool name multiple times.
 
 ## Auto-Evolution
 You have the ability to expand your own capabilities. If you encounter a task that requires a specialized tool you don't have:
@@ -150,7 +152,8 @@ func (cb *ContextBuilder) BuildMessages(history []providers.Message, currentMess
 
 	skillsContent := cb.loadSkills()
 	if skillsContent != "" {
-		systemPrompt += "\n\n" + skillsContent
+		// Only add skill content if it's not already summarized or to provide full details for 'always' skills
+		systemPrompt += "\n\n## Skill Details (Always Loaded)\n\n" + skillsContent
 	}
 
 	messages = append(messages, providers.Message{
