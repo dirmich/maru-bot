@@ -80,6 +80,8 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	sessionsDir := filepath.Join(marubotHome, "sessions")
 	os.MkdirAll(sessionsDir, 0755)
 	sessionsManager := session.NewSessionManager(sessionsDir)
+	// Auto migrate old JSON sessions to SQLite
+	sessionsManager.MigrateJSONToSQLite()
 
 	return &AgentLoop{
 		bus:            bus,
@@ -146,9 +148,35 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 	ctx = context.WithValue(ctx, tools.CtxKeyChannel, msg.Channel)
 	ctx = context.WithValue(ctx, tools.CtxKeyChatID, msg.ChatID)
 
+	// --- 🧠 STM & LTM Management (Enhanced RAG) ---
+	// 🎯 1. Facts & Directives (Long-term persistent rules/preferences)
+	facts, _ := al.sessions.GetActiveFacts("")
+	factsContent := ""
+	if len(facts) > 0 {
+		factsContent = "\n\n### 🧘 Core Facts & Preferences:\n"
+		for _, f := range facts {
+			factsContent += fmt.Sprintf("- %s\n", f)
+		}
+	}
+
+	// 🧵 2. STM (Short-term Memory): Get recent 20 messages
+	history := al.sessions.GetHistory(msg.SessionKey)
+	
+	// 📚 3. LTM (Long-term Memory): Search past context for relevant info
+	relevantContent := ""
+	relevantMsgs := al.sessions.SearchRelevant(msg.Content, 5)
+	if len(relevantMsgs) > 0 {
+		relevantContent = "\n\n### 📚 Relevant Past Context (RAG):\n"
+		for _, rm := range relevantMsgs {
+			relevantContent += fmt.Sprintf("- [%s]: %s\n", rm.Role, rm.Content)
+		}
+		relevantContent += "\nUse this information ONLY if it directly clarifies the user's intent."
+	}
+
+	// Build messages with current history + injected Facts + LTM
 	messages := al.contextBuilder.BuildMessages(
-		al.sessions.GetHistory(msg.SessionKey),
-		msg.Content,
+		history,
+		msg.Content+factsContent+relevantContent,
 		nil,
 	)
 
@@ -251,7 +279,6 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 
 	al.sessions.AddMessage(msg.SessionKey, "user", msg.Content)
 	al.sessions.AddMessage(msg.SessionKey, "assistant", finalContent)
-	al.sessions.Save(al.sessions.GetOrCreate(msg.SessionKey))
 
 	return finalContent, nil
 }
