@@ -71,6 +71,13 @@ func (sm *SessionManager) SearchRelevant(query string, limit int) []providers.Me
 	return msgs
 }
 
+func (sm *SessionManager) GetActiveFacts(category string) ([]string, error) {
+	if sm.db == nil {
+		return nil, nil
+	}
+	return sm.db.GetActiveFacts(category)
+}
+
 func (sm *SessionManager) Close() error {
 	if sm.db != nil {
 		return sm.db.Close()

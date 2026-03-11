@@ -47,26 +47,46 @@ func (s *SQLiteStore) init() error {
 			session_key TEXT,
 			role TEXT,
 			content TEXT,
+			tokens INTEGER DEFAULT 0,
 			created_at TIMESTAMP,
 			FOREIGN KEY(session_key) REFERENCES sessions(key) ON DELETE CASCADE
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_key)`,
-		// FTS5 table for RAG
-		`CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
-			content,
-			content='messages',
-			content_rowid='id'
+		
+		// 🧠 Facts (Long-term Memory Directives/Preferences)
+		`CREATE TABLE IF NOT EXISTS facts (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			category TEXT, -- preference, rule, project_fact, user_info
+			content TEXT,
+			confidence REAL,
+			source_message_id INTEGER,
+			status TEXT DEFAULT 'active', -- active, superseded, archived
+			created_at TIMESTAMP,
+			updated_at TIMESTAMP,
+			expires_at TIMESTAMP
 		)`,
-		// Triggers to keep FTS index in sync
+
+		// 📚 Memory Chunks (For Contextual Retrieval)
+		`CREATE TABLE IF NOT EXISTS memory_chunks (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			session_key TEXT,
+			start_msg_id INTEGER,
+			end_msg_id INTEGER,
+			content TEXT, -- Aggregated content of the window
+			summary TEXT, -- Optional summary of the window
+			created_at TIMESTAMP
+		)`,
+
+		// FTS5 table for RAG (Searching across messages and chunks)
+		`CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(
+			content,
+			source_id UNINDEXED, -- references messages(id) or memory_chunks(id)
+			source_type UNINDEXED -- 'message' or 'chunk'
+		)`,
+
+		// Triggers to keep FTS index in sync for messages
 		`CREATE TRIGGER IF NOT EXISTS messages_ai AFTER INSERT ON messages BEGIN
-			INSERT INTO messages_fts(rowid, content) VALUES (new.id, new.content);
-		END`,
-		`CREATE TRIGGER IF NOT EXISTS messages_ad AFTER DELETE ON messages BEGIN
-			INSERT INTO messages_fts(messages_fts, rowid, content) VALUES('delete', old.id, old.content);
-		END`,
-		`CREATE TRIGGER IF NOT EXISTS messages_au AFTER UPDATE ON messages BEGIN
-			INSERT INTO messages_fts(messages_fts, rowid, content) VALUES('delete', old.id, old.content);
-			INSERT INTO messages_fts(rowid, content) VALUES (new.id, new.content);
+			INSERT INTO memory_fts(content, source_id, source_type) VALUES (new.content, new.id, 'message');
 		END`,
 	}
 
@@ -136,12 +156,12 @@ func (s *SQLiteStore) GetMessages(sessionKey string, limit int) ([]providers.Mes
 }
 
 func (s *SQLiteStore) SearchRelevant(query string, limit int) ([]providers.Message, error) {
-	// Simple BM25 search via FTS5
+	// 📚 Combined search across messages and memory chunks
 	sqlQuery := `
-		SELECT m.role, m.content 
-		FROM messages m
-		JOIN messages_fts f ON m.id = f.rowid
-		WHERE messages_fts MATCH ? 
+		SELECT f.source_type, m.role, m.content 
+		FROM memory_fts f
+		LEFT JOIN messages m ON f.source_id = m.id AND f.source_type = 'message'
+		WHERE memory_fts MATCH ? 
 		ORDER BY rank 
 		LIMIT ?`
 	
@@ -153,13 +173,56 @@ func (s *SQLiteStore) SearchRelevant(query string, limit int) ([]providers.Messa
 
 	var msgs []providers.Message
 	for rows.Next() {
+		var srcType string
 		var m providers.Message
-		if err := rows.Scan(&m.Role, &m.Content); err != nil {
+		if err := rows.Scan(&srcType, &m.Role, &m.Content); err != nil {
 			return nil, err
 		}
+		
+		// If it's a chunk, it might not have a single 'Role'
+		if srcType == "chunk" {
+			m.Role = "assistant" // Default for summarized context
+		}
+		
 		msgs = append(msgs, m)
 	}
 	return msgs, nil
+}
+
+// 🧘 GetActiveFacts retrieves the most relevant rules, preferences, and facts
+func (s *SQLiteStore) GetActiveFacts(category string) ([]string, error) {
+	query := `SELECT content FROM facts WHERE status = 'active'`
+	var args []interface{}
+	if category != "" {
+		query += " AND category = ?"
+		args = append(args, category)
+	}
+	query += " ORDER BY confidence DESC, updated_at DESC LIMIT 10"
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var facts []string
+	for rows.Next() {
+		var f string
+		if err := rows.Scan(&f); err != nil {
+			return nil, err
+		}
+		facts = append(facts, f)
+	}
+	return facts, nil
+}
+
+func (s *SQLiteStore) SaveFact(category, content string, confidence float64, srcID int) error {
+	now := time.Now()
+	_, err := s.db.Exec(`
+		INSERT INTO facts (category, content, confidence, source_message_id, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?)`,
+		category, content, confidence, srcID, now, now)
+	return err
 }
 
 func (s *SQLiteStore) GetAllSessions() ([]string, error) {
