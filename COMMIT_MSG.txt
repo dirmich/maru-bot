@@ -1,0 +1,5 @@
+chore(skills): SKILL.md 파싱을 manifest.json 구조로 분리 및 개선
+
+- `skill-tool-guide.md` 원칙에 따라 기존 스킬들의 `SKILL.md` 파일에 포함되어 있던 YAML 메타데이터를 개별 `manifest.json` 파일로 분리.
+- Go 로더 및 인스톨러(`pkg/skills/loader.go`, `pkg/skills/installer.go`, `cmd/marubot/main.go`)가 `manifest.json`을 직접 읽어오도록 수정하고 불필요한 Frontmatter 파싱 코드 제거.
+- `skillsCmd` 스위치 구문에 누락되었던 `list-builtin` 명령어가 정상 실행되도록 수정.

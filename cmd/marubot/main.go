@@ -1022,6 +1022,10 @@ func skillsCmd() {
 			return
 		}
 		skillsShowCmd(skillsLoader, os.Args[3])
+	case "list-builtin":
+		skillsListBuiltinCmd()
+	case "install-builtin":
+		skillsInstallBuiltinCmd(workspace)
 	default:
 		fmt.Printf("Unknown skills command: %s\n", subcommand)
 		skillsHelp()
@@ -1168,20 +1172,16 @@ func skillsListBuiltinCmd() {
 	for _, entry := range entries {
 		if entry.IsDir() {
 			skillName := entry.Name()
-			skillFile := filepath.Join(builtinSkillsDir, skillName, "SKILL.md")
+			manifestFile := filepath.Join(builtinSkillsDir, skillName, "manifest.json")
 
 			description := "No description"
-			if _, err := os.Stat(skillFile); err == nil {
-				data, err := os.ReadFile(skillFile)
+			if _, err := os.Stat(manifestFile); err == nil {
+				data, err := os.ReadFile(manifestFile)
 				if err == nil {
-					content := string(data)
-					if idx := strings.Index(content, "\n"); idx > 0 {
-						firstLine := content[:idx]
-						if strings.Contains(firstLine, "description:") {
-							descLine := strings.Index(content[idx:], "\n")
-							if descLine > 0 {
-								description = strings.TrimSpace(content[idx+descLine : idx+descLine])
-							}
+					var manifest map[string]interface{}
+					if err := json.Unmarshal(data, &manifest); err == nil {
+						if desc, ok := manifest["description"].(string); ok {
+							description = desc
 						}
 					}
 				}

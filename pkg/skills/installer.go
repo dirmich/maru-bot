@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -137,19 +136,15 @@ func (si *SkillInstaller) ListBuiltinSkills() []BuiltinSkill {
 		if entry.IsDir() {
 			_ = entry
 			skillName := entry.Name()
-			skillFile := filepath.Join(builtinSkillsDir, skillName, "SKILL.md")
+			manifestFile := filepath.Join(builtinSkillsDir, skillName, "manifest.json")
 
-			data, err := os.ReadFile(skillFile)
+			data, err := os.ReadFile(manifestFile)
 			description := ""
 			if err == nil {
-				content := string(data)
-				if idx := strings.Index(content, "\n"); idx > 0 {
-					firstLine := content[:idx]
-					if strings.Contains(firstLine, "description:") {
-						descLine := strings.Index(content[idx:], "\n")
-						if descLine > 0 {
-							description = strings.TrimSpace(content[idx+descLine : idx+descLine])
-						}
+				var manifest map[string]interface{}
+				if err := json.Unmarshal(data, &manifest); err == nil {
+					if desc, ok := manifest["description"].(string); ok {
+						description = desc
 					}
 				}
 			}
