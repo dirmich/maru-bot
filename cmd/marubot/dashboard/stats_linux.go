@@ -66,5 +66,11 @@ func getPlatformStats() map[string]interface{} {
 	}
 
 	stats["os"] = "Linux"
+	stats["is_raspberry_pi"] = false
+	if dt, err := os.ReadFile("/proc/device-tree/model"); err == nil {
+		if strings.Contains(string(dt), "Raspberry Pi") {
+			stats["is_raspberry_pi"] = true
+		}
+	}
 	return stats
 }

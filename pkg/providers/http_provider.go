@@ -165,11 +165,8 @@ func (p *HTTPProvider) GetDefaultModel() string {
 	return ""
 }
 
-func CreateProvider(cfg *config.Config) (LLMProvider, error) {
-	model := cfg.Agents.Defaults.Model
-
+func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error) {
 	var apiKey, apiBase string
-
 	lowerModel := strings.ToLower(model)
 
 	// Explicit provider prefixes
@@ -270,4 +267,101 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 	}
 
 	return NewHTTPProvider(apiKey, apiBase), nil
+}
+
+type fallbackEntry struct {
+	provider LLMProvider
+	model    string
+}
+
+type FallbackProvider struct {
+	entries []fallbackEntry
+}
+
+func (p *FallbackProvider) Chat(ctx context.Context, messages []Message, tools []ToolDefinition, model string, options map[string]interface{}) (*LLMResponse, error) {
+	var lastErr error
+	for i, entry := range p.entries {
+		targetModel := model
+		if i > 0 { // For fallback attempts, use the model explicitly associated with that provider
+			targetModel = entry.model
+		}
+
+		resp, err := entry.provider.Chat(ctx, messages, tools, targetModel, options)
+		if err == nil {
+			return resp, nil
+		}
+		lastErr = err
+
+		if i < len(p.entries)-1 {
+			// Log fallback attempt to console
+			fmt.Printf("⚠️ Provider '%s' failed (%v). Falling back to '%s'...\n", targetModel, err, p.entries[i+1].model)
+		}
+	}
+	return nil, fmt.Errorf("all LLM providers failed. Last error: %w", lastErr)
+}
+
+func (p *FallbackProvider) GetDefaultModel() string {
+	if len(p.entries) > 0 {
+		return p.entries[0].model
+	}
+	return ""
+}
+
+func CreateProvider(cfg *config.Config) (LLMProvider, error) {
+	primaryModel := cfg.Agents.Defaults.Model
+	primaryProvider, err := createSingleProvider(primaryModel, cfg)
+
+	fallback := &FallbackProvider{entries: make([]fallbackEntry, 0)}
+
+	if err == nil && primaryProvider != nil {
+		fallback.entries = append(fallback.entries, fallbackEntry{provider: primaryProvider, model: primaryModel})
+	}
+
+	// 1. Fallback to OpenAI if available
+	if cfg.Providers.OpenAI.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "gpt") {
+		if p, _ := createSingleProvider("openai/gpt-4o", cfg); p != nil {
+			fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "gpt-4o"})
+		}
+	}
+
+	// 2. Fallback to Gemini if available
+	if cfg.Providers.Gemini.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "gemini") {
+		if p, _ := createSingleProvider("google/gemini-2.5-flash", cfg); p != nil {
+			fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "gemini-2.5-flash"})
+		}
+	}
+
+	// 3. Fallback to Anthropic if available
+	if cfg.Providers.Anthropic.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "claude") {
+		if p, _ := createSingleProvider("anthropic/claude-3-5-sonnet-20241022", cfg); p != nil {
+			fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "claude-3-5-sonnet-20241022"})
+		}
+	}
+
+	// 4. Fallback to Zhipu if available
+	if cfg.Providers.Zhipu.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "glm") {
+		if p, _ := createSingleProvider("glm-4", cfg); p != nil {
+			fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "glm-4"})
+		}
+	}
+
+	// 5. Fallback to Groq if available
+	if cfg.Providers.Groq.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "groq") {
+		if p, _ := createSingleProvider("groq/llama3-70b-8192", cfg); p != nil {
+			fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "llama3-70b-8192"})
+		}
+	}
+
+	// 6. Fallback to OpenRouter (using a safe default like claude-3.5-sonnet) if available
+	if cfg.Providers.OpenRouter.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "openrouter") {
+		if p, _ := createSingleProvider("openrouter/anthropic/claude-3.5-sonnet", cfg); p != nil {
+			fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "anthropic/claude-3.5-sonnet"})
+		}
+	}
+
+	if len(fallback.entries) == 0 {
+		return nil, fmt.Errorf("no valid AI providers configured")
+	}
+
+	return fallback, nil
 }

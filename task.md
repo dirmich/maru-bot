@@ -26,9 +26,12 @@
 - [x] v0.4.39: RAG 중복 제거 및 정체성 데이터 청소 (툴/스킬 중복 해결)
 - [x] v0.4.40: 범용 플랫폼 지원 (Generic Linux, Windows) 지원 확장
 - [x] v0.4.42: 자기 진화(Auto-Evolution) 시스템 고도화 및 정체성 정립
-- [ ] v0.4.43: README 전면 개편 및 모든 기능 문서화 (10MB 메모리 강조)
-    - [ ] `README.md` (KR) 및 `README-en.md` (EN) 고도화
-    - [ ] 공개 저장소(`maru-bot`) 전 영역 문서 동기화 및 바이너리 릴리스
+- [x] v0.4.43: README 전면 개편 및 모든 기능 문서화 (10MB 메모리 강조)
+    - [x] `README.md` (KR) 및 `README-en.md` (EN) 고도화
+    - [x] 사용자 지침(영문 커밋 등) `USER.md` 영구 기록 및 웹어드민 하드웨어 메뉴 스마트 필터링 적용
+    - [x] 공개 저장소(`maru-bot`) 전 영역 문서 동기화 및 바이너리 릴리스
+- [ ] v0.4.44: `install.sh` 내 `git` 미탑재 환경 소스 확보 폴백 구현
+    - [ ] `git clone` 실패 시 `curl` 또는 `wget`으로 GitHub archive(tar.gz) 획득 로직 추가
 - [x] **Task 2.3: IMU(MPU6050) 가속도/자이로 센서 연동**
     - [x] I2C 통신 기반 센서 데이터 읽기
     - [x] 로봇의 기울기 및 방향(Bearing) 계산 도구 구현

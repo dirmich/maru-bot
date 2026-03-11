@@ -5,6 +5,7 @@ package dashboard
 
 func getPlatformStats() map[string]interface{} {
 	return map[string]interface{}{
-		"os": "Unknown",
+		"os":              "Unknown",
+		"is_raspberry_pi": false,
 	}
 }

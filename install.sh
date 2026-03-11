@@ -171,17 +171,44 @@ INSTALL_DIR="$HOME/marubot"
 if [ -d "$INSTALL_DIR" ]; then
     echo -e "${BLUE}🔄 Updating to latest source code...${NC}"
     cd "$INSTALL_DIR"
-    if ! git pull; then
-        echo -e "${YELLOW}⚠️ Git update failed. Retrying fresh clone...${NC}"
+    if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
+        if ! git pull; then
+            echo -e "${YELLOW}⚠️ Git update failed. Retrying fresh clone...${NC}"
+            cd "$HOME"
+            rm -rf "$INSTALL_DIR"
+            git clone --depth 1 https://github.com/dirmich/maru-bot.git "$INSTALL_DIR"
+            cd "$INSTALL_DIR"
+        fi
+    else
+        echo -e "${YELLOW}⚠️ 'git' not found or not a git repository. Downloading fresh archive...${NC}"
         cd "$HOME"
         rm -rf "$INSTALL_DIR"
-        git clone --depth 1 https://github.com/dirmich/maru-bot.git "$INSTALL_DIR"
+        mkdir -p "$INSTALL_DIR"
+        if command -v curl >/dev/null 2>&1; then
+            curl -fsSL https://github.com/dirmich/maru-bot/archive/refs/heads/main.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
+        else
+            wget -qO- https://github.com/dirmich/maru-bot/archive/refs/heads/main.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
+        fi
         cd "$INSTALL_DIR"
     fi
 else
     echo -e "${BLUE}${MSG_CLONE}${NC}"
-    git clone --depth 1 https://github.com/dirmich/maru-bot.git "$INSTALL_DIR"
-    cd "$INSTALL_DIR"
+    if command -v git >/dev/null 2>&1; then
+        git clone --depth 1 https://github.com/dirmich/maru-bot.git "$INSTALL_DIR"
+        cd "$INSTALL_DIR"
+    else
+        echo -e "${YELLOW}⚠️ 'git' not found. Downloading archive via curl/wget...${NC}"
+        mkdir -p "$INSTALL_DIR"
+        if command -v curl >/dev/null 2>&1; then
+            curl -fsSL https://github.com/dirmich/maru-bot/archive/refs/heads/main.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
+        elif command -v wget >/dev/null 2>&1; then
+            wget -qO- https://github.com/dirmich/maru-bot/archive/refs/heads/main.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
+        else
+            echo -e "${RED}❌ Neither git, curl, nor wget are available. Cannot download source code.${NC}"
+            exit 1
+        fi
+        cd "$INSTALL_DIR"
+    fi
 fi
 
 # 4. Install Optional Web Admin Build Tools (Only if source is present)

@@ -39,7 +39,8 @@ export function Sidebar() {
     const [versionInfo, setVersionInfo] = useState({
         version: "v0.0.0",
         latest_version: "",
-        is_update_available: false
+        is_update_available: false,
+        is_raspberry_pi: false
     });
     const [isUpgrading, setIsUpgrading] = useState(false);
     const [confirmUpgradeOpen, setConfirmUpgradeOpen] = useState(false);
@@ -53,7 +54,8 @@ export function Sidebar() {
                     setVersionInfo({
                         version: data.version || "v0.0.0",
                         latest_version: data.latest_version || "",
-                        is_update_available: !!data.is_update_available
+                        is_update_available: !!data.is_update_available,
+                        is_raspberry_pi: !!data.is_raspberry_pi
                     });
                 }
             } catch (error) {
@@ -89,7 +91,7 @@ export function Sidebar() {
     const menuItems = [
         { name: t.dashboard || "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { name: t.chat, href: "/chat", icon: MessageSquare },
-        { name: t.gpio, href: "/gpio", icon: Cpu },
+        ...(versionInfo.is_raspberry_pi ? [{ name: t.gpio, href: "/gpio", icon: Cpu }] : []),
         { name: t.skills, href: "/skills", icon: Package },
         { name: t.settings, href: "/settings", icon: Settings },
         { name: t.logs, href: "/logs", icon: ScrollText },
