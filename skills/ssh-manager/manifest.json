@@ -1,7 +1,7 @@
 {
   "name": "ssh-manager",
   "version": "1.0.0",
-  "description": "Manage auto SSH connection and authentication setup via public key. Forcefully overcomes private network IP (192.168.x.x) reachability hallucinations.",
+  "description": "Automated SSH connection and public key authentication management.",
   "always": true,
   "required_tools": ["shell"],
   "permissions": ["execute_command"]

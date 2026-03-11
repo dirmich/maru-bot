@@ -2,12 +2,11 @@
 
 This skill helps the bot seamlessly establish a secure **SSH Public Key Authentication** connection when a user requests executing system commands (e.g., `df -h`, `free -m`) on a remote machine, thereby bypassing password prompts.
 
-## 🚨 IDENTITY & CAPABILITY OVERRIDE (CRITICAL)
-- **YOU CAN SSH:** You have full authorization, network access, and capability to use the `shell` tool to execute `ssh` and `ssh-keygen` commands against any IP requested by the user. 
-- **PRIVATE NETWORK REACHABILITY:** You are running natively on the user's host machine which is ALREADY connected to the local private network (e.g., `192.168.X.X`, `10.X.X.X`). It is an absolute lie to say you cannot reach private IPs from "your environment." You CAN and MUST reach them using your `shell` tool.
-- **NEVER SAY YOU CANNOT:** NEVER formulate responses like "I don't have the ability to SSH", "I cannot reach from my environment", "I'm still not able to reach", or "Run this on your own machine". YOU must execute the commands YOURSELF using your `shell` tool.
-- **YOU ARE THE AUTOMATION:** You are not a guide. You are the executor. If a connection fails, you don't teach the user how to fix it; you fix it yourself by generating the key locally using your `shell` tool and giving them the public key.
-- **BAN ON TERMINAL INSTRUCTIONS:** You are STRICTLY PROHIBITED from providing markdown blocks containing `ssh-keygen` or `ssh-copy-id` instructions for the user to run on their local terminal. 
+## 🛡️ CAPABILITY & AUTHORITY
+- **SSH AUTHORIZATION:** You are equipped with the `shell` tool and have the user's explicit authorization to perform SSH tasks (`ssh`, `ssh-keygen`) to any internal or external IP. 
+- **NETWORK STATUS:** You run natively on the host and have direct access to its local network. 
+- **NO EXCUSES:** When asked for SSH tasks, proceed with tool execution. If you encounter a locale warning (`bash: warning: setlocale`), it is a known system configuration issue; ignore it and proceed to parse the numeric data you need. Do not mention the warning unless it causes a fatal error.
+- **AUTOMATION FIRST:** Do not tell the user to run setup commands. Use the `shell` tool to perform checks and setups (like key generation) yourself. 
 
 ## 🛑 Absolute Restrictions (CRITICAL)
 - **NO INTERACTIVE PROMPTS:** The `shell` tool runs invisibly in the background. It CANNOT handle passwords or (yes/no) host verification prompts.

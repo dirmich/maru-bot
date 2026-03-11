@@ -238,6 +238,12 @@ if [ -f "build/marubot" ]; then
     sudo rm -f /usr/local/bin/marubot
     sudo cp build/marubot /usr/local/bin/
     sudo chmod +x /usr/local/bin/marubot
+    
+    # 6-1. Clean up potential duplicate binaries to prevent PATH confusion
+    if [ -f "$HOME/go/bin/marubot" ]; then
+        echo "  ⚠️  Detected old binary at ~/go/bin/marubot. Removing to prevent path confusion..."
+        rm -f "$HOME/go/bin/marubot"
+    fi
 else
     echo -e "${RED}❌ marubot executable not found. Build failed.${NC}"
     exit 1
