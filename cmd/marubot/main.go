@@ -486,7 +486,12 @@ Discussions: https://marubot/discussions
 
 	for filename, content := range templates {
 		filePath := filepath.Join(workspace, filename)
-		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		// For IDENTITY.md, we always overwrite it to ensure it has the correct current version.
+		// For others, we only create if they don't exist.
+		if filename == "IDENTITY.md" {
+			os.WriteFile(filePath, []byte(content), 0644)
+			fmt.Printf("  Updated %s (current version: %s)\n", filename, config.Version)
+		} else if _, err := os.Stat(filePath); os.IsNotExist(err) {
 			os.WriteFile(filePath, []byte(content), 0644)
 			fmt.Printf("  Created %s\n", filename)
 		}
