@@ -1,0 +1,15 @@
+[MaruBot] Status
+
+Config: C:\Users\user\.marubot\config.json
+Workspace: C:\Users\user/.marubot/workspace
+Model: gpt-oss-safeguard:20b
+User Settings: C:\Users\user\.marubot\usersetting.json (OK)
+OpenRouter API: not set
+Anthropic API: not set
+OpenAI API: not set
+Gemini API: not set
+Zhipu API: not set
+Groq API: not set
+vLLM/Local API: (OK)
+  - Base: https://ollama2.lab.highmaru.com/v1
+  - Key:  loca...-key

@@ -1,0 +1,2 @@
+
+[MaruBot] {"command":"cmd /c echo %USERPROFILE%"}
