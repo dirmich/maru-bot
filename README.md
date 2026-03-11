@@ -1,10 +1,10 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.11) 🦞
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.31) 🦞
 
-**MaruBot** is a **"Physical AI Assistant"** optimized for directly controlling hardware and interacting on SBCs (Single Board Computers) like Raspberry Pi, based on the ultra-lightweight MaruBot engine.
-
-## ✨ 0.4.6 Update
-- **GPIO Legend Fix**: Improved the layout and styling of the GPIO color guide for better readability.
-- **Visual Refinement**: Fixed color boxes alignment and overlap issues in the Web Admin dashboard.
+## ✨ 0.4.31 Update (Advanced Memory System)
+- **Intelligent Long-term Memory (RAG)**: Uses SQLite-based FTS5 to retrieve and recall past conversations contextually.
+- **Divided Memory Architecture**: Separates Short-term Memory (recent messages) and Long-term Memory (historical facts/chunks) for optimal performance.
+- **Auto Data Migration**: Seamlessly moves existing JSON sessions to the high-performance SQLite database.
+- **Enhanced SSH Stability**: Resolved LLM's network hallucinations regarding private IP access.
 
 ---
 

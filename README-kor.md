@@ -1,10 +1,12 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.11) 🦞
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.31) 🦞
 
 **MaruBot**은 MaruBot의 초경량 엔진을 기반으로, Raspberry Pi와 같은 SBC(Single Board Computer)에서 하드웨어를 직접 제어하고 소통하기 위해 최적화된 **"Physical AI Assistant"**입니다.
 
-## ✨ 0.4.6 업데이트
-- **GPIO 컬러 범례 개선**: GPIO 컬러 가이드의 레이아웃과 스타일을 개선하여 가독성을 높였습니다.
-- **시각적 최적화**: Web Admin 대시보드에서 컬러 박스 정렬 및 겹침 문제를 해결했습니다.
+## ✨ 0.4.31 업데이트 (RAG 기억 시스템)
+- **똑똑한 장기 기억 (LTM)**: SQLite 기반 RAG(Retrieval-Augmented Generation) 시스템을 도입하여 수개월 전의 대화도 키워드로 찾아내 답변합니다.
+- **STM/LTM 분리**: 최근 대화(단기)는 인메모리로 빠르게, 오래된 대화(장기)는 DB 검색을 통해 효율적으로 처리하는 3단계 기억 아키텍처를 구현했습니다.
+- **자동 마이그레이션**: 기존 JSON 대화 내역을 새로운 DB로 자동 변환해 줍니다.
+- **SSH 안정성 개선**: 사설망 접근 시 발생하던 AI의 환각(접근 거부) 문제를 해결하고 SSH 자동화를 강화했습니다.
 
 ---
 
@@ -120,4 +122,4 @@ MaruBot의 철학을 계승하여 MIT License를 따릅니다.
 
 MaruBot은 [picoclaw](https://github.com/sipeed/picoclaw)를 기본으로 Raspberry Pi에 맞게 기능이 추가되었습니다.
 
-*개발 및 분석: Antigravity AI (2026-02-19)*
+*개발 및 분석: Antigravity AI (2026-03-11)*
