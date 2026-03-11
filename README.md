@@ -1,10 +1,10 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.32) 🦞
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.11) 🦞
 
-## ✨ 0.4.32 Update (Memory System & Hotfix)
-- **Intelligent Long-term Memory (RAG)**: Uses SQLite-based FTS5 to retrieve and recall past conversations contextually.
-- **Reload Hotfix**: Resolved the issue where the version was not immediately reflected on Telegram after an upgrade by adding `systemd daemon-reload`.
-- **Divided Memory Architecture**: Separates Short-term Memory (recent messages) and Long-term Memory (historical facts/chunks) for optimal performance.
-- **Enhanced SSH Stability**: Resolved LLM's network hallucinations regarding private IP access.
+**MaruBot** is a **"Physical AI Assistant"** optimized for directly controlling hardware and interacting on SBCs (Single Board Computers) like Raspberry Pi, based on the ultra-lightweight MaruBot engine.
+
+## ✨ 0.4.6 Update
+- **GPIO Legend Fix**: Improved the layout and styling of the GPIO color guide for better readability.
+- **Visual Refinement**: Fixed color boxes alignment and overlap issues in the Web Admin dashboard.
 
 ---
 
