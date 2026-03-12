@@ -42,13 +42,12 @@ import (
 	"github.com/kardianos/service"
 )
 
+// 0.4.57: Revert tray icon to PNG (32x32) for better compatibility, add workspace auto-init
 // 0.4.56: Fix Windows elevation prompt with --elevated flag and better quoting
-// 0.4.55: Fix Windows elevation infinite loop, improve runAsAdmin with MARUBOT_ELEVATED
-// 0.4.49: Fix Windows binary corruption by keeping releases clean, add service elevation (Admin check)
 
 const logo = "[MaruBot]"
 
-//go:embed assets/tray_icon.ico
+//go:embed assets/tray_icon.png
 var trayIconBytes []byte
 
 var Version = config.Version
@@ -2177,6 +2176,34 @@ if ($result -eq "Yes") {
 	return false
 }
 
+func setupWorkspace() error {
+	baseDir := getResourceDir()
+	dirs := []string{
+		"bin",
+		"config",
+		"skills",
+		"tools",
+		"workspace",
+		"db",
+	}
+
+	for _, d := range dirs {
+		path := filepath.Join(baseDir, d)
+		if err := os.MkdirAll(path, 0755); err != nil {
+			return fmt.Errorf("failed to create directory %s: %v", path, err)
+		}
+	}
+
+	// Double check IDENTITY or initial config if needed
+	configPath := filepath.Join(baseDir, "config", "maru-config.json")
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		// If not exists, we'll let LoadConfig handle it or we could copy a default here
+		// For now, at least the folders are there
+	}
+
+	return nil
+}
+
 func installBinary() (string, error) {
 	exe, _ := os.Executable()
 	installDir := filepath.Join(getResourceDir(), "bin")
@@ -2234,6 +2261,9 @@ func handleWindowsGUIMode() {
 			os.Exit(0)
 		}
 	}
+
+	// 0. Initialization
+	setupWorkspace()
 
 	targetExe, err := installBinary()
 	if err != nil {
