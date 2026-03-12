@@ -1,4 +1,4 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.58) 🦞
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.59) 🦞
 
 **MaruBot** is an ultra-efficient, physical AI assistant inspired by the philosophy of [PicoClaw](https://github.com/sipeed/picoclaw). It is designed to run in extremely constrained environments, requiring as little as **10MB of RAM**. MaruBot supports Raspberry Pi, Generic Linux servers, and Windows PCs, and features a powerful 'Auto-Evolution' engine that allows it to expand its own capabilities autonomously.
 
@@ -14,6 +14,7 @@
 - **Raspberry Pi:** Full support for GPIO, camera, and hardware sensors (ARM32/64).
 - **Linux:** Compatible with Ubuntu, Debian, AWS EC2, and other standard Linux distros.
 - **Windows:** Official support for both 64-bit (amd64) and 32-bit (386) architectures.
+- **macOS:** Official support for Intel and Apple Silicon (arm64) via DMG installers.
 
 ### 3. 🧬 Auto-Evolution Engine
 - **`create_tool`**: The agent can autonomously code and register new atomic tools using Bash or Python scripts.
@@ -51,6 +52,11 @@ For Windows users, we recommend downloading the files from the **Official Releas
 1. Visit the [Official Release Page](https://github.com/dirmich/maru-bot/releases).
 2. Download the `marubot-windows-xxx.zip` or `exe` appropriate for your OS (64-bit or 32-bit).
 3. Running the downloaded file will automatically install MaruBot to `~/.marubot/bin` and activate the tray icon.
+
+### 3. 🍎 macOS (GUI)
+1. Visit the [Official Release Page](https://github.com/dirmich/maru-bot/releases).
+2. Download the `.dmg` file for your CPU architecture (Intel or Apple Silicon).
+3. Open the DMG and run `MaruBot.app` to see the icon in your menu bar.
 
 > [!TIP]
 > **Note for Windows Users**: Since the binary is not signed with a commercial certificate, you might see a 'Windows protected your PC' warning from SmartScreen. This is expected. To run MaruBot, click **'More info'** and then **'Run anyway'**.
@@ -105,4 +111,4 @@ MaruBot automatically detects your platform and enables supported tools:
 ## 📝 License
 MaruBot follows the MIT License. Feel free to modify and distribute.
 
-*Developed & Analyzed by Antigravity AI (2026-03-11)*
+*Developed & Analyzed by Antigravity AI (2026-03-12)*

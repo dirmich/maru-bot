@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/dirmich/marubot/cmd/marubot/dashboard"
@@ -38,7 +39,6 @@ import (
 	"github.com/dirmich/marubot/pkg/voice"
 
 	"github.com/chzyer/readline"
-	"github.com/getlantern/systray"
 	"github.com/kardianos/service"
 )
 
@@ -48,7 +48,10 @@ import (
 const logo = "[MaruBot]"
 
 //go:embed assets/tray_icon.ico
-var trayIconBytes []byte
+var trayIconIco []byte
+
+//go:embed assets/tray_icon.png
+var trayIconPng []byte
 
 var Version = config.Version
 
@@ -88,8 +91,8 @@ func copyDirectory(src, dst string) error {
 
 func main() {
 	if len(os.Args) < 2 || (len(os.Args) == 2 && os.Args[1] == "--elevated") {
-		if runtime.GOOS == "windows" {
-			handleWindowsGUIMode()
+		if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+			handleGUIMode()
 			return
 		}
 		printHelp()
@@ -1772,6 +1775,31 @@ func getPidFilePath() string {
 	return filepath.Join(getResourceDir(), "marubot.pid")
 }
 
+func isMarubotProcessRunning() bool {
+	pidFile := getPidFilePath()
+	data, err := os.ReadFile(pidFile)
+	if err != nil {
+		return false
+	}
+
+	pidStr := strings.TrimSpace(string(data))
+	var pid int
+	fmt.Sscanf(pidStr, "%d", &pid)
+
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+
+	// On Unix, FindProcess always succeeds. Need to send signal 0 to check if it's actually alive.
+	if runtime.GOOS != "windows" {
+		err := proc.Signal(syscall.Signal(0))
+		return err == nil
+	}
+
+	return true
+}
+
 func stopCmd() {
 	stoppedViaSystemd := false
 	if runtime.GOOS == "linux" {
@@ -2247,46 +2275,6 @@ func installBinary() (string, error) {
 	return targetPath, nil
 }
 
-func handleWindowsGUIMode() {
-	// Check for elevation flag
-	isElevated := false
-	for _, arg := range os.Args {
-		if arg == "--elevated" {
-			isElevated = true
-			break
-		}
-	}
-
-	// 1. Install binary to fixed location if not there
-	// Before installing, check if we need admin rights
-	if !isAdmin() && !isElevated {
-		targetExe, _ := getTargetBinaryPath()
-		// If binary doesn't exist, try to set up
-		if _, err := os.Stat(targetExe); err != nil {
-			fmt.Println("Elevation required for installation. Requesting administrator privileges...")
-			runAsAdmin()
-			os.Exit(0)
-		}
-	}
-
-	// 0. Initialization
-	setupWorkspace()
-
-	targetExe, err := installBinary()
-	if err != nil {
-		fmt.Printf("Installation failed: %v\n", err)
-		if !isElevated {
-			runAsAdmin()
-			os.Exit(0)
-		} else {
-			fmt.Println("Failed to install even with elevation. Please run marubot as Administrator manually.")
-		}
-	}
-
-	// 2. Start Tray Icon (this blocks, so we run logic in onReady)
-	systray.Run(func() { onTrayReady(targetExe) }, onTrayExit)
-}
-
 func getTargetBinaryPath() (string, error) {
 	installDir := filepath.Join(getResourceDir(), "bin")
 	targetPath := filepath.Join(installDir, "marubot.exe")
@@ -2294,74 +2282,6 @@ func getTargetBinaryPath() (string, error) {
 		targetPath = filepath.Join(installDir, "marubot")
 	}
 	return targetPath, nil
-}
-
-func onTrayReady(targetExe string) {
-	systray.SetTitle("MaruBot")
-	systray.SetTooltip("MaruBot - AI Agent Service")
-	systray.SetIcon(trayIconBytes)
-
-	mDashboard := systray.AddMenuItem("Dashboard", "Open Web-Admin")
-	systray.AddSeparator()
-	mStart := systray.AddMenuItem("Start MaruBot", "Start the service")
-	mStop := systray.AddMenuItem("Stop MaruBot", "Stop the service")
-	systray.AddSeparator()
-	mUninstall := systray.AddMenuItem("Uninstall MaruBot", "Remove service and cleanup")
-	mExit := systray.AddMenuItem("Exit", "Exit tray only")
-
-	// 3. Initial check and install
-	cfg, _ := loadConfig()
-	if !checkAndFixPort(cfg) {
-		systray.Quit()
-		return
-	}
-
-	svcConfig := &service.Config{Name: "MaruBot"}
-	s, _ := service.New(&program{}, svcConfig)
-	status, _ := s.Status()
-
-	if status == service.StatusUnknown {
-		serviceCmdInternalPath("install", targetExe)
-		time.Sleep(1 * time.Second)
-		serviceCmdInternalPath("start", targetExe)
-	} else if status != service.StatusRunning {
-		serviceCmdInternalPath("start", targetExe)
-	}
-
-	// Auto-open browser on first start
-	openBrowser(fmt.Sprintf("http://localhost:%d", cfg.Gateway.Port))
-
-	// Menu Handlers
-	go func() {
-		for {
-			select {
-			case <-mDashboard.ClickedCh:
-				currCfg, _ := loadConfig()
-				openBrowser(fmt.Sprintf("http://localhost:%d", currCfg.Gateway.Port))
-			case <-mStart.ClickedCh:
-				fmt.Println("Starting MaruBot service...")
-				serviceCmdInternalPath("start", targetExe)
-				time.Sleep(2 * time.Second) // Give time to start
-			case <-mStop.ClickedCh:
-				fmt.Println("Stopping MaruBot service...")
-				serviceCmdInternalPath("stop", targetExe)
-				time.Sleep(1 * time.Second)
-			case <-mUninstall.ClickedCh:
-				fmt.Println("Uninstalling MaruBot (Requesting elevation)...")
-				runAsAdminAction("uninstall")
-				systray.Quit()
-				os.Exit(0)
-			case <-mExit.ClickedCh:
-				fmt.Println("Exiting tray...")
-				systray.Quit()
-				os.Exit(0)
-			}
-		}
-	}()
-}
-
-func onTrayExit() {
-	// Cleanup on exit
 }
 
 func serviceCmdInternalPath(sub string, exePath string) {

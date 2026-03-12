@@ -136,10 +136,17 @@ fi
 GO_REQUIRED="1.24"
 INSTALL_GO=false
 
-if [ -f "/usr/local/go/bin/go" ]; then
-    EXISTING_VERSION=$(/usr/local/go/bin/go version | awk '{print $3}' | sed 's/go//')
+# Check for go in common locations
+if command -v go >/dev/null 2>&1; then
+    DETECTED_GO=$(command -v go)
+elif [ -f "/usr/local/go/bin/go" ]; then
+    DETECTED_GO="/usr/local/go/bin/go"
+fi
+
+if [ ! -z "$DETECTED_GO" ]; then
+    EXISTING_VERSION=$($DETECTED_GO version | awk '{print $3}' | sed 's/go//')
     if [[ "$EXISTING_VERSION" == "$GO_REQUIRED"* ]] || [[ "$EXISTING_VERSION" > "$GO_REQUIRED" ]]; then
-        echo -e "${GREEN}✓ Go $EXISTING_VERSION is already installed.${NC}"
+        echo -e "${GREEN}✓ Go $EXISTING_VERSION is already installed at $DETECTED_GO.${NC}"
         INSTALL_GO=false
     else
         echo -e "${BLUE}ℹ️ Upgrading Go from $EXISTING_VERSION to $GO_REQUIRED+...${NC}"
@@ -161,10 +168,18 @@ if [ "$INSTALL_GO" = true ]; then
     if ! grep -q "/usr/local/go/bin" ~/.bashrc; then echo 'export PATH=/usr/local/go/bin:$PATH' >> ~/.bashrc; fi
 fi
 
-# Ensure /usr/local/go/bin is at the front of PATH for this script session
-export PATH=/usr/local/go/bin:$PATH
-GO_CMD="/usr/local/go/bin/go"
-if [ ! -f "$GO_CMD" ]; then GO_CMD="go"; fi
+# Ensure Go is in PATH for this script session
+if [ -f "/usr/local/go/bin/go" ]; then
+    export PATH=/usr/local/go/bin:$PATH
+    GO_CMD="/usr/local/go/bin/go"
+else
+    GO_CMD=$(command -v go)
+fi
+
+if [ -z "$GO_CMD" ]; then
+    echo -e "${RED}❌ Go not found even after installation attempt.${NC}"
+    exit 1
+fi
 
 # 3. Clone Source Code
 INSTALL_DIR="$HOME/marubot"
