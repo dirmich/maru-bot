@@ -41,8 +41,8 @@ import (
 	"github.com/kardianos/service"
 )
 
+// 0.4.55: Fix Windows elevation infinite loop, improve runAsAdmin with MARUBOT_ELEVATED
 // 0.4.54: Force 8080 port, Complete uninstall cleanup, Fix lint warnings
-// 0.4.53: Fixed 8080 port, Binary relocation (~/.marubot/bin), and Uninstall improvements
 // 0.4.49: Fix Windows binary corruption by keeping releases clean, add service elevation (Admin check)
 
 var Version = config.Version
@@ -2084,11 +2084,17 @@ func isAdmin() bool {
 }
 
 func runAsAdmin() {
+	if os.Getenv("MARUBOT_ELEVATED") == "1" {
+		fmt.Println("Already tried to elevate and failed. Please run manually as Administrator.")
+		return
+	}
+
 	exe, _ := os.Executable()
 	args := strings.Join(os.Args[1:], " ")
 
 	// PowerShell way which is more reliable for elevation
 	cmd := exec.Command("powershell", "Start-Process", "-FilePath", exe, "-ArgumentList", args, "-Verb", "RunAs")
+	cmd.Env = append(os.Environ(), "MARUBOT_ELEVATED=1")
 	err := cmd.Run()
 	if err != nil {
 		fmt.Printf("Failed to elevate: %v\n", err)
@@ -2198,13 +2204,39 @@ func installBinary() (string, error) {
 
 func handleWindowsGUIMode() {
 	// 1. Install binary to fixed location if not there
+	// Before installing, check if we need admin rights
+	if !isAdmin() && os.Getenv("MARUBOT_ELEVATED") != "1" {
+		targetExe, _ := getTargetBinaryPath()
+		// If binary doesn't exist or we don't have write access, try to elevate
+		if _, err := os.Stat(targetExe); err != nil {
+			fmt.Println("Elevation required for installation. Requesting administrator privileges...")
+			runAsAdmin()
+			os.Exit(0)
+		}
+	}
+
 	targetExe, err := installBinary()
 	if err != nil {
 		fmt.Printf("Installation failed: %v\n", err)
+		if os.Getenv("MARUBOT_ELEVATED") != "1" {
+			runAsAdmin()
+			os.Exit(0)
+		} else {
+			fmt.Println("Failed to install even with elevation. Please run marubot as Administrator manually.")
+		}
 	}
 
 	// 2. Start Tray Icon (this blocks, so we run logic in onReady)
 	systray.Run(func() { onTrayReady(targetExe) }, onTrayExit)
+}
+
+func getTargetBinaryPath() (string, error) {
+	installDir := filepath.Join(getResourceDir(), "bin")
+	targetPath := filepath.Join(installDir, "marubot.exe")
+	if runtime.GOOS != "windows" {
+		targetPath = filepath.Join(installDir, "marubot")
+	}
+	return targetPath, nil
 }
 
 func onTrayReady(targetExe string) {
