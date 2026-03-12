@@ -30,6 +30,26 @@
 
 ---
 
+### 🤖 AI Models & Fallback
+MaruBot supports multiple AI providers. You can configure a primary model and a list of fallback models in your `config.json`:
+
+```json
+{
+  "agents": {
+    "defaults": {
+      "model": "glm-4.7",
+      "fallback_models": ["gpt-4o", "claude-3-5-sonnet", "gemini-2.0-flash"]
+    }
+  }
+}
+```
+If the primary provider fails, MaruBot will automatically try the fallback models in order.
+
+### 🪟 Windows Deployment
+For Windows users, we provide two types of distributions in the [Releases](https://github.com/dirmich/maru-bot/releases) section:
+1. **Single Binary (`marubot.exe`)**: A standalone executable for quick use.
+2. **Installable Package (`marubot-windows-x64.zip`)**: Includes the executable, default configuration, and a quick-start guide.
+
 ## 📂 폴더 구조
 - `/config`: MaruBot 하드웨어 및 에이전트 전역 설정.
 - `/skills`: AI 에이전트가 학습한 전문 지식 및 가이드라인 (`SKILL.md`).

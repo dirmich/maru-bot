@@ -93,6 +93,25 @@ build-all:
 	@# CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 ./$(CMD_DIR)
 	@echo "All builds complete"
 
+## package-win: Package Windows binaries into ZIP files (Single + Installable)
+package-win: build-all
+	@echo "Packaging Windows binaries..."
+	@mkdir -p $(BUILD_DIR)/deploy
+	@# 64-bit
+	@mkdir -p $(BUILD_DIR)/marubot-win-x64
+	@cp $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe $(BUILD_DIR)/marubot-win-x64/marubot.exe
+	@cp README.md $(BUILD_DIR)/marubot-win-x64/
+	@cp config/maru-config.json $(BUILD_DIR)/marubot-win-x64/config.json
+	@cd $(BUILD_DIR) && zip -r marubot-windows-x64.zip marubot-win-x64
+	@# 32-bit 
+	@mkdir -p $(BUILD_DIR)/marubot-win-x86
+	@cp $(BUILD_DIR)/$(BINARY_NAME)-windows-386.exe $(BUILD_DIR)/marubot-win-x86/marubot.exe
+	@cp README.md $(BUILD_DIR)/marubot-win-x86/
+	@cp config/maru-config.json $(BUILD_DIR)/marubot-win-x86/config.json
+	@cd $(BUILD_DIR) && zip -r marubot-windows-x86.zip marubot-win-x86
+	@rm -rf $(BUILD_DIR)/marubot-win-x64 $(BUILD_DIR)/marubot-win-x86
+	@echo "Windows packaging complete: $(BUILD_DIR)/marubot-windows-x64.zip, $(BUILD_DIR)/marubot-windows-x86.zip"
+
 ## install: Install marubot to system and copy builtin skills
 install: build
 	@echo "Installing $(BINARY_NAME)..."
@@ -130,7 +149,7 @@ install-skills:
 	@echo "Skills installation complete!"
 
 ## public: Sync public files to ../marubot (for public repo maintenance)
-public:
+public: package-win
 	@chmod +x scripts/publish.sh
 	@./scripts/publish.sh
 
