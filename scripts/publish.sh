@@ -103,6 +103,10 @@ if [ -d "$SOURCE_DIR/build" ]; then
     rm -rf "$WIN32_TMP"
 
     echo "  ✓ 빌드 자산 수집 및 패키징 완료 (Path: $RELEASE_DIR)"
+
+    # Copy macOS DMGs
+    echo "  🍎 Copying macOS DMGs..."
+    cp "$SOURCE_DIR/build/marubot-macos-"* "$RELEASE_DIR/"
 else
     echo "  ⚠️ build 폴더를 찾을 수 없어 바이너리 복사 건너뜜"
 fi
@@ -121,8 +125,15 @@ fi
 # 7. 명칭 최종 체크 및 치환
 echo "🔄 명칭 최종 확인 중 (maruminibot -> marubot)..."
 cd "$TARGET_DIR"
-find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -not -path './releases/*' -exec sed -i 's/maruminibot/marubot/g' {} + || true
-find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -not -path './releases/*' -exec sed -i 's/MaruMiniBot/MaruBot/g' {} + || true
+
+# Portable sed -i with encoding fix for macOS
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    LC_ALL=C find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -not -path './releases/*' -exec sed -i '' 's/maruminibot/marubot/g' {} + || true
+    LC_ALL=C find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -not -path './releases/*' -exec sed -i '' 's/MaruMiniBot/MaruBot/g' {} + || true
+else
+    find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -not -path './releases/*' -exec sed -i 's/maruminibot/marubot/g' {} + || true
+    find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -not -path './releases/*' -exec sed -i 's/MaruMiniBot/MaruBot/g' {} + || true
+fi
 
 # 8. GitHub Release 자동 업로드 ( gh CLI 사용 )
 # pkg/config/version.go 에서 버전 추출 (행 시작 부분 매칭하여 주석 제외)

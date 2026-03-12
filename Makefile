@@ -163,7 +163,7 @@ install-skills:
 	@echo "Skills installation complete!"
 
 ## public: Sync public files to ../marubot (for public repo maintenance)
-public: package-win
+public: package-win package-dmg
 	@chmod +x scripts/publish.sh
 	@./scripts/publish.sh
 
