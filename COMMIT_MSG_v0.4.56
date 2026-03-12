@@ -1,7 +1,0 @@
-v0.4.56: Windows 권한 승격 안정화, 프리미엄 트레이 아이콘(ICO) 통합 및 언인스톨 UX 개선
-
-1. Windows 권한 승격 로직 개선: --elevated 플래그 도입 및 PowerShell 호출 Quoting 보강
-2. 프리미엄 트레이 아이콘 통합: 32x32 ICO 포맷 임베딩으로 가시성 및 호환성 확보
-3. 트레이 메뉴 UX 개편: Exit(종료)와 Uninstall(완전 제거) 메뉴 분리
-4. 언인스톨 안정화: cmd.exe timeout을 이용한 지연 삭제 로직 도입
-5. 다국어 README 동기화: KOR, EN, CN, JA 모든 언어에 플랫폼별 설치 가이드 최신화 반영
