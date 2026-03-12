@@ -1,25 +1,6 @@
-import { Link, useLocation } from "react-router-dom";
-import {
-    MessageSquare,
-    Settings,
-    Package,
-    Cpu,
-    LogOut,
-    User as UserIcon,
-    ChevronLeft,
-    ChevronRight,
-    Languages,
-    ScrollText,
-    LayoutDashboard,
-    ArrowUpCircle,
-    Loader2
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui-custom-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useState, useEffect } from "react";
-import { useTranslation, useLanguageStore, Language } from "@/lib/i18n";
-import { logout } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
 import {
     Select,
     SelectContent,
@@ -27,46 +8,51 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { logout } from "@/lib/auth";
+import { Language, useLanguageStore, useTranslation } from "@/lib/i18n";
+import { useSystemStore } from "@/lib/system-store";
+import { cn } from "@/lib/utils";
+import {
+    ArrowUpCircle,
+    ChevronLeft,
+    ChevronRight,
+    Cpu,
+    Languages,
+    LayoutDashboard,
+    Loader2,
+    LogOut,
+    MessageSquare,
+    Package,
+    ScrollText,
+    Settings,
+    User as UserIcon
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
-import { ConfirmDialog } from "@/components/ui-custom-dialog";
 
 export function Sidebar() {
     const t = useTranslation();
     const { language, setLanguage } = useLanguageStore();
+    const { 
+        version, 
+        is_update_available, 
+        is_raspberry_pi, 
+        latest_version,
+        fetchSystemInfo 
+    } = useSystemStore();
+    
     const location = useLocation();
     const pathname = location.pathname;
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const [versionInfo, setVersionInfo] = useState({
-        version: "v0.0.0",
-        latest_version: "",
-        is_update_available: false,
-        is_raspberry_pi: false
-    });
     const [isUpgrading, setIsUpgrading] = useState(false);
     const [confirmUpgradeOpen, setConfirmUpgradeOpen] = useState(false);
 
     useEffect(() => {
-        const fetchVersion = async () => {
-            try {
-                const resp = await fetch("/api/system/stats");
-                if (resp.ok) {
-                    const data = await resp.json();
-                    setVersionInfo({
-                        version: data.version || "v0.0.0",
-                        latest_version: data.latest_version || "",
-                        is_update_available: !!data.is_update_available,
-                        is_raspberry_pi: !!data.is_raspberry_pi
-                    });
-                }
-            } catch (error) {
-                console.error("Failed to fetch version info", error);
-            }
-        };
-
-        fetchVersion();
-        const interval = setInterval(fetchVersion, 600000); // Check every 10 mins
+        fetchSystemInfo();
+        const interval = setInterval(fetchSystemInfo, 600000); // Check every 10 mins
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchSystemInfo]);
 
     const handleUpgrade = async () => {
         setIsUpgrading(true);
@@ -91,7 +77,7 @@ export function Sidebar() {
     const menuItems = [
         { name: t.dashboard || "Dashboard", href: "/dashboard", icon: LayoutDashboard },
         { name: t.chat, href: "/chat", icon: MessageSquare },
-        ...(versionInfo.is_raspberry_pi ? [{ name: t.gpio, href: "/gpio", icon: Cpu }] : []),
+        ...(is_raspberry_pi ? [{ name: t.gpio, href: "/gpio", icon: Cpu }] : []),
         { name: t.skills, href: "/skills", icon: Package },
         { name: t.settings, href: "/settings", icon: Settings },
         { name: t.logs, href: "/logs", icon: ScrollText },
@@ -160,7 +146,7 @@ export function Sidebar() {
 
             <div className="p-4 border-t space-y-4">
                 {/* Upgrade Button */}
-                {versionInfo.is_update_available && (
+                {is_update_available && (
                     <div className={cn("px-2", isCollapsed ? "flex justify-center" : "")}>
                         <Button
                             variant="secondary"
@@ -227,8 +213,8 @@ export function Sidebar() {
                     isCollapsed ? "text-center" : "flex justify-between"
                 )}>
                     {!isCollapsed && <span>{t.status_ok}</span>}
-                    <span className={cn(versionInfo.is_update_available && "text-indigo-500 font-bold")}>
-                        {versionInfo.version}
+                    <span className={cn(is_update_available && "text-indigo-500 font-bold")}>
+                        {version}
                     </span>
                 </div>
             </div>
@@ -237,7 +223,7 @@ export function Sidebar() {
                 open={confirmUpgradeOpen}
                 onOpenChange={setConfirmUpgradeOpen}
                 title={t.upgrade_confirm}
-                description={t.upgrade_available + ": " + versionInfo.latest_version}
+                description={t.upgrade_available + ": " + latest_version}
                 onConfirm={handleUpgrade}
             />
         </aside>

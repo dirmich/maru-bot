@@ -135,6 +135,15 @@ export const translations = {
         upgrade_button: "Upgrade Now",
         upgrading: "Upgrading... System will restart.",
         upgrade_confirm: "Do you want to upgrade to the latest version?",
+        
+        // Setup Notice
+        setup_notice_title: "Initial Configuration Required",
+        setup_notice_desc: "MaruBot requires at least one AI model and one social channel to be configured to function properly.",
+        setup_notice_ai: "AI Model: {status}",
+        setup_notice_channel: "Social Channel: {status}",
+        setup_notice_configured: "Configured",
+        setup_notice_not_configured: "Not Configured",
+        setup_notice_go_settings: "Go to Settings",
     },
     ko: {
         // Sidebar
@@ -248,6 +257,15 @@ export const translations = {
         upgrade_button: "지금 업그레이드",
         upgrading: "업그레이드 중... 시스템이 재시작됩니다.",
         upgrade_confirm: "최신 버전으로 업그레이드하시겠습니까?",
+
+        // Setup Notice
+        setup_notice_title: "초기 설정 필요",
+        setup_notice_desc: "MaruBot이 정상 작동하려면 최소 한 개 이상의 AI 모델과 소셜 채널이 설정되어야 합니다.",
+        setup_notice_ai: "AI 모델 설정: {status}",
+        setup_notice_channel: "소셜 채널 설정: {status}",
+        setup_notice_configured: "설정됨",
+        setup_notice_not_configured: "설정 안 됨",
+        setup_notice_go_settings: "설정하러 가기",
     },
     ja: {
         // Sidebar
@@ -361,6 +379,15 @@ export const translations = {
         upgrade_button: "今すぐアップグレード",
         upgrading: "アップグレード中... システムが再起動します。",
         upgrade_confirm: "最新バージョンにアップグレードしますか？",
+
+        // Setup Notice
+        setup_notice_title: "初期設定が必要です",
+        setup_notice_desc: "MaruBotを正常に動作させるには、少なくとも1つのAIモデルと1つのソーシャルチャネルを設定する必要があります。",
+        setup_notice_ai: "AIモデルの設定: {status}",
+        setup_notice_channel: "ソーシャルチャネルの設定: {status}",
+        setup_notice_configured: "設定済み",
+        setup_notice_not_configured: "未設定",
+        setup_notice_go_settings: "設定に移動",
     }
 };
 

@@ -463,6 +463,9 @@ func (s *Server) handleSystemStats(w http.ResponseWriter, r *http.Request) {
 		stats["is_update_available"] = false
 	}
 
+	stats["is_ai_configured"] = s.config.IsAIConfigured()
+	stats["is_channel_configured"] = s.config.IsChannelEnabled()
+
 	json.NewEncoder(w).Encode(stats)
 }
 
