@@ -1,4 +1,4 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.11) 🦞
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.56) 🦞
 
 **MaruBot** は、超軽量の MaruBot エンジンをベースに、Raspberry Pi などの SBC（シングルボードコンピュータ）でハードウェアを直接制御し、対話するために最適化された **"Physical AI Assistant"** です。
 
@@ -42,15 +42,19 @@
 
 最も素早く MaruBot を開始する方法です。
 
-### 1. ワンクリックインストール
-ターミナルで以下のコマンドを実行し、エンジンと Web 管理者を一括でダウンロード・インストールします：
-
+### 1. 🐧 Linux / 🍎 macOS (Terminal)
+ターミナルで以下のコマンドを実行して、すぐにインストールできます (curl が必要です):
 ```bash
-# Official MaruBot One-Line Installer
 curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash
 ```
 
-### 2. 必須設定 (API キーの登録)
+### 2. 🪟 Windows (GUI/Manual)
+Windows ユーザーは、ターミナルコマンドではなく **公式リリースページ** からファイルをダウンロードして実行することをお勧めします:
+1. [公式リリースページ (Releases)](https://github.com/dirmich/maru-bot/releases) にアクセスします。
+2. お使いの OS (64bit または 32bit) に適した `marubot-windows-xxx.zip` または `exe` ファイルをダウンロードします。
+3. ダウンロードしたファイルを実行すると、自動的に `~/.marubot/bin` フォルダにインストールされ、トレイアイコンが有効になります。
+
+### 3. 必須設定 (API キーの登録)
 インストール完了後、使用する AI モデルの API キーを登録します：
 
 ```bash
@@ -61,7 +65,7 @@ marubot config set providers.openai.api_key "YOUR_OPENAI_KEY"
 marubot config set agents.defaults.model "gpt-4o"
 ```
 
-### 3. エージェントの実行
+### 4. エージェントの実行
 ```bash
 # コンソール対話モード
 marubot agent

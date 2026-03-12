@@ -1,4 +1,4 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.50) 🦞
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.56) 🦞
 
 **MaruBot** is an ultra-efficient, physical AI assistant inspired by the philosophy of [PicoClaw](https://github.com/sipeed/picoclaw). It is designed to run in extremely constrained environments, requiring as little as **10MB of RAM**. MaruBot supports Raspberry Pi, Generic Linux servers, and Windows PCs, and features a powerful 'Auto-Evolution' engine that allows it to expand its own capabilities autonomously.
 
@@ -40,13 +40,17 @@
 
 ## 🚀 Quick Start
 
-### 1. One-Line Installer (Linux/WSL/Git Bash)
+### 1. 🐧 Linux / 🍎 macOS (Terminal)
+Run the following command in your terminal to install instantly (requires curl):
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash
 ```
 
-### 2. Run on Windows
-Download the appropriate `exe` for your architecture from the [Public Release Page](https://github.com/dirmich/maru-bot/tree/main/releases).
+### 2. 🪟 Windows (GUI/Manual)
+For Windows users, we recommend downloading the files from the **Official Release Page** instead of using terminal commands:
+1. Visit the [Official Release Page](https://github.com/dirmich/maru-bot/releases).
+2. Download the `marubot-windows-xxx.zip` or `exe` appropriate for your OS (64-bit or 32-bit).
+3. Running the downloaded file will automatically install MaruBot to `~/.marubot/bin` and activate the tray icon.
 
 > [!TIP]
 > **Note for Windows Users**: Since the binary is not signed with a commercial certificate, you might see a 'Windows protected your PC' warning from SmartScreen. This is expected. To run MaruBot, click **'More info'** and then **'Run anyway'**.

@@ -9,6 +9,7 @@ package main
 import (
 	"bufio"
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -41,13 +42,16 @@ import (
 	"github.com/kardianos/service"
 )
 
+// 0.4.56: Fix Windows elevation prompt with --elevated flag and better quoting
 // 0.4.55: Fix Windows elevation infinite loop, improve runAsAdmin with MARUBOT_ELEVATED
-// 0.4.54: Force 8080 port, Complete uninstall cleanup, Fix lint warnings
 // 0.4.49: Fix Windows binary corruption by keeping releases clean, add service elevation (Admin check)
 
-var Version = config.Version
-
 const logo = "[MaruBot]"
+
+//go:embed assets/tray_icon.ico
+var trayIconBytes []byte
+
+var Version = config.Version
 
 func copyDirectory(src, dst string) error {
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
@@ -84,7 +88,7 @@ func copyDirectory(src, dst string) error {
 }
 
 func main() {
-	if len(os.Args) < 2 {
+	if len(os.Args) < 2 || (len(os.Args) == 2 && os.Args[1] == "--elevated") {
 		if runtime.GOOS == "windows" {
 			handleWindowsGUIMode()
 			return
@@ -2084,23 +2088,30 @@ func isAdmin() bool {
 }
 
 func runAsAdmin() {
-	if os.Getenv("MARUBOT_ELEVATED") == "1" {
-		fmt.Println("Already tried to elevate and failed. Please run manually as Administrator.")
+	if runtime.GOOS != "windows" {
 		return
+	}
+	// Check if already attempted to avoid cycles
+	for _, arg := range os.Args {
+		if arg == "--elevated" {
+			fmt.Println("Already tried to elevate and failed. Please run manually as Administrator.")
+			return
+		}
 	}
 
 	exe, _ := os.Executable()
-	args := strings.Join(os.Args[1:], " ")
+	args := strings.Join(append(os.Args[1:], "--elevated"), " ")
 
-	// PowerShell way which is more reliable for elevation
-	cmd := exec.Command("powershell", "Start-Process", "-FilePath", exe, "-ArgumentList", args, "-Verb", "RunAs")
-	cmd.Env = append(os.Environ(), "MARUBOT_ELEVATED=1")
+	// PowerShell way with better quoting and arguments support
+	// We use ' to wrap the path to handle spaces in exe path
+	command := fmt.Sprintf("Start-Process -FilePath '%s' -ArgumentList '%s' -Verb RunAs", exe, args)
+	cmd := exec.Command("powershell", "-Command", command)
 	err := cmd.Run()
 	if err != nil {
 		fmt.Printf("Failed to elevate: %v\n", err)
 		fmt.Println("Please run this command in an Administrator terminal.")
 	} else {
-		fmt.Println("Elevated process started in a new window.")
+		fmt.Println("Elevated process requested. This process will now exit.")
 	}
 }
 func isPortAvailable(port int) bool {
@@ -2125,7 +2136,7 @@ func checkAndFixPort(cfg *config.Config) bool {
 
 	if runtime.GOOS == "windows" {
 		// Ask for a new port via PowerShell
-		script := fmt.Sprintf(`
+		script := `
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName Microsoft.VisualBasic
 $title = "MaruBot Port Conflict"
@@ -2135,7 +2146,7 @@ if ($result -eq "Yes") {
     $newPort = [Microsoft.VisualBasic.Interaction]::InputBox("Enter a new port number:", $title, "8081")
     if ($newPort) { $newPort } else { exit 1 }
 } else { exit 1 }
-`)
+`
 		cmd := exec.Command("powershell", "-Command", script)
 		out, err := cmd.Output()
 		if err != nil {
@@ -2203,11 +2214,20 @@ func installBinary() (string, error) {
 }
 
 func handleWindowsGUIMode() {
+	// Check for elevation flag
+	isElevated := false
+	for _, arg := range os.Args {
+		if arg == "--elevated" {
+			isElevated = true
+			break
+		}
+	}
+
 	// 1. Install binary to fixed location if not there
 	// Before installing, check if we need admin rights
-	if !isAdmin() && os.Getenv("MARUBOT_ELEVATED") != "1" {
+	if !isAdmin() && !isElevated {
 		targetExe, _ := getTargetBinaryPath()
-		// If binary doesn't exist or we don't have write access, try to elevate
+		// If binary doesn't exist, try to set up
 		if _, err := os.Stat(targetExe); err != nil {
 			fmt.Println("Elevation required for installation. Requesting administrator privileges...")
 			runAsAdmin()
@@ -2218,7 +2238,7 @@ func handleWindowsGUIMode() {
 	targetExe, err := installBinary()
 	if err != nil {
 		fmt.Printf("Installation failed: %v\n", err)
-		if os.Getenv("MARUBOT_ELEVATED") != "1" {
+		if !isElevated {
 			runAsAdmin()
 			os.Exit(0)
 		} else {
@@ -2242,15 +2262,15 @@ func getTargetBinaryPath() (string, error) {
 func onTrayReady(targetExe string) {
 	systray.SetTitle("MaruBot")
 	systray.SetTooltip("MaruBot - AI Agent Service")
-	// Use a simple dot as placeholder icon if needed, or just let it be blank for now
-	// systray.SetIcon(iconBytes) 
+	systray.SetIcon(trayIconBytes)
 
 	mDashboard := systray.AddMenuItem("Dashboard", "Open Web-Admin")
 	systray.AddSeparator()
 	mStart := systray.AddMenuItem("Start MaruBot", "Start the service")
 	mStop := systray.AddMenuItem("Stop MaruBot", "Stop the service")
 	systray.AddSeparator()
-	mClose := systray.AddMenuItem("Close", "Uninstall and Exit")
+	mUninstall := systray.AddMenuItem("Uninstall MaruBot", "Remove service and cleanup")
+	mExit := systray.AddMenuItem("Exit", "Exit tray only")
 
 	// 3. Initial check and install
 	cfg, _ := loadConfig()
@@ -2282,13 +2302,29 @@ func onTrayReady(targetExe string) {
 				currCfg, _ := loadConfig()
 				openBrowser(fmt.Sprintf("http://localhost:%d", currCfg.Gateway.Port))
 			case <-mStart.ClickedCh:
+				fmt.Println("Starting MaruBot service...")
 				serviceCmdInternalPath("start", targetExe)
+				time.Sleep(2 * time.Second) // Give time to start
 			case <-mStop.ClickedCh:
+				fmt.Println("Stopping MaruBot service...")
 				serviceCmdInternalPath("stop", targetExe)
-			case <-mClose.ClickedCh:
+				time.Sleep(1 * time.Second)
+			case <-mUninstall.ClickedCh:
+				fmt.Println("Uninstalling MaruBot...")
 				serviceCmdInternalPath("stop", targetExe)
 				serviceCmdInternalPath("uninstall", targetExe)
+				
+				// Self-deletion for the executable itself with a delay
+				// This allows the process to exit and the file to be unlocked
+				cmd := exec.Command("cmd.exe", "/c", "timeout /t 2 /nobreak > nul && del /f /q \"" + targetExe + "\"")
+				cmd.Start()
+				
 				systray.Quit()
+				os.Exit(0)
+			case <-mExit.ClickedCh:
+				fmt.Println("Exiting tray...")
+				systray.Quit()
+				os.Exit(0)
 			}
 		}
 	}()
