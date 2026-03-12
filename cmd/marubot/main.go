@@ -42,12 +42,12 @@ import (
 	"github.com/kardianos/service"
 )
 
-// 0.4.57: Revert tray icon to PNG (32x32) for better compatibility, add workspace auto-init
-// 0.4.56: Fix Windows elevation prompt with --elevated flag and better quoting
+// 0.4.59: Fix tray icon visibility with ICO and elevated uninstall via RunAs
+// 0.4.58: Windows GUI mode optimization (hide console)
 
 const logo = "[MaruBot]"
 
-//go:embed assets/tray_icon.png
+//go:embed assets/tray_icon.ico
 var trayIconBytes []byte
 
 var Version = config.Version
@@ -2122,6 +2122,13 @@ func isPortAvailable(port int) bool {
 	return true
 }
 
+func runAsAdminAction(action string) {
+	exe, _ := os.Executable()
+	// Use PowerShell Start-Process with -Verb RunAs to request elevation for the uninstall action
+	psCmd := fmt.Sprintf("Start-Process -FilePath '%s' -ArgumentList '%s' -Verb RunAs", exe, action)
+	exec.Command("powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", psCmd).Start()
+}
+
 func checkAndFixPort(cfg *config.Config) bool {
 	// Standardize on 8080. If config has 18790, override it to 8080.
 	if cfg.Gateway.Port == 18790 || cfg.Gateway.Port == 0 {
@@ -2340,15 +2347,8 @@ func onTrayReady(targetExe string) {
 				serviceCmdInternalPath("stop", targetExe)
 				time.Sleep(1 * time.Second)
 			case <-mUninstall.ClickedCh:
-				fmt.Println("Uninstalling MaruBot...")
-				serviceCmdInternalPath("stop", targetExe)
-				serviceCmdInternalPath("uninstall", targetExe)
-				
-				// Self-deletion for the executable itself with a delay
-				// This allows the process to exit and the file to be unlocked
-				cmd := exec.Command("cmd.exe", "/c", "timeout /t 2 /nobreak > nul && del /f /q \"" + targetExe + "\"")
-				cmd.Start()
-				
+				fmt.Println("Uninstalling MaruBot (Requesting elevation)...")
+				runAsAdminAction("uninstall")
 				systray.Quit()
 				os.Exit(0)
 			case <-mExit.ClickedCh:
