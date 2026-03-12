@@ -181,21 +181,6 @@ func uninstallCmd() {
 		return
 	}
 
-	// 0. Remove Windows Service (if applicable)
-	if runtime.GOOS == "windows" {
-		svcConfig := &service.Config{
-			Name: "MaruBot",
-		}
-		s, err := service.New(nil, svcConfig)
-		if err == nil {
-			fmt.Println("Removing Windows service...")
-			s.Stop()
-			if err := s.Uninstall(); err == nil {
-				fmt.Println("✓ Windows service removed.")
-			}
-		}
-	}
-
 	fmt.Print("Do you want to keep your user data (config, memory, workspace)? (Y/n): ")
 	var keepData string
 	fmt.Scanln(&keepData)
@@ -1859,153 +1844,129 @@ func openBrowser(url string) {
 }
 
 func showGuideMessage(cfg *config.Config) {
-	lang := cfg.Language
-	port := cfg.Gateway.Port
-	if port == 0 {
-		port = 18790
-	}
-	adminURL := fmt.Sprintf("http://localhost:%d", port)
+lang := cfg.Language
+port := cfg.Gateway.Port
+if port == 0 {
+URL := fmt.Sprintf("http://localhost:%d", port)
 
-	isGUI := runtime.GOOS == "windows" || runtime.GOOS == "darwin"
+isGUI := runtime.GOOS == "windows" || runtime.GOOS == "darwin"
 
-	messages := map[string]map[string]string{
-		"ko": {
-			"title":    "⚠️ 초기 설정이 필요합니다!",
-			"sec_body": "보안을 위해 관리자 비밀번호를 먼저 설정해야 합니다.",
-			"cfg_body": "MaruBot을 시작하려면 최소 하나의 AI 모델과 채널이 설정되어야 합니다.",
-			"gui":      "설정 페이지(Web-Admin)를 브라우저에 띄웁니다. 설정을 완료해 주세요.",
-			"cli":      "브라우저에서 아래 주소로 접속하여 설정을 완료해 주세요:",
-			"restart":  "설정 완료 후 앱을 재시작하면 서비스가 정상 기동됩니다.",
-		},
-		"en": {
-			"title":    "⚠️ Initial Configuration Required!",
-			"sec_body": "For security, you must set an administrator password first.",
-			"cfg_body": "At least one AI model and one channel must be configured to start MaruBot.",
-			"gui":      "Opening configuration page (Web-Admin) in your browser. Please complete setup.",
-			"cli":      "Please access the following URL in your browser to complete setup:",
-			"restart":  "After setup, restart the app to start the main service.",
-		},
-		"ja": {
-			"title":    "⚠️ 初期設定が必要です！",
-			"sec_body": "セキュリティのため、まず管理者のパスワードを設定する必要があります。",
-			"cfg_body": "MaruBotを開始するには、少なくとも1つのAIモデルとチャネルを設定する必要があります。",
-			"gui":      "ブラウザで設定ページ(Web-Admin)を開きます。設定を完了してください。",
-			"cli":      "ブラウザで以下のURLにアクセスして設定を完了してください：",
-			"restart":  "設定完了後、アプリを再起動するとサービスが開始されます。",
-		},
-		"zh": {
-			"title":    "⚠️ 需要初始配置！",
-			"sec_body": "出于安全考虑，您必须先设置管理员密码。",
-			"cfg_body": "启动 MaruBot 至少需要配置一个 AI 模型和一个频道。",
-			"gui":      "正在浏览器中打开配置页面 (Web-Admin)。请完成配置。",
-			"cli":      "请在浏览器中访问以下地址完成配置：",
-			"restart":  "配置完成后，请重启程序以启动主服务。",
-		},
-	}
+messages := map[string]map[string]string{
+  "⚠️ 초기 설정이 필요합니다!",
+위해 관리자 비밀번호를 먼저 설정해야 합니다.",
+시작하려면 최소 하나의 AI 모델과 채널이 설정되어야 합니다.",
+   "설정 페이지(Web-Admin)를 브라우저에 띄웁니다. 설정을 완료해 주세요.",
+   "브라우저에서 아래 주소로 접속하여 설정을 완료해 주세요:",
+완료 후 앱을 재시작하면 서비스가 정상 기동됩니다.",
+": {
+ "⚠️ Initial Configuration Required!",
+security, you must set an administrator password first.",
+least one AI model and one channel must be configured to start MaruBot.",
+   "Opening configuration page (Web-Admin) in your browser. Please complete setup.",
+   "Please access the following URL in your browser to complete setup:",
+setup, restart the app to start the main service.",
+   "⚠️ 初期設定が必要です！",
+": "MaruBotを開始するには、少なくとも1つのAI 모델とチャネルを設定する必要があります。",
+   "ブラウザで設定ページ(Web-Admin)を開きます。設定を完了してください。",
+   "ブラウザで以下のURLにアクセスして設定を完了してください：",
+  "⚠️ 需要初始配置！",
+": "启动 MaruBot 至少需要配置一个 AI 模型和一个频道。",
+   "正在浏览器中打开配置页面 (Web-Admin)。请完成配置。",
+   "请在浏览器中访问以下地址完成配置：",
+:= messages[lang]
+if !ok {
+"]
+}
 
-	msg, ok := messages[lang]
-	if !ok {
-		msg = messages["en"]
-	}
+fmt.Println("\n" + msg["title"])
+if cfg.AdminPassword == "" {
+tln(msg["sec_body"])
+} else {
+tln(msg["cfg_body"])
+}
+fmt.Println()
 
-	fmt.Println("\n" + msg["title"])
-	if cfg.AdminPassword == "" {
-		fmt.Println(msg["sec_body"])
-	} else {
-		fmt.Println(msg["cfg_body"])
-	}
-	fmt.Println()
-
-	if isGUI {
-		fmt.Println(msg["gui"])
-		fmt.Println("URL:", adminURL)
-		openBrowser(adminURL)
-	} else {
-		fmt.Println(msg["cli"])
-		fmt.Println(adminURL)
-	}
-	fmt.Println("\n" + msg["restart"] + "\n")
+if isGUI {
+tln(msg["gui"])
+tln("URL:", adminURL)
+Browser(adminURL)
+} else {
+tln(msg["cli"])
+tln(adminURL)
+}
+fmt.Println("\n" + msg["restart"] + "\n")
 }
 
 // Windows Service Implementation
 type program struct {
-	exit chan struct{}
+exit chan struct{}
 }
 
 func (p *program) Start(s service.Service) error {
-	go p.run()
-	return nil
+go p.run()
+return nil
 }
 
 func (p *program) run() {
-	startCmd()
-	close(p.exit)
+startCmd()
+close(p.exit)
 }
 
 func (p *program) Stop(s service.Service) error {
-	return nil
+return nil
 }
 
 func serviceCmd() {
-	if len(os.Args) < 3 {
-		fmt.Println("Usage: marubot service [install|uninstall|start|stop|restart|status]")
-		return
-	}
+if len(os.Args) < 3 {
+tln("Usage: marubot service [install|uninstall|start|stop|restart|status]")
 
-	sub := os.Args[2]
-	
-	svcConfig := &service.Config{
-		Name:        "MaruBot",
-		DisplayName: "MaruBot Service",
-		Description: "Ultra-lightweight personal AI agent service.",
-		Arguments:   []string{"start"},
-	}
+}
 
-	prg := &program{
-		exit: make(chan struct{}),
-	}
-	s, err := service.New(prg, svcConfig)
-	if err != nil {
-		fmt.Printf("Service initialization failed: %v\n", err)
-		return
-	}
+sub := os.Args[2]
 
-	switch sub {
-	case "install":
-		err = s.Install()
-		if err == nil {
-			fmt.Println("Service installed successfully. (Autostart enabled)")
-		}
-	case "uninstall":
-		err = s.Uninstall()
-		if err == nil {
-			fmt.Println("Service uninstalled successfully.")
-		}
-	case "start":
-		err = s.Start()
-		if err == nil {
-			fmt.Println("Service started.")
-		}
-	case "stop":
-		err = s.Stop()
-		if err == nil {
-			fmt.Println("Service stopped.")
-		}
-	case "restart":
-		err = s.Restart()
-		if err == nil {
-			fmt.Println("Service restarted.")
-		}
-	case "status":
-		status, _ := s.Status()
-		fmt.Printf("Service status: %v\n", status)
-		return
-	default:
-		fmt.Printf("Unknown service command: %s\n", sub)
-		return
-	}
+svcConfig := &service.Config{
+ame:        "MaruBot",
+ame: "MaruBot Service",
+: "Ultra-lightweight personal AI agent service.",
+ts:   []string{"start"},
+}
 
-	if err != nil {
-		fmt.Printf("Service operation failed: %v\n", err)
-	}
+prg := &program{
+ struct{}),
+}
+s, err := service.New(prg, svcConfig)
+if err != nil {
+tf("Service initialization failed: %v\n", err)
+
+}
+
+switch sub {
+case "install":
+stall()
+nil {
+tln("Service installed successfully. (Autostart enabled)")
+install":
+install()
+nil {
+tln("Service uninstalled successfully.")
+= s.Start()
+nil {
+tln("Service started.")
+= s.Stop()
+nil {
+tln("Service stopped.")
+= s.Restart()
+nil {
+tln("Service restarted.")
+_ := s.Status()
+tf("Service status: %v\n", status)
+
+default:
+tf("Unknown service command: %s\n", sub)
+
+}
+
+if err != nil {
+tf("Service operation failed: %v\n", err)
+}
 }

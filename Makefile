@@ -95,22 +95,21 @@ build-all:
 
 ## package-win: Package Windows binaries into ZIP files (Single + Installable)
 package-win: build-all
-	@echo "Packaging Windows binaries..."
-	@mkdir -p $(BUILD_DIR)/deploy
-	@# 64-bit
-	@mkdir -p $(BUILD_DIR)/marubot-win-x64
-	@cp $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe $(BUILD_DIR)/marubot-win-x64/marubot.exe
-	@cp README.md $(BUILD_DIR)/marubot-win-x64/
-	@cp config/maru-config.json $(BUILD_DIR)/marubot-win-x64/config.json
-	@cd $(BUILD_DIR) && zip -r marubot-windows-x64.zip marubot-win-x64
-	@# 32-bit 
-	@mkdir -p $(BUILD_DIR)/marubot-win-x86
-	@cp $(BUILD_DIR)/$(BINARY_NAME)-windows-386.exe $(BUILD_DIR)/marubot-win-x86/marubot.exe
-	@cp README.md $(BUILD_DIR)/marubot-win-x86/
-	@cp config/maru-config.json $(BUILD_DIR)/marubot-win-x86/config.json
-	@cd $(BUILD_DIR) && zip -r marubot-windows-x86.zip marubot-win-x86
-	@rm -rf $(BUILD_DIR)/marubot-win-x64 $(BUILD_DIR)/marubot-win-x86
-	@echo "Windows packaging complete: $(BUILD_DIR)/marubot-windows-x64.zip, $(BUILD_DIR)/marubot-windows-x86.zip"
+	@echo "📦 Packaging Windows binaries (x64 & x86) with Go-Zip tool..."
+	@mkdir -p build/marubot-win-x64/config
+	@cp build/marubot-windows-amd64.exe build/marubot-win-x64/marubot.exe
+	@cp README.md build/marubot-win-x64/
+	@cp config/maru-config.json build/marubot-win-x64/config/maru-config.json
+	@go run scripts/zip_pack.go build/marubot-windows-x64.zip build/marubot-win-x64
+	@rm -rf build/marubot-win-x64
+
+	@mkdir -p build/marubot-win-x86/config
+	@cp build/marubot-windows-386.exe build/marubot-win-x86/marubot.exe
+	@cp README.md build/marubot-win-x86/
+	@cp config/maru-config.json build/marubot-win-x86/config/maru-config.json
+	@go run scripts/zip_pack.go build/marubot-windows-x86.zip build/marubot-win-x86
+	@rm -rf build/marubot-win-x86
+	@echo "✓ Windows packages created."
 
 ## install: Install marubot to system and copy builtin skills
 install: build

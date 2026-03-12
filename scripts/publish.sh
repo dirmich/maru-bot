@@ -7,7 +7,14 @@
 set -e
 
 SOURCE_DIR=$(pwd)
-TARGET_DIR=$(readlink -f "../maru-bot")
+if [ -d "../maru-bot" ]; then
+    cd "../maru-bot"
+    TARGET_DIR=$(pwd)
+    cd "$SOURCE_DIR"
+else
+    # Fallback if not exists yet
+    TARGET_DIR="$SOURCE_DIR/../maru-bot"
+fi
 
 echo "🚀 공개 배포용 파일을 $TARGET_DIR 로 동기화합니다..."
 
@@ -69,9 +76,33 @@ fi
 echo "📦 빌드된 바이너리 및 패키지들을 releases 폴더로 수집 중..."
 RELEASE_DIR="$TARGET_DIR/releases"
 mkdir -p "$RELEASE_DIR"
+
 if [ -d "$SOURCE_DIR/build" ]; then
+    # Copy plain binaries
     cp "$SOURCE_DIR/build/marubot"* "$RELEASE_DIR/"
-    echo "  ✓ 빌드 자산 복사 완료 (Path: $RELEASE_DIR)"
+    
+    # Create Windows ZIP Packages using Go-Zip tool (for stability)
+    echo "  🤐 Creating Windows ZIP packages using go-zip tool..."
+    
+    # Windows x64
+    WIN64_TMP="$SOURCE_DIR/build/marubot-win-x64"
+    mkdir -p "$WIN64_TMP/config"
+    cp "$SOURCE_DIR/build/marubot-windows-amd64.exe" "$WIN64_TMP/marubot.exe"
+    cp "$SOURCE_DIR/README.md" "$WIN64_TMP/"
+    cp "$SOURCE_DIR/config/maru-config.json" "$WIN64_TMP/config/maru-config.json"
+    go run "$SOURCE_DIR/scripts/zip_pack.go" "$RELEASE_DIR/marubot-windows-x64.zip" "$WIN64_TMP"
+    rm -rf "$WIN64_TMP"
+
+    # Windows x86
+    WIN32_TMP="$SOURCE_DIR/build/marubot-win-x86"
+    mkdir -p "$WIN32_TMP/config"
+    cp "$SOURCE_DIR/build/marubot-windows-386.exe" "$WIN32_TMP/marubot.exe"
+    cp "$SOURCE_DIR/README.md" "$WIN32_TMP/"
+    cp "$SOURCE_DIR/config/maru-config.json" "$WIN32_TMP/config/maru-config.json"
+    go run "$SOURCE_DIR/scripts/zip_pack.go" "$RELEASE_DIR/marubot-windows-x86.zip" "$WIN32_TMP"
+    rm -rf "$WIN32_TMP"
+
+    echo "  ✓ 빌드 자산 수집 및 패키징 완료 (Path: $RELEASE_DIR)"
 else
     echo "  ⚠️ build 폴더를 찾을 수 없어 바이너리 복사 건너뜜"
 fi
@@ -94,19 +125,20 @@ find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -exec sed -i 's/m
 find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -exec sed -i 's/MaruMiniBot/MaruBot/g' {} + || true
 
 # 8. GitHub Release 자동 업로드 ( gh CLI 사용 )
-# pkg/config/version.go 에서 버전 추출
-VERSION=$(grep 'const Version =' "$SOURCE_DIR/pkg/config/version.go" | cut -d '"' -f 2)
-TAG="v$VERSION"
+# pkg/config/version.go 에서 버전 추출 (행 시작 부분 매칭하여 주석 제외)
+VERSION=$(grep '^const Version =' "$SOURCE_DIR/pkg/config/version.go" | cut -d '"' -f 2)
+TAG="v0.4.48"
+REPO="dirmich/maru-bot"
 
 if command -v gh >/dev/null 2>&1; then
-    echo "🚀 GitHub Release ($TAG) 생성 및 자산 업로드 중..."
+    echo "🚀 GitHub Release ($TAG) @ $REPO 생성 및 자산 업로드 중..."
     # 이미 해당 태그가 있는지 확인
-    if gh release view "$TAG" >/dev/null 2>&1; then
+    if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
         echo "  ℹ️ Release $TAG 가 이미 존재합니다. 자산을 업데이트합니다..."
-        gh release upload "$TAG" "$RELEASE_DIR"/* --clobber
+        gh release upload "$TAG" "$RELEASE_DIR"/* --repo "$REPO" --clobber
     else
         echo "  🆕 새 Release $TAG 를 생성합니다..."
-        gh release create "$TAG" "$RELEASE_DIR"/* --title "MaruBot $TAG" --notes "Release $TAG of MaruBot"
+        gh release create "$TAG" "$RELEASE_DIR"/* --repo "$REPO" --title "MaruBot $TAG" --notes "Release $TAG of MaruBot"
     fi
     echo "  ✓ GitHub Release 업로드 완료"
 else
