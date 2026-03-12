@@ -61,6 +61,9 @@ For Windows users, we recommend downloading the files from the **Official Releas
 > [!TIP]
 > **Note for Windows Users**: Since the binary is not signed with a commercial certificate, you might see a 'Windows protected your PC' warning from SmartScreen. This is expected. To run MaruBot, click **'More info'** and then **'Run anyway'**.
 
+> [!TIP]
+> **Note for macOS Users**: As the app is not notarized by Apple, you may see a "Gatekeeper" warning on first launch. To run MaruBot, go to **'System Settings > Privacy & Security'** and click **'Open Anyway'**, or **'Right-click > Open'** on the app icon.
+
 ### 3. Setup API Keys & Default Model
 ```bash
 # Example for OpenAI API Key
