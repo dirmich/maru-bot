@@ -1,0 +1,8 @@
+95:	if command == "--version-only" {
+164:	case "version", "--version", "-v":
+270:	fmt.Println("  upgrade     Upgrade marubot to the latest version")
+271:	fmt.Println("  version     Show version information")
+2069:		// Service exists, check version
+2123:	// Get version of that binary
+2124:	cmd := exec.Command(svcPath, "--version-only")
+2141:$result = [System.Windows.Forms.MessageBox]::Show("A newer version of MaruBot is available. Would you like to upgrade the background service?", "MaruBot Upgrade", "YesNo", "Question")
