@@ -41,8 +41,8 @@ import (
 	"github.com/kardianos/service"
 )
 
+// 0.4.54: Force 8080 port, Complete uninstall cleanup, Fix lint warnings
 // 0.4.53: Fixed 8080 port, Binary relocation (~/.marubot/bin), and Uninstall improvements
-// 0.4.52: Fix Windows service lifecycle (SCM Run) & Uninstall elevation
 // 0.4.49: Fix Windows binary corruption by keeping releases clean, add service elevation (Admin check)
 
 var Version = config.Version
@@ -186,6 +186,9 @@ func uninstallCmd() {
 			return
 		}
 	}
+
+	// Ensure all processes are stopped before uninstallation
+	stopCmd()
 
 	fmt.Printf("%s MaruBot Uninstaller\n", logo)
 	fmt.Println("WARNING: This will remove MaruBot and its resources from your system.")
@@ -2085,7 +2088,7 @@ func runAsAdmin() {
 	args := strings.Join(os.Args[1:], " ")
 
 	// PowerShell way which is more reliable for elevation
-	cmd := exec.Command("powershell", "Start-Process", "-FilePath", fmt.Sprintf("'%s'", exe), "-ArgumentList", fmt.Sprintf("'%s'", args), "-Verb", "RunAs")
+	cmd := exec.Command("powershell", "Start-Process", "-FilePath", exe, "-ArgumentList", args, "-Verb", "RunAs")
 	err := cmd.Run()
 	if err != nil {
 		fmt.Printf("Failed to elevate: %v\n", err)
@@ -2104,7 +2107,12 @@ func isPortAvailable(port int) bool {
 }
 
 func checkAndFixPort(cfg *config.Config) bool {
-	port := 8080
+	// Standardize on 8080. If config has 18790, override it to 8080.
+	if cfg.Gateway.Port == 18790 || cfg.Gateway.Port == 0 {
+		cfg.Gateway.Port = 8080
+	}
+	
+	port := cfg.Gateway.Port
 	if isPortAvailable(port) {
 		return true
 	}
