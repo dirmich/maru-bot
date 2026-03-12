@@ -78,8 +78,8 @@ RELEASE_DIR="$TARGET_DIR/releases"
 mkdir -p "$RELEASE_DIR"
 
 if [ -d "$SOURCE_DIR/build" ]; then
-    # Copy plain binaries
-    cp "$SOURCE_DIR/build/marubot"* "$RELEASE_DIR/"
+    # Copy ONLY Windows binaries (to keep release clean, Linux users install via source)
+    cp "$SOURCE_DIR/build/marubot-windows-"* "$RELEASE_DIR/"
     
     # Create Windows ZIP Packages using Go-Zip tool (for stability)
     echo "  🤐 Creating Windows ZIP packages using go-zip tool..."

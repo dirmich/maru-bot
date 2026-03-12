@@ -1,4 +1,4 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.43) 🦞
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.50) 🦞
 
 **MaruBot**은 극강의 효율성을 추구하는 [PicoClaw](https://github.com/sipeed/picoclaw)의 철학을 계승하여, 단 **10MB의 메모리(RAM)** 환경에서도 구동 가능한 초경량 Physical AI 에이전트입니다. Raspberry Pi부터 일반 Linux 서버, Windows PC까지 지원하며, 스스로 능력을 확장하는 '자기 진화' 능력을 갖춘 가장 똑똑한 개인용 비서입니다.
 
@@ -49,6 +49,9 @@ If the primary provider fails, MaruBot will automatically try the fallback model
 For Windows users, we provide two types of distributions in the [Releases](https://github.com/dirmich/maru-bot/releases) section:
 1. **Single Binary (`marubot.exe`)**: A standalone executable for quick use.
 2. **Installable Package (`marubot-windows-x64.zip`)**: Includes the executable, default configuration, and a quick-start guide.
+
+> [!TIP]
+> **Windows 사용자 참고**: 상업용 인증서로 서명되지 않은 바이너리이므로, 실행 시 SmartScreen의 'Windows의 PC 보호' 경고가 나타날 수 있습니다. **'추가 정보'**를 클릭한 후 **'실행'** 버튼을 선택하여 진행해 주세요.
 
 ## 📂 폴더 구조
 - `/config`: MaruBot 하드웨어 및 에이전트 전역 설정.

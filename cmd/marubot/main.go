@@ -38,8 +38,8 @@ import (
 	"github.com/kardianos/service"
 )
 
+// 0.4.50: Discontinue pre-built Linux binaries in releases (Source install preferred)
 // 0.4.49: Fix Windows binary corruption by keeping releases clean, add service elevation (Admin check)
-// 0.4.48: Windows Service registration & Setup Mode (KO/EN/JA/ZH guidance)
 // 0.4.46: Windows 32/64 deployment (Single + Zip) and publish automation
 // 0.4.45: AI Provider fallback mechanism with configurable models
 // 0.4.7: GPIO output control, config precedence fix, flattened nested pins
