@@ -1,4 +1,4 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.50) 🦞
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.56) 🦞
 
 **MaruBot**은 극강의 효율성을 추구하는 [PicoClaw](https://github.com/sipeed/picoclaw)의 철학을 계승하여, 단 **10MB의 메모리(RAM)** 환경에서도 구동 가능한 초경량 Physical AI 에이전트입니다. Raspberry Pi부터 일반 Linux 서버, Windows PC까지 지원하며, 스스로 능력을 확장하는 '자기 진화' 능력을 갖춘 가장 똑똑한 개인용 비서입니다.
 
@@ -63,13 +63,17 @@ For Windows users, we provide two types of distributions in the [Releases](https
 
 ## 🚀 빠른 시작 (Quick Start)
 
-### 1. 원클릭 설치 (Linux/WSL/Git Bash)
+### 1. 🐧 Linux / 🍎 macOS (Terminal)
+터미널에서 아래 명령어를 실행하여 즉시 설치할 수 있습니다 (curl 필요):
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash
 ```
 
-### 2. Windows에서 실행
-[공개 저장소 Releases](https://github.com/dirmich/maru-bot/tree/main/releases)에서 본인의 아키텍처에 맞는 `exe` 파일을 다운로드하여 실행하세요.
+### 2. 🪟 Windows (GUI/Manual)
+Windows 사용자는 터미널 명령어보다는 **공식 릴리스 페이지**에서 파일을 다운로드하여 실행하는 것을 권장합니다:
+1. [공식 릴리스 페이지(Releases)](https://github.com/dirmich/maru-bot/releases)에 접속합니다.
+2. 본인의 OS(64bit 또는 32bit)에 맞는 `marubot-windows-xxx.zip` 또는 `exe` 파일을 다운로드합니다.
+3. 다운로드한 파일을 실행하면 자동으로 `~/.marubot/bin` 폴더에 설치되고 트레이 아이콘이 활성화됩니다.
 
 ### 3. 필수 설정 (API 키 및 기본 모델 등록)
 ```bash
