@@ -58,6 +58,7 @@ func (s *Server) Start() error {
 
 	// Public Routes
 	mux.HandleFunc("/api/login", s.handleLogin)
+	mux.HandleFunc("/api/config/password", s.handleSetPassword)
 
 	// Protected API Routes
 	mux.Handle("/api/chat", s.authMiddleware(http.HandlerFunc(s.handleChat)))
@@ -119,6 +120,16 @@ func (s *Server) getFileModTime(f fs.File) time.Time {
 
 func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// If password is not set, block everything EXCEPT /api/config/password
+		if s.config.AdminPassword == "" {
+			if r.URL.Path == "/api/config/password" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			http.Error(w, "Initial setup required: Password not set", http.StatusForbidden)
+			return
+		}
+
 		cookie, err := r.Cookie("marubot_session")
 		if err != nil || cookie.Value != s.config.AdminPassword {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -126,6 +137,54 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (s *Server) handleSetPassword(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Only allow if password is NOT set yet
+	if s.config.AdminPassword != "" {
+		http.Error(w, "Password already set", http.StatusForbidden)
+		return
+	}
+
+	var req struct {
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.Password) < 4 {
+		http.Error(w, "Password too short", http.StatusBadRequest)
+		return
+	}
+
+	s.config.AdminPassword = req.Password
+
+	// Save to usersetting.json
+	home, _ := os.UserHomeDir()
+	userSettingsPath := filepath.Join(home, ".marubot", "usersetting.json")
+	
+	// Try to read existing setting if any to merge
+	var settings map[string]interface{}
+	data, err := os.ReadFile(userSettingsPath)
+	if err == nil {
+		json.Unmarshal(data, &settings)
+	} else {
+		settings = make(map[string]interface{})
+	}
+	settings["admin_password"] = req.Password
+
+	newData, _ := json.MarshalIndent(settings, "", "  ")
+	os.WriteFile(userSettingsPath, newData, 0644)
+
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok", "message": "Password set successfully"})
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
