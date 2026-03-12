@@ -206,7 +206,7 @@ func DefaultConfig() *Config {
 		},
 		Gateway: GatewayConfig{
 			Host: "0.0.0.0",
-			Port: 18790,
+			Port: 8080,
 		},
 		Tools: ToolsConfig{
 			Web: WebToolsConfig{

@@ -1,0 +1,195 @@
+# github.com/adrianmo/go-nmea v1.10.0
+## explicit; go 1.14
+github.com/adrianmo/go-nmea
+# github.com/bluenviron/gomavlib/v3 v3.3.0
+## explicit; go 1.24.0
+github.com/bluenviron/gomavlib/v3
+github.com/bluenviron/gomavlib/v3/pkg/dialect
+github.com/bluenviron/gomavlib/v3/pkg/dialects/common
+github.com/bluenviron/gomavlib/v3/pkg/dialects/minimal
+github.com/bluenviron/gomavlib/v3/pkg/dialects/standard
+github.com/bluenviron/gomavlib/v3/pkg/frame
+github.com/bluenviron/gomavlib/v3/pkg/message
+github.com/bluenviron/gomavlib/v3/pkg/streamwriter
+github.com/bluenviron/gomavlib/v3/pkg/timednetconn
+github.com/bluenviron/gomavlib/v3/pkg/x25
+# github.com/bwmarrin/discordgo v0.28.1
+## explicit; go 1.13
+github.com/bwmarrin/discordgo
+# github.com/caarlos0/env/v11 v11.3.1
+## explicit; go 1.18
+github.com/caarlos0/env/v11
+# github.com/chzyer/readline v1.5.1
+## explicit; go 1.15
+github.com/chzyer/readline
+# github.com/creack/goselect v0.1.2
+## explicit; go 1.13
+github.com/creack/goselect
+# github.com/dustin/go-humanize v1.0.1
+## explicit; go 1.16
+github.com/dustin/go-humanize
+# github.com/getlantern/context v0.0.0-20190109183933-c447772a6520
+## explicit
+github.com/getlantern/context
+# github.com/getlantern/errors v0.0.0-20190325191628-abdb3e3e36f7
+## explicit
+github.com/getlantern/errors
+# github.com/getlantern/golog v0.0.0-20190830074920-4ef2e798c2d7
+## explicit; go 1.12
+github.com/getlantern/golog
+# github.com/getlantern/hex v0.0.0-20190417191902-c6586a6fe0b7
+## explicit
+github.com/getlantern/hex
+# github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55
+## explicit
+github.com/getlantern/hidden
+# github.com/getlantern/ops v0.0.0-20190325191751-d70cb0d6f85f
+## explicit
+github.com/getlantern/ops
+# github.com/getlantern/systray v1.2.2
+## explicit; go 1.13
+github.com/getlantern/systray
+# github.com/go-stack/stack v1.8.0
+## explicit
+github.com/go-stack/stack
+# github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
+## explicit; go 1.16
+github.com/go-telegram-bot-api/telegram-bot-api/v5
+# github.com/google/uuid v1.6.0
+## explicit
+github.com/google/uuid
+# github.com/gorilla/websocket v1.5.3
+## explicit; go 1.12
+github.com/gorilla/websocket
+# github.com/kardianos/service v1.2.4
+## explicit; go 1.23.0
+github.com/kardianos/service
+# github.com/mattn/go-isatty v0.0.20
+## explicit; go 1.15
+github.com/mattn/go-isatty
+# github.com/ncruces/go-strftime v1.0.0
+## explicit; go 1.17
+github.com/ncruces/go-strftime
+# github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c
+## explicit; go 1.12
+github.com/oxtoacart/bpool
+# github.com/pion/logging v0.2.2
+## explicit; go 1.12
+github.com/pion/logging
+# github.com/pion/transport/v2 v2.2.10
+## explicit; go 1.12
+github.com/pion/transport/v2/deadline
+github.com/pion/transport/v2/packetio
+github.com/pion/transport/v2/udp
+# github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec
+## explicit; go 1.12
+github.com/remyoudompheng/bigfft
+# github.com/robfig/cron/v3 v3.0.1
+## explicit; go 1.12
+github.com/robfig/cron/v3
+# go.bug.st/serial v1.6.4
+## explicit; go 1.17
+go.bug.st/serial
+go.bug.st/serial/unixutils
+# golang.org/x/crypto v0.36.0
+## explicit; go 1.23.0
+golang.org/x/crypto/internal/alias
+golang.org/x/crypto/internal/poly1305
+golang.org/x/crypto/nacl/secretbox
+golang.org/x/crypto/salsa20/salsa
+# golang.org/x/exp v0.0.0-20251023183803-a4bb9ffd2546
+## explicit; go 1.24.0
+golang.org/x/exp/constraints
+# golang.org/x/net v0.38.0
+## explicit; go 1.23.0
+golang.org/x/net/bpf
+golang.org/x/net/internal/iana
+golang.org/x/net/internal/socket
+golang.org/x/net/ipv4
+golang.org/x/net/ipv6
+# golang.org/x/sys v0.40.0
+## explicit; go 1.24.0
+golang.org/x/sys/cpu
+golang.org/x/sys/unix
+golang.org/x/sys/windows
+golang.org/x/sys/windows/registry
+golang.org/x/sys/windows/svc
+golang.org/x/sys/windows/svc/eventlog
+golang.org/x/sys/windows/svc/mgr
+# modernc.org/libc v1.67.6
+## explicit; go 1.24.0
+modernc.org/libc
+modernc.org/libc/errno
+modernc.org/libc/fcntl
+modernc.org/libc/fts
+modernc.org/libc/grp
+modernc.org/libc/honnef.co/go/netdb
+modernc.org/libc/langinfo
+modernc.org/libc/limits
+modernc.org/libc/netdb
+modernc.org/libc/netinet/in
+modernc.org/libc/poll
+modernc.org/libc/pthread
+modernc.org/libc/pwd
+modernc.org/libc/signal
+modernc.org/libc/stdio
+modernc.org/libc/stdlib
+modernc.org/libc/sys/socket
+modernc.org/libc/sys/stat
+modernc.org/libc/sys/types
+modernc.org/libc/termios
+modernc.org/libc/time
+modernc.org/libc/unistd
+modernc.org/libc/utime
+modernc.org/libc/uuid
+modernc.org/libc/uuid/uuid
+modernc.org/libc/wctype
+# modernc.org/mathutil v1.7.1
+## explicit; go 1.21
+modernc.org/mathutil
+# modernc.org/memory v1.11.0
+## explicit; go 1.23.0
+modernc.org/memory
+# modernc.org/sqlite v1.46.1
+## explicit; go 1.24.0
+modernc.org/sqlite
+modernc.org/sqlite/lib
+modernc.org/sqlite/vtab
+# periph.io/x/conn/v3 v3.7.2
+## explicit; go 1.22.6
+periph.io/x/conn/v3
+periph.io/x/conn/v3/driver
+periph.io/x/conn/v3/driver/driverreg
+periph.io/x/conn/v3/gpio
+periph.io/x/conn/v3/gpio/gpioreg
+periph.io/x/conn/v3/gpio/gpiostream
+periph.io/x/conn/v3/i2c
+periph.io/x/conn/v3/i2c/i2creg
+periph.io/x/conn/v3/onewire
+periph.io/x/conn/v3/onewire/onewirereg
+periph.io/x/conn/v3/physic
+periph.io/x/conn/v3/pin
+periph.io/x/conn/v3/pin/pinreg
+periph.io/x/conn/v3/spi
+periph.io/x/conn/v3/spi/spireg
+# periph.io/x/host/v3 v3.8.5
+## explicit; go 1.22.6
+periph.io/x/host/v3
+periph.io/x/host/v3/allwinner
+periph.io/x/host/v3/am335x
+periph.io/x/host/v3/bcm283x
+periph.io/x/host/v3/beagle/black
+periph.io/x/host/v3/beagle/bone
+periph.io/x/host/v3/beagle/green
+periph.io/x/host/v3/chip
+periph.io/x/host/v3/cpu
+periph.io/x/host/v3/distro
+periph.io/x/host/v3/fs
+periph.io/x/host/v3/gpioioctl
+periph.io/x/host/v3/netlink
+periph.io/x/host/v3/odroidc1
+periph.io/x/host/v3/pine64
+periph.io/x/host/v3/pmem
+periph.io/x/host/v3/rpi
+periph.io/x/host/v3/sysfs
+periph.io/x/host/v3/videocore
