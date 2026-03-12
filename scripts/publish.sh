@@ -121,13 +121,13 @@ fi
 # 7. 명칭 최종 체크 및 치환
 echo "🔄 명칭 최종 확인 중 (maruminibot -> marubot)..."
 cd "$TARGET_DIR"
-find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -exec sed -i 's/maruminibot/marubot/g' {} + || true
-find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -exec sed -i 's/MaruMiniBot/MaruBot/g' {} + || true
+find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -not -path './releases/*' -exec sed -i 's/maruminibot/marubot/g' {} + || true
+find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -not -path './releases/*' -exec sed -i 's/MaruMiniBot/MaruBot/g' {} + || true
 
 # 8. GitHub Release 자동 업로드 ( gh CLI 사용 )
 # pkg/config/version.go 에서 버전 추출 (행 시작 부분 매칭하여 주석 제외)
 VERSION=$(grep '^const Version =' "$SOURCE_DIR/pkg/config/version.go" | cut -d '"' -f 2)
-TAG="v0.4.48"
+TAG="$VERSION"
 REPO="dirmich/maru-bot"
 
 if command -v gh >/dev/null 2>&1; then

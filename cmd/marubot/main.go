@@ -38,7 +38,8 @@ import (
 	"github.com/kardianos/service"
 )
 
-// 0.4.47: Runtime config validation & multi-language guidance (GUI/CLI)
+// 0.4.49: Fix Windows binary corruption by keeping releases clean, add service elevation (Admin check)
+// 0.4.48: Windows Service registration & Setup Mode (KO/EN/JA/ZH guidance)
 // 0.4.46: Windows 32/64 deployment (Single + Zip) and publish automation
 // 0.4.45: AI Provider fallback mechanism with configurable models
 // 0.4.7: GPIO output control, config precedence fix, flattened nested pins
@@ -1953,6 +1954,16 @@ func serviceCmd() {
 	}
 
 	sub := os.Args[2]
+
+	if runtime.GOOS == "windows" {
+		if sub == "install" || sub == "uninstall" || sub == "start" || sub == "stop" || sub == "restart" {
+			if !isAdmin() {
+				fmt.Println("Elevation required. Requesting administrator privileges...")
+				runAsAdmin()
+				return
+			}
+		}
+	}
 	
 	svcConfig := &service.Config{
 		Name:        "MaruBot",
@@ -2007,5 +2018,28 @@ func serviceCmd() {
 
 	if err != nil {
 		fmt.Printf("Service operation failed: %v\n", err)
+	}
+}
+
+func isAdmin() bool {
+	if runtime.GOOS == "windows" {
+		_, err := os.Open("\\\\.\\PHYSICALDRIVE0")
+		return err == nil
+	}
+	return os.Geteuid() == 0
+}
+
+func runAsAdmin() {
+	exe, _ := os.Executable()
+	args := strings.Join(os.Args[1:], " ")
+
+	// PowerShell way which is more reliable for elevation
+	cmd := exec.Command("powershell", "Start-Process", "-FilePath", fmt.Sprintf("'%s'", exe), "-ArgumentList", fmt.Sprintf("'%s'", args), "-Verb", "RunAs")
+	err := cmd.Run()
+	if err != nil {
+		fmt.Printf("Failed to elevate: %v\n", err)
+		fmt.Println("Please run this command in an Administrator terminal.")
+	} else {
+		fmt.Println("Elevated process started in a new window.")
 	}
 }
