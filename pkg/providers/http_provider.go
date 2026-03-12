@@ -317,45 +317,61 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 		fallback.entries = append(fallback.entries, fallbackEntry{provider: primaryProvider, model: primaryModel})
 	}
 
-	// 1. Fallback to OpenAI if available
-	if cfg.Providers.OpenAI.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "gpt") {
-		if p, _ := createSingleProvider("openai/gpt-4o", cfg); p != nil {
-			fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "gpt-4o"})
+	// Use configured fallback models if available
+	if len(cfg.Agents.Defaults.FallbackModels) > 0 {
+		for _, m := range cfg.Agents.Defaults.FallbackModels {
+			// Avoid adding the same model as primary
+			if strings.EqualFold(m, primaryModel) {
+				continue
+			}
+			if p, _ := createSingleProvider(m, cfg); p != nil {
+				fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: m})
+			}
 		}
 	}
 
-	// 2. Fallback to Gemini if available
-	if cfg.Providers.Gemini.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "gemini") {
-		if p, _ := createSingleProvider("google/gemini-2.5-flash", cfg); p != nil {
-			fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "gemini-2.5-flash"})
+	// Only add hardcoded defaults if we don't have enough configured fallbacks
+	if len(fallback.entries) <= 1 {
+		// 1. Fallback to OpenAI if available
+		if cfg.Providers.OpenAI.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "gpt") {
+			if p, _ := createSingleProvider("openai/gpt-4o", cfg); p != nil {
+				fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "gpt-4o"})
+			}
 		}
-	}
 
-	// 3. Fallback to Anthropic if available
-	if cfg.Providers.Anthropic.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "claude") {
-		if p, _ := createSingleProvider("anthropic/claude-3-5-sonnet-20241022", cfg); p != nil {
-			fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "claude-3-5-sonnet-20241022"})
+		// 2. Fallback to Gemini if available
+		if cfg.Providers.Gemini.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "gemini") {
+			if p, _ := createSingleProvider("google/gemini-2.0-flash", cfg); p != nil { // Updated version name to match latest
+				fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "gemini-2.0-flash"})
+			}
 		}
-	}
 
-	// 4. Fallback to Zhipu if available
-	if cfg.Providers.Zhipu.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "glm") {
-		if p, _ := createSingleProvider("glm-4", cfg); p != nil {
-			fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "glm-4"})
+		// 3. Fallback to Anthropic if available
+		if cfg.Providers.Anthropic.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "claude") {
+			if p, _ := createSingleProvider("anthropic/claude-3-5-sonnet-20241022", cfg); p != nil {
+				fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "claude-3-5-sonnet-20241022"})
+			}
 		}
-	}
 
-	// 5. Fallback to Groq if available
-	if cfg.Providers.Groq.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "groq") {
-		if p, _ := createSingleProvider("groq/llama3-70b-8192", cfg); p != nil {
-			fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "llama3-70b-8192"})
+		// 4. Fallback to Zhipu if available
+		if cfg.Providers.Zhipu.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "glm") {
+			if p, _ := createSingleProvider("glm-4", cfg); p != nil {
+				fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "glm-4"})
+			}
 		}
-	}
 
-	// 6. Fallback to OpenRouter (using a safe default like claude-3.5-sonnet) if available
-	if cfg.Providers.OpenRouter.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "openrouter") {
-		if p, _ := createSingleProvider("openrouter/anthropic/claude-3.5-sonnet", cfg); p != nil {
-			fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "anthropic/claude-3.5-sonnet"})
+		// 5. Fallback to Groq if available
+		if cfg.Providers.Groq.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "groq") {
+			if p, _ := createSingleProvider("groq/llama3-70b-8192", cfg); p != nil {
+				fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "llama3-70b-8192"})
+			}
+		}
+
+		// 6. Fallback to OpenRouter (using a safe default like claude-3.5-sonnet) if available
+		if cfg.Providers.OpenRouter.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "openrouter") {
+			if p, _ := createSingleProvider("openrouter/anthropic/claude-3.5-sonnet", cfg); p != nil {
+				fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "anthropic/claude-3.5-sonnet"})
+			}
 		}
 	}
 

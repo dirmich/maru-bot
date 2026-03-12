@@ -37,14 +37,15 @@ import (
 	"github.com/chzyer/readline"
 )
 
-// version for compatibility with older binaries: var version = "0.4.6"
-var version = config.Version
-
-const logo = "[MaruBot]"
-
+// 0.4.46: Windows 32/64 deployment (Single + Zip) and publish automation
+// 0.4.45: AI Provider fallback mechanism with configurable models
 // 0.4.8: Local model (vLLM/llama.cpp) provider matching and auth improvement
 // 0.4.7: GPIO output control, config precedence fix, flattened nested pins
 // 0.4.6: GPIO color guide (legend) layout improvement
+
+var version = config.Version
+
+const logo = "[MaruBot]"
 
 func copyDirectory(src, dst string) error {
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
@@ -1577,6 +1578,12 @@ func startCmd() {
 		return
 	}
 
+	// Validate configuration: At least one AI provider and one channel must be enabled
+	if !cfg.IsAIConfigured() || !cfg.IsChannelEnabled() {
+		showGuideMessage(cfg)
+		os.Exit(0)
+	}
+
 	workspace := cfg.WorkspacePath()
 	createWorkspaceTemplates(workspace)
 
@@ -1783,4 +1790,81 @@ func upgradeCmd() {
 
 	fmt.Println("✨ Upgrade complete! Restarting MaruBot...")
 	reloadCmd()
+}
+func openBrowser(url string) {
+	var err error
+	switch runtime.GOOS {
+	case "linux":
+		err = exec.Command("xdg-open", url).Start()
+	case "windows":
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	case "darwin":
+		err = exec.Command("open", url).Start()
+	default:
+		err = fmt.Errorf("unsupported platform")
+	}
+	if err != nil {
+		fmt.Printf("Please open your browser and go to: %s\n", url)
+	}
+}
+
+func showGuideMessage(cfg *config.Config) {
+	lang := cfg.Language
+	port := cfg.Gateway.Port
+	if port == 0 {
+		port = 18790
+	}
+	adminURL := fmt.Sprintf("http://localhost:%d", port)
+
+	isGUI := runtime.GOOS == "windows" || runtime.GOOS == "darwin"
+
+	messages := map[string]map[string]string{
+		"ko": {
+			"title":   "⚠️ 설정이 필요합니다!",
+			"body":    "MaruBot을 시작하려면 최소 하나의 AI 모델과 채널이 설정되어야 합니다.",
+			"gui":     "설정 페이지(Web-Admin)를 브라우저에 띄웁니다. 설정을 완료한 후 다시 실행해 주세요.",
+			"cli":     "브라우저에서 아래 주소로 접속하여 설정을 완료해 주세요:",
+			"restart": "설정 저장 후 앱을 재시작해 주세요.",
+		},
+		"en": {
+			"title":   "⚠️ Configuration Required!",
+			"body":    "At least one AI model and one channel must be configured to start MaruBot.",
+			"gui":     "Opening configuration page (Web-Admin) in your browser. Please restart after setup.",
+			"cli":     "Please access the following URL in your browser to complete setup:",
+			"restart": "Restart the app after saving settings.",
+		},
+		"ja": {
+			"title":   "⚠️ 設定が必要です！",
+			"body":    "MaruBotを開始するには、少なくとも1つのAIモデルとチャネルを設定する必要があります。",
+			"gui":     "ブラウザで設定ページ(Web-Admin)を開きます。設定完了後に再起動してください。",
+			"cli":     "ブラウザで以下のURLにアクセスして設定を完了してください：",
+			"restart": "設定保存後、アプリを再起動してください。",
+		},
+		"zh": {
+			"title":   "⚠️ 需要配置！",
+			"body":    "启动 MaruBot 至少需要配置一个 AI 模型和一个频道。",
+			"gui":     "正在浏览器中打开配置页面 (Web-Admin)。配置完成后请重启程序。",
+			"cli":     "请在浏览器中访问以下地址完成配置：",
+			"restart": "保存设置后请重启程序。",
+		},
+	}
+
+	msg, ok := messages[lang]
+	if !ok {
+		msg = messages["en"]
+	}
+
+	fmt.Println("\n" + msg["title"])
+	fmt.Println(msg["body"])
+	fmt.Println()
+
+	if isGUI {
+		fmt.Println(msg["gui"])
+		fmt.Println("URL:", adminURL)
+		openBrowser(adminURL)
+	} else {
+		fmt.Println(msg["cli"])
+		fmt.Println(adminURL)
+	}
+	fmt.Println("\n" + msg["restart"] + "\n")
 }

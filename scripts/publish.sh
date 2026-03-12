@@ -65,13 +65,13 @@ else
     exit 1
 fi
 
-# 5. 빌드 바이너리 동기화 (기존 빌드 결과물이 있을 경우)
-echo "📦 빌드된 바이너리들을 releases 폴더로 수집 중..."
+# 5. 빌드 바이너리 및 패키지 동기화
+echo "📦 빌드된 바이너리 및 패키지들을 releases 폴더로 수집 중..."
 RELEASE_DIR="$TARGET_DIR/releases"
 mkdir -p "$RELEASE_DIR"
 if [ -d "$SOURCE_DIR/build" ]; then
     cp "$SOURCE_DIR/build/marubot"* "$RELEASE_DIR/"
-    echo "  ✓ 빌드 바이너리 복사 완료 (Path: $RELEASE_DIR)"
+    echo "  ✓ 빌드 자산 복사 완료 (Path: $RELEASE_DIR)"
 else
     echo "  ⚠️ build 폴더를 찾을 수 없어 바이너리 복사 건너뜜"
 fi
@@ -93,6 +93,26 @@ cd "$TARGET_DIR"
 find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -exec sed -i 's/maruminibot/marubot/g' {} + || true
 find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -exec sed -i 's/MaruMiniBot/MaruBot/g' {} + || true
 
+# 8. GitHub Release 자동 업로드 ( gh CLI 사용 )
+# pkg/config/version.go 에서 버전 추출
+VERSION=$(grep 'const Version =' "$SOURCE_DIR/pkg/config/version.go" | cut -d '"' -f 2)
+TAG="v$VERSION"
+
+if command -v gh >/dev/null 2>&1; then
+    echo "🚀 GitHub Release ($TAG) 생성 및 자산 업로드 중..."
+    # 이미 해당 태그가 있는지 확인
+    if gh release view "$TAG" >/dev/null 2>&1; then
+        echo "  ℹ️ Release $TAG 가 이미 존재합니다. 자산을 업데이트합니다..."
+        gh release upload "$TAG" "$RELEASE_DIR"/* --clobber
+    else
+        echo "  🆕 새 Release $TAG 를 생성합니다..."
+        gh release create "$TAG" "$RELEASE_DIR"/* --title "MaruBot $TAG" --notes "Release $TAG of MaruBot"
+    fi
+    echo "  ✓ GitHub Release 업로드 완료"
+else
+    echo "  ⚠️ 'gh' CLI를 찾을 수 없어 GitHub Release 업로드를 건너뜁니다."
+fi
+
 cd "$SOURCE_DIR"
-echo -e "\n✅ 모든 동기화가 완료되었습니다!"
+echo -e "\n✅ 모든 동기화 및 배포가 완료되었습니다!"
 echo "📍 위치: $TARGET_DIR"

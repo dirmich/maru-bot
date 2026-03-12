@@ -29,11 +29,12 @@ type AgentsConfig struct {
 }
 
 type AgentDefaults struct {
-	Workspace         string  `json:"workspace" env:"MARUBOT_AGENTS_DEFAULTS_WORKSPACE"`
-	Model             string  `json:"model" env:"MARUBOT_AGENTS_DEFAULTS_MODEL"`
-	MaxTokens         int     `json:"max_tokens" env:"MARUBOT_AGENTS_DEFAULTS_MAX_TOKENS"`
-	Temperature       float64 `json:"temperature" env:"MARUBOT_AGENTS_DEFAULTS_TEMPERATURE"`
-	MaxToolIterations int     `json:"max_tool_iterations" env:"MARUBOT_AGENTS_DEFAULTS_MAX_TOOL_ITERATIONS"`
+	Workspace         string   `json:"workspace" env:"MARUBOT_AGENTS_DEFAULTS_WORKSPACE"`
+	Model             string   `json:"model" env:"MARUBOT_AGENTS_DEFAULTS_MODEL"`
+	FallbackModels    []string `json:"fallback_models" env:"MARUBOT_AGENTS_DEFAULTS_FALLBACK_MODELS"`
+	MaxTokens         int      `json:"max_tokens" env:"MARUBOT_AGENTS_DEFAULTS_MAX_TOKENS"`
+	Temperature       float64  `json:"temperature" env:"MARUBOT_AGENTS_DEFAULTS_TEMPERATURE"`
+	MaxToolIterations int      `json:"max_tool_iterations" env:"MARUBOT_AGENTS_DEFAULTS_MAX_TOOL_ITERATIONS"`
 }
 
 type ChannelsConfig struct {
@@ -150,6 +151,7 @@ func DefaultConfig() *Config {
 			Defaults: AgentDefaults{
 				Workspace:         "~/.marubot/workspace",
 				Model:             "glm-4.7",
+				FallbackModels:    []string{"gpt-4o", "claude-3-5-sonnet-20241022", "gemini-2.5-flash"},
 				MaxTokens:         8192,
 				Temperature:       0.7,
 				MaxToolIterations: 20,
@@ -413,6 +415,29 @@ func (c *Config) GetAPIBase() string {
 		return c.Providers.VLLM.APIBase
 	}
 	return ""
+}
+
+func (c *Config) IsAIConfigured() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.Providers.Anthropic.APIKey != "" ||
+		c.Providers.OpenAI.APIKey != "" ||
+		c.Providers.OpenRouter.APIKey != "" ||
+		c.Providers.Groq.APIKey != "" ||
+		c.Providers.Zhipu.APIKey != "" ||
+		c.Providers.Gemini.APIKey != "" ||
+		c.Providers.VLLM.APIBase != ""
+}
+
+func (c *Config) IsChannelEnabled() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.Channels.WhatsApp.Enabled ||
+		c.Channels.Telegram.Enabled ||
+		c.Channels.Feishu.Enabled ||
+		c.Channels.Discord.Enabled ||
+		c.Channels.MaixCam.Enabled ||
+		c.Channels.Webhook.Enabled
 }
 
 func expandHome(path string) string {

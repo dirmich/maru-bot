@@ -1,0 +1,6 @@
+v0.4.47: 매 실행 시 설정 검증 및 플랫폼별 다국어 가이드 구현
+
+- [v0.4.45] AI 프로바이더 폴백 시스템 (fallback_models) 구현
+- [v0.4.46] Windows 32/64비트 배포 자동화 (Single EXE & Installable ZIP)
+- [v0.4.47] 실행 시 AI 모델/채널 설정 검증 및 플랫폼별(GUI/CLI) 가이드 제공
+- README.md 업데이트 및 배포 스크립트(publish.sh, Makefile) 고도화
