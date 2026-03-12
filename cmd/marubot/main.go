@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -36,11 +37,12 @@ import (
 	"github.com/dirmich/marubot/pkg/voice"
 
 	"github.com/chzyer/readline"
+	"github.com/getlantern/systray"
 	"github.com/kardianos/service"
 )
 
+// 0.4.53: Fixed 8080 port, Binary relocation (~/.marubot/bin), and Uninstall improvements
 // 0.4.52: Fix Windows service lifecycle (SCM Run) & Uninstall elevation
-// 0.4.51: Windows GUI Auto-upgrade & Service management (Double-click support)
 // 0.4.49: Fix Windows binary corruption by keeping releases clean, add service elevation (Admin check)
 
 var Version = config.Version
@@ -207,6 +209,15 @@ func uninstallCmd() {
 			s.Stop()
 			if err := s.Uninstall(); err == nil {
 				fmt.Println("✓ Windows service removed.")
+			} else {
+				// Fallback to sc delete
+				fmt.Printf("Standard uninstall failed (%v), trying sc delete...\n", err)
+				exec.Command("sc", "stop", "MaruBot").Run()
+				if err := exec.Command("sc", "delete", "MaruBot").Run(); err == nil {
+					fmt.Println("✓ Windows service removed via sc delete.")
+				} else {
+					fmt.Println("✗ Failed to remove Windows service. You may need to run 'sc delete MaruBot' manually.")
+				}
 			}
 		}
 	}
@@ -242,13 +253,26 @@ func uninstallCmd() {
 	// Try to remove self using os.Executable
 	exePath, err := os.Executable()
 	if err == nil {
-		// Resolving symlinks if needed, but os.Executable usually returns the path
 		fmt.Printf("Removing executable: %s\n", exePath)
-		if err := os.Remove(exePath); err != nil {
-			fmt.Printf("Error removing executable: %v\n", err)
-			fmt.Println("Hint: You may need to run this command with sudo: 'sudo marubot uninstall'")
+		if runtime.GOOS == "windows" {
+			// Windows cannot delete a running executable. 
+			// Use a PowerShell trick to delete after exit.
+			destDir := filepath.Dir(exePath)
+			exeName := filepath.Base(exePath)
+			script := fmt.Sprintf("Start-Sleep -Seconds 2; Remove-Item -Path '%s' -Force", exeName)
+			cmd := exec.Command("powershell", "-Command", fmt.Sprintf("Start-Process powershell -ArgumentList \"-Command %s\" -WindowStyle Hidden -WorkingDirectory '%s'", script, destDir))
+			if err := cmd.Start(); err != nil {
+				fmt.Printf("Error scheduling self-deletion: %v\n", err)
+			} else {
+				fmt.Println("✓ Executable scheduled for deletion after exit.")
+			}
 		} else {
-			fmt.Println("✓ Executable removed")
+			if err := os.Remove(exePath); err != nil {
+				fmt.Printf("Error removing executable: %v\n", err)
+				fmt.Println("Hint: You may need to run this command with sudo: 'sudo marubot uninstall'")
+			} else {
+				fmt.Println("✓ Executable removed")
+			}
 		}
 	} else {
 		fmt.Println("Could not determine executable path. Please remove it manually.")
@@ -1530,9 +1554,12 @@ func reloadCmd() {
 }
 
 func startCmd() {
-	// Check for flags
+	// Check for flags or service mode
 	var runForeground bool
 	if len(os.Args) > 2 && (os.Args[2] == "--foreground" || os.Args[2] == "-f") {
+		runForeground = true
+	}
+	if os.Getenv("MARUBOT_SERVICE") == "1" {
 		runForeground = true
 	}
 
@@ -1623,7 +1650,7 @@ func startCmd() {
 			
 			// Start dashboard server in a goroutine so user can configure
 			port := cfg.Gateway.Port
-			if port == 0 { port = 18790 }
+			if port == 0 { port = 8080 }
 			dashAddr := fmt.Sprintf("0.0.0.0:%d", port)
 			
 			// We need a dummy agent for the dashboard to start, but it won't be able to do much
@@ -1955,6 +1982,7 @@ func (p *program) Start(s service.Service) error {
 
 func (p *program) run() {
 	// Core service logic
+	os.Setenv("MARUBOT_SERVICE", "1")
 	startCmd()
 }
 
@@ -2044,7 +2072,9 @@ func serviceCmd() {
 
 func isAdmin() bool {
 	if runtime.GOOS == "windows" {
-		_, err := os.Open("\\\\.\\PHYSICALDRIVE0")
+		// 'net session' command returns 0 if admin, 1 otherwise
+		cmd := exec.Command("net", "session")
+		err := cmd.Run()
 		return err == nil
 	}
 	return os.Geteuid() == 0
@@ -2064,56 +2094,194 @@ func runAsAdmin() {
 		fmt.Println("Elevated process started in a new window.")
 	}
 }
-func handleWindowsGUIMode() {
-	svcConfig := &service.Config{
-		Name: "MaruBot",
-	}
-	s, err := service.New(&program{}, svcConfig)
+func isPortAvailable(port int) bool {
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
-		fmt.Printf("Service init failed: %v\n", err)
+		return false
+	}
+	ln.Close()
+	return true
+}
+
+func checkAndFixPort(cfg *config.Config) bool {
+	port := 8080
+	if isPortAvailable(port) {
+		return true
+	}
+
+	if runtime.GOOS == "windows" {
+		// Ask for a new port via PowerShell
+		script := fmt.Sprintf(`
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName Microsoft.VisualBasic
+$title = "MaruBot Port Conflict"
+$msg = "Port 8080 is already in use. Would you like to use a different port?"
+$result = [System.Windows.Forms.MessageBox]::Show($msg, $title, "YesNo", "Warning")
+if ($result -eq "Yes") {
+    $newPort = [Microsoft.VisualBasic.Interaction]::InputBox("Enter a new port number:", $title, "8081")
+    if ($newPort) { $newPort } else { exit 1 }
+} else { exit 1 }
+`)
+		cmd := exec.Command("powershell", "-Command", script)
+		out, err := cmd.Output()
+		if err != nil {
+			return false
+		}
+		
+		var newPort int
+		fmt.Sscanf(strings.TrimSpace(string(out)), "%d", &newPort)
+		if newPort > 0 {
+			cfg.Gateway.Port = newPort
+			// Save to usersetting.json for persistence
+			userSettingsPath := filepath.Join(filepath.Dir(getConfigPath()), "usersetting.json")
+			var settings map[string]interface{}
+			data, err := os.ReadFile(userSettingsPath)
+			if err == nil {
+				json.Unmarshal(data, &settings)
+			} else {
+				settings = make(map[string]interface{})
+			}
+			settings["gateway.port"] = newPort
+			newData, _ := json.MarshalIndent(settings, "", "  ")
+			os.WriteFile(userSettingsPath, newData, 0644)
+			return true
+		}
+	} else {
+		fmt.Printf("Warning: Port 8080 is in use. Please check your configuration.\n")
+	}
+	return false
+}
+
+func installBinary() (string, error) {
+	exe, _ := os.Executable()
+	installDir := filepath.Join(getResourceDir(), "bin")
+	os.MkdirAll(installDir, 0755)
+	
+	targetPath := filepath.Join(installDir, "marubot.exe")
+	if runtime.GOOS != "windows" {
+		targetPath = filepath.Join(installDir, "marubot")
+	}
+
+	// If already in target path, skip
+	if exe == targetPath {
+		return targetPath, nil
+	}
+
+	fmt.Printf("Installing binary to %s...\n", targetPath)
+	src, err := os.Open(exe)
+	if err != nil {
+		return "", err
+	}
+	defer src.Close()
+
+	dst, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		return "", err
+	}
+	defer dst.Close()
+
+	_, err = io.Copy(dst, src)
+	if err != nil {
+		return "", err
+	}
+	
+	return targetPath, nil
+}
+
+func handleWindowsGUIMode() {
+	// 1. Install binary to fixed location if not there
+	targetExe, err := installBinary()
+	if err != nil {
+		fmt.Printf("Installation failed: %v\n", err)
+	}
+
+	// 2. Start Tray Icon (this blocks, so we run logic in onReady)
+	systray.Run(func() { onTrayReady(targetExe) }, onTrayExit)
+}
+
+func onTrayReady(targetExe string) {
+	systray.SetTitle("MaruBot")
+	systray.SetTooltip("MaruBot - AI Agent Service")
+	// Use a simple dot as placeholder icon if needed, or just let it be blank for now
+	// systray.SetIcon(iconBytes) 
+
+	mDashboard := systray.AddMenuItem("Dashboard", "Open Web-Admin")
+	systray.AddSeparator()
+	mStart := systray.AddMenuItem("Start MaruBot", "Start the service")
+	mStop := systray.AddMenuItem("Stop MaruBot", "Stop the service")
+	systray.AddSeparator()
+	mClose := systray.AddMenuItem("Close", "Uninstall and Exit")
+
+	// 3. Initial check and install
+	cfg, _ := loadConfig()
+	if !checkAndFixPort(cfg) {
+		systray.Quit()
 		return
 	}
 
+	svcConfig := &service.Config{Name: "MaruBot"}
+	s, _ := service.New(&program{}, svcConfig)
 	status, _ := s.Status()
+
 	if status == service.StatusUnknown {
-		// Service not installed
-		fmt.Println("Service not found. Installing and starting...")
-		serviceCmdInternal("install")
+		serviceCmdInternalPath("install", targetExe)
 		time.Sleep(1 * time.Second)
-		serviceCmdInternal("start")
-	} else {
-		// Service exists, check version
-		needsUpgrade := checkServiceUpgrade(s)
-		if needsUpgrade {
-			if confirmUpgrade() {
-				serviceCmdInternal("stop")
-				serviceCmdInternal("uninstall")
-				serviceCmdInternal("install")
-				serviceCmdInternal("start")
-			}
-		} else {
-			// Just ensure it's started
-			if status != service.StatusRunning {
-				fmt.Println("Service is not running. Starting...")
-				serviceCmdInternal("start")
-			}
-		}
+		serviceCmdInternalPath("start", targetExe)
+	} else if status != service.StatusRunning {
+		serviceCmdInternalPath("start", targetExe)
 	}
 
-	// Always try to open browser
-	adminURL := "http://localhost:8080"
-	fmt.Printf("Opening Web-Admin: %s\n", adminURL)
-	openBrowser(adminURL)
-	time.Sleep(2 * time.Second) // Give time to read before terminal closes
+	// Auto-open browser on first start
+	openBrowser(fmt.Sprintf("http://localhost:%d", cfg.Gateway.Port))
+
+	// Menu Handlers
+	go func() {
+		for {
+			select {
+			case <-mDashboard.ClickedCh:
+				currCfg, _ := loadConfig()
+				openBrowser(fmt.Sprintf("http://localhost:%d", currCfg.Gateway.Port))
+			case <-mStart.ClickedCh:
+				serviceCmdInternalPath("start", targetExe)
+			case <-mStop.ClickedCh:
+				serviceCmdInternalPath("stop", targetExe)
+			case <-mClose.ClickedCh:
+				serviceCmdInternalPath("stop", targetExe)
+				serviceCmdInternalPath("uninstall", targetExe)
+				systray.Quit()
+			}
+		}
+	}()
 }
 
-func serviceCmdInternal(sub string) {
-	// Re-run as marubot service <sub>
-	exe, _ := os.Executable()
-	cmd := exec.Command(exe, "service", sub)
+func onTrayExit() {
+	// Cleanup on exit
+}
+
+func serviceCmdInternalPath(sub string, exePath string) {
+	if exePath == "" {
+		exePath, _ = os.Executable()
+	}
+	cmd := exec.Command(exePath, "service", sub)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Run()
+}
+
+func getServiceBinaryPath() string {
+	out, err := exec.Command("sc", "qc", "MaruBot").Output()
+	if err != nil {
+		return ""
+	}
+	re := regexp.MustCompile(`BINARY_PATH_NAME\s*:\s*("([^"]+)"|([^\s]+))`)
+	matches := re.FindStringSubmatch(string(out))
+	if len(matches) < 2 {
+		return ""
+	}
+	if matches[2] != "" {
+		return matches[2]
+	}
+	return matches[3]
 }
 
 func checkServiceUpgrade(s service.Service) bool {
