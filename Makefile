@@ -10,7 +10,13 @@ MAIN_GO=$(CMD_DIR)/main.go
 VERSION?=$(shell git describe --tags --exact-match 2>/dev/null || echo "")
 # If VERSION is empty, main.go's harcoded version will be used because we'll conditionalize LDFLAGS
 BUILD_TIME=$(shell date +%FT%T%z)
-LDFLAGS=$(if $(VERSION),-ldflags "-X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME)",-ldflags "-X main.buildTime=$(BUILD_TIME)")
+# Base LDFLAGS
+LDFLAGS_BASE=$(if $(VERSION),-X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME),-X main.buildTime=$(BUILD_TIME))
+# For Linux/Darwin (Console)
+LDFLAGS_CONSOLE=-ldflags "$(LDFLAGS_BASE)"
+# For Windows (GUI - to hide CMD window)
+LDFLAGS_WINDOWSGUI=-ldflags "$(LDFLAGS_BASE) -H windowsgui"
+
 CGO_ENABLED=0
 export CGO_ENABLED
 
@@ -72,7 +78,7 @@ all: build
 build:
 	@echo "Building $(BINARY_NAME) for $(PLATFORM)/$(ARCH)..."
 	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=0 $(GO) build $(GOFLAGS) $(LDFLAGS) -o $(BINARY_PATH) ./$(CMD_DIR)
+	CGO_ENABLED=0 $(GO) build $(GOFLAGS) $(LDFLAGS_CONSOLE) -o $(BINARY_PATH) ./$(CMD_DIR)
 	@echo "Build complete: $(BINARY_PATH)"
 	@ln -sf $(BINARY_NAME)-$(PLATFORM)-$(ARCH) $(BUILD_DIR)/$(BINARY_NAME)
 
@@ -86,8 +92,8 @@ build-all:
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm ./$(CMD_DIR)
 	CGO_ENABLED=0 GOOS=linux GOARCH=riscv64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-riscv64 ./$(CMD_DIR)
 	@# Windows
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe ./$(CMD_DIR)
-	CGO_ENABLED=0 GOOS=windows GOARCH=386 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-386.exe ./$(CMD_DIR)
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build $(LDFLAGS_WINDOWSGUI) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe ./$(CMD_DIR)
+	CGO_ENABLED=0 GOOS=windows GOARCH=386 $(GO) build $(LDFLAGS_WINDOWSGUI) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-386.exe ./$(CMD_DIR)
 	@# Darwin (Optional)
 	@# CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 ./$(CMD_DIR)
 	@# CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 ./$(CMD_DIR)
