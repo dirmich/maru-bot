@@ -37,9 +37,9 @@ import (
 	"github.com/chzyer/readline"
 )
 
+// 0.4.47: Runtime config validation & multi-language guidance (GUI/CLI)
 // 0.4.46: Windows 32/64 deployment (Single + Zip) and publish automation
 // 0.4.45: AI Provider fallback mechanism with configurable models
-// 0.4.8: Local model (vLLM/llama.cpp) provider matching and auth improvement
 // 0.4.7: GPIO output control, config precedence fix, flattened nested pins
 // 0.4.6: GPIO color guide (legend) layout improvement
 
