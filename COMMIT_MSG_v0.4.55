@@ -1,6 +1,0 @@
-v0.4.55: Windows 권한 승격 무한 루프 해결 및 설치 안정화
-
-- runAsAdmin 시 MARUBOT_ELEVATED 환경변수를 사용하여 무한 루프 방지
-- handleWindowsGUIMode에서 설치 전 권한 상태를 먼저 체크하도록 최적화
-- 승격 실패 또는 설치 거부 시 무한 재시도 대신 수동 실행 가이드 제공
-- pkg/config/version.go 버전 업데이트 및 GitHub 릴리스 배포 완료

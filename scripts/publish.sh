@@ -127,6 +127,10 @@ find . -type f -not -path '*/.*' -not -path '*/node_modules/*' -not -path './rel
 # 8. GitHub Release 자동 업로드 ( gh CLI 사용 )
 # pkg/config/version.go 에서 버전 추출 (행 시작 부분 매칭하여 주석 제외)
 VERSION=$(grep '^const Version =' "$SOURCE_DIR/pkg/config/version.go" | cut -d '"' -f 2)
+
+# Windows GUI 빌드 옵션 정의
+BUILD_TIME=$(date +%FT%T%z)
+LDFLAGS_WIN="-X main.version=$VERSION -X main.buildTime=$BUILD_TIME -H windowsgui"
 TAG="$VERSION"
 REPO="dirmich/maru-bot"
 

@@ -1,4 +1,4 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.56) 🦞
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.58) 🦞
 
 **MaruBot**은 극강의 효율성을 추구하는 [PicoClaw](https://github.com/sipeed/picoclaw)의 철학을 계승하여, 단 **10MB의 메모리(RAM)** 환경에서도 구동 가능한 초경량 Physical AI 에이전트입니다. Raspberry Pi부터 일반 Linux 서버, Windows PC까지 지원하며, 스스로 능력을 확장하는 '자기 진화' 능력을 갖춘 가장 똑똑한 개인용 비서입니다.
 

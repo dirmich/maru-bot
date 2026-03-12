@@ -1,9 +1,0 @@
-v0.4.53: Windows UX 개선 및 서비스 운영 안정화
-
-- Tray Icon 통합 (Dashboard, Start/Stop, Uninstall)
-- 8080 포트 고정 및 충돌 시 PowerShell 대화상자 알림/변경 로직 추가
-- 바이너리 자동 고정 설치 (~/.marubot/bin) 기능 구현
-- Windows Web-Admin에서 불필요한 GPIO 메뉴 숨김
-- 서비스 구동 시 대시보드 중복 실행 방지 (MARUBOT_SERVICE 환경변수 활용)
-- 언인스톨 폴백(sc delete) 및 실행 파일 자체 삭제(Self-Deletion) 안정화
-- Version 0.4.53 업데이트 및 GitHub 릴리스 배포 완료
