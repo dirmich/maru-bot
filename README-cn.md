@@ -1,5 +1,4 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.58) 🦞
-
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.60) 🦞
 **MaruBot** 是一款基于超轻量级 MaruBot 引擎，专为在树莓派 (Raspberry Pi) 等单板计算机 (SBC) 上直接控制硬件并进行交互而优化的 **"物理 AI 助手 (Physical AI Assistant)"**。
 
 ## ✨ 0.4.0 更新
@@ -107,4 +106,4 @@ Windows 用户建议从 **官方发布页面** 下载文件，而不是使用终
 ## 📝 开源协议
 遵循 MIT License。 MaruBot 基于 [picoclaw](https://github.com/sipeed/picoclaw) 开发。
 
-*开发与分析: Antigravity AI (2026)*
+*开发与分析: Antigravity AI (2026-03-13)*
