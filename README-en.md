@@ -1,4 +1,4 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.59) 🦞
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.60) 🦞
 
 **MaruBot** is an ultra-efficient, physical AI assistant inspired by the philosophy of [PicoClaw](https://github.com/sipeed/picoclaw). It is designed to run in extremely constrained environments, requiring as little as **10MB of RAM**. MaruBot supports Raspberry Pi, Generic Linux servers, and Windows PCs, and features a powerful 'Auto-Evolution' engine that allows it to expand its own capabilities autonomously.
 
@@ -62,7 +62,7 @@ For Windows users, we recommend downloading the files from the **Official Releas
 > **Note for Windows Users**: Since the binary is not signed with a commercial certificate, you might see a 'Windows protected your PC' warning from SmartScreen. This is expected. To run MaruBot, click **'More info'** and then **'Run anyway'**.
 
 > [!TIP]
-> **Note for macOS Users**: As the app is not notarized by Apple, you may see a "Gatekeeper" warning on first launch. To run MaruBot, go to **'System Settings > Privacy & Security'** and click **'Open Anyway'**, or **'Right-click > Open'** on the app icon.
+> **Note for macOS Users**: For versions without Apple notarization, you may see a "Gatekeeper" warning on first launch. Officially signed versions will run directly; otherwise, go to **'System Settings > Privacy & Security'** and click **'Open Anyway'**, or **'Right-click > Open'** on the app icon.
 
 ### 3. Setup API Keys & Default Model
 ```bash
@@ -114,4 +114,4 @@ MaruBot automatically detects your platform and enables supported tools:
 ## 📝 License
 MaruBot follows the MIT License. Feel free to modify and distribute.
 
-*Developed & Analyzed by Antigravity AI (2026-03-12)*
+*Developed & Analyzed by Antigravity AI (2026-03-13)*

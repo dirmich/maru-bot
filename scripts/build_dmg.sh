@@ -62,7 +62,17 @@ cat > "$CONTENTS_DIR/Info.plist" <<EOF
 </plist>
 EOF
 
-# 6. Prepare DMG Root (THIS IS THE FIX)
+# 6. Sign Code (REQUIRED for macOS security)
+ENTITLEMENTS="scripts/entitlements.plist"
+if [ -n "$SIGNING_IDENTITY" ]; then
+    echo "Signing binary and app bundle with identity: $SIGNING_IDENTITY"
+    codesign --deep --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$SIGNING_IDENTITY" --timestamp "$MACOS_DIR/$BINARY_NAME"
+    codesign --force --sign "$SIGNING_IDENTITY" --timestamp "$APP_BUNDLE"
+else
+    echo "⚠️ SIGNING_IDENTITY not set. Skipping code signing. App will likely be blocked by Gatekeeper."
+fi
+
+# 7. Prepare DMG Root (THIS IS THE FIX)
 # We need a folder that contains the .app AND a symlink to Applications
 DMG_ROOT="$BUILD_DIR/dmg-root-$ARCH"
 rm -rf "$DMG_ROOT"
@@ -74,13 +84,34 @@ cp -R "$APP_BUNDLE" "$DMG_ROOT/"
 # Create symlink to Applications
 ln -s /Applications "$DMG_ROOT/Applications"
 
-# 7. Create DMG from the Root Folder
+# 8. Create DMG from the Root Folder
 DMG_NAME="$BUILD_DIR/marubot-macos-$ARCH.dmg"
 rm -f "$DMG_NAME"
 
+echo "Creating DMG package..."
 hdiutil create -volname "$APP_NAME v$VERSION" -srcfolder "$DMG_ROOT" -ov -format UDZO "$DMG_NAME"
+
+# 8. Sign and Notarize DMG
+if [ -n "$SIGNING_IDENTITY" ]; then
+    echo "Signing DMG..."
+    codesign --force --sign "$SIGNING_IDENTITY" --timestamp "$DMG_NAME"
+
+    if [ -n "$AC_APPLE_ID" ] && [ -n "$AC_PASSWORD" ] && [ -n "$AC_TEAM_ID" ]; then
+        echo "Submitting DMG for notarization..."
+        xcrun notarytool submit "$DMG_NAME" --apple-id "$AC_APPLE_ID" --password "$AC_PASSWORD" --team-id "$AC_TEAM_ID" --wait
+        
+        echo "Stapling notarization ticket..."
+        xcrun stapler staple "$DMG_NAME"
+        echo "✓ Notarization and stapling complete."
+    else
+        echo "⚠️ Notarization credentials (AC_APPLE_ID, AC_PASSWORD, AC_TEAM_ID) missing. Skipping notarization."
+    fi
+fi
 
 # Cleanup
 rm -rf "$DMG_ROOT"
 
-echo "✓ Created $DMG_NAME with proper installation structure."
+echo "✓ Created $DMG_NAME"
+if [ -n "$SIGNING_IDENTITY" ]; then
+    echo "  (Signed and ready for distribution)"
+fi
