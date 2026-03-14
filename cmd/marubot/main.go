@@ -802,9 +802,12 @@ func gatewayCmd() {
 	}
 
 	var transcriber *voice.GroqTranscriber
-	if cfg.Providers.Groq.APIKey != "" {
-		transcriber = voice.NewGroqTranscriber(cfg.Providers.Groq.APIKey)
-		logger.InfoC("voice", "Groq voice transcription enabled")
+	for _, m := range cfg.Providers.Groq.Models {
+		if m.APIKey != "" {
+			transcriber = voice.NewGroqTranscriber(m.APIKey)
+			logger.InfoC("voice", "Groq voice transcription enabled")
+			break
+		}
 	}
 
 	if transcriber != nil {
@@ -1401,13 +1404,13 @@ func statusCmd() {
 		fmt.Printf("User Settings: %s (OK)\n", userSettingsPath)
 	}
 
-	hasOpenRouter := cfg.Providers.OpenRouter.APIKey != ""
-	hasAnthropic := cfg.Providers.Anthropic.APIKey != ""
-	hasOpenAI := cfg.Providers.OpenAI.APIKey != ""
-	hasGemini := cfg.Providers.Gemini.APIKey != ""
-	hasZhipu := cfg.Providers.Zhipu.APIKey != ""
-	hasGroq := cfg.Providers.Groq.APIKey != ""
-	hasVLLM := cfg.Providers.VLLM.APIBase != ""
+	hasOpenRouter := len(cfg.Providers.OpenRouter.Models) > 0
+	hasAnthropic := len(cfg.Providers.Anthropic.Models) > 0
+	hasOpenAI := len(cfg.Providers.OpenAI.Models) > 0
+	hasGemini := len(cfg.Providers.Gemini.Models) > 0
+	hasZhipu := len(cfg.Providers.Zhipu.Models) > 0
+	hasGroq := len(cfg.Providers.Groq.Models) > 0
+	hasVLLM := len(cfg.Providers.VLLM.Models) > 0
 
 	maskKey := func(key string) string {
 		if key == "" {
@@ -1434,9 +1437,11 @@ func statusCmd() {
 	fmt.Printf("Groq API: %s\n", status(hasGroq))
 
 	if hasVLLM {
+		m := cfg.Providers.VLLM.Models[0]
 		fmt.Printf("vLLM/Local API: (OK)\n")
-		fmt.Printf("  - Base: %s\n", cfg.Providers.VLLM.APIBase)
-		fmt.Printf("  - Key:  %s\n", maskKey(cfg.Providers.VLLM.APIKey))
+		fmt.Printf("  - Base:  %s\n", m.APIBase)
+		fmt.Printf("  - Model: %s\n", m.Model)
+		fmt.Printf("  - Key:   %s\n", maskKey(m.APIKey))
 	} else {
 		fmt.Printf("vLLM/Local: not set\n")
 	}
