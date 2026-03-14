@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.60) 🦞
-=======
 # MaruBot - Ultra-lightweight AI Assistant (v0.4.61) 🦞
->>>>>>> d992838 (Release v0.4.62: Refactor config structure and fix vLLM model name issue)
 
 **MaruBot** is an ultra-efficient, physical AI assistant inspired by the philosophy of [PicoClaw](https://github.com/sipeed/picoclaw). It is designed to run in extremely constrained environments, requiring as little as **10MB of RAM**. MaruBot supports Raspberry Pi, Generic Linux servers, and Windows PCs, and features a powerful 'Auto-Evolution' engine that allows it to expand its own capabilities autonomously.
 

@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.60) 🦞
-=======
 # MaruBot - Ultra-lightweight AI Assistant (v0.4.61) 🦞
->>>>>>> d992838 (Release v0.4.62: Refactor config structure and fix vLLM model name issue)
 
 **MaruBot**은 극강의 효율성을 추구하는 [PicoClaw](https://github.com/sipeed/picoclaw)의 철학을 계승하여, 단 **10MB의 메모리(RAM)** 환경에서도 구동 가능한 초경량 Physical AI 에이전트입니다. Raspberry Pi부터 일반 Linux 서버, Windows PC까지 지원하며, 스스로 능력을 확장하는 '자기 진화' 능력을 갖춘 가장 똑똑한 개인용 비서입니다.
 
@@ -14,19 +10,11 @@
 - **10MB RAM:** 최적화된 Go 바이너리를 사용하여 임베디드 장치에서도 부담 없이 동작합니다.
 - **Single Binary:** 의존성 없는 단일 바이너리 배포로 설치와 관리가 매우 간편합니다.
 
-<<<<<<< HEAD
-### 2. 🌍 Multi-Platform Support
-- **Raspberry Pi:** Full support for GPIO, camera, and hardware sensors (ARM32/64).
-- **Linux:** Compatible with Ubuntu, Debian, AWS EC2, and other standard Linux distros.
-- **Windows:** Official support for both 64-bit (amd64) and 32-bit (386) architectures.
-- **macOS:** Official support for Intel and Apple Silicon (arm64) via DMG installers.
-=======
 ### 2. 🌍 멀티 플랫폼 지원 (Multi-Platform)
 - **Raspberry Pi:** GPIO, 카메라, 각종 센서 제어 완벽 지원 (ARM32/64).
 - **Linux:** Ubuntu, Debian, AWS EC2 등 모든 일반 Linux 환경 지원.
 - **Windows:** 64bit 및 32bit 아키텍처 공식 지원 (바이너리 제공).
 - **macOS:** Intel 및 Apple Silicon(M1/M2/M3) 공식 지원 (DMG 제공).
->>>>>>> d992838 (Release v0.4.62: Refactor config structure and fix vLLM model name issue)
 
 ### 3. 🧬 자기 진화 엔진 (Auto-Evolution)
 - **`create_tool`**: 새로운 원자적 기능을 담당하는 Bash/Python 스크립트를 스스로 코딩하고 즉시 도구로 등록합니다.
@@ -92,24 +80,10 @@ Windows 사용자는 터미널 명령어보다는 **공식 릴리스 페이지**
 3. 다운로드한 파일을 실행하면 자동으로 `~/.marubot/bin` 폴더에 설치되고 트레이 아이콘이 활성화됩니다.
 
 ### 3. 🍎 macOS (GUI)
-<<<<<<< HEAD
-1. Visit the [Official Release Page](https://github.com/dirmich/maru-bot/releases).
-2. Download the `.dmg` file for your CPU architecture (Intel or Apple Silicon).
-3. Open the DMG and run `MaruBot.app` to see the icon in your menu bar.
-
-> [!TIP]
-> **Note for Windows Users**: Since the binary is not signed with a commercial certificate, you might see a 'Windows protected your PC' warning from SmartScreen. This is expected. To run MaruBot, click **'More info'** and then **'Run anyway'**.
-
-> [!TIP]
-> **Note for macOS Users**: For versions without Apple notarization, you may see a "Gatekeeper" warning on first launch. Officially signed versions will run directly; otherwise, go to **'System Settings > Privacy & Security'** and click **'Open Anyway'**, or **'Right-click > Open'** on the app icon.
-
-### 3. Setup API Keys & Default Model
-=======
 1. [공식 릴리스 페이지](https://github.com/dirmich/maru-bot/releases)에서 본인의 CPU(Intel 또는 Apple Silicon)에 맞는 `.dmg` 파일을 다운로드합니다.
 2. DMG 파일을 열고 `MaruBot.app`을 실행하면 메뉴 막대(트레이)에 아이콘이 나타납니다.
 
 ### 3. 필수 설정 (API 키 및 기본 모델 등록)
->>>>>>> d992838 (Release v0.4.62: Refactor config structure and fix vLLM model name issue)
 ```bash
 # OpenAI API 키 설정 예시
 marubot config set providers.openai.api_key "YOUR_KEY"
