@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # MaruBot - Ultra-lightweight AI Assistant (v0.4.60) 🦞
+=======
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.61) 🦞
+>>>>>>> d992838 (Release v0.4.62: Refactor config structure and fix vLLM model name issue)
 
 **MaruBot** は、超軽量の MaruBot エンジンをベースに、Raspberry Pi などの SBC（シングルボードコンピュータ）でハードウェアを直接制御し、対話するために最適化された **"Physical AI Assistant"** です。
 
