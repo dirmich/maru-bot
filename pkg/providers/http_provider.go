@@ -39,8 +39,17 @@ func (p *HTTPProvider) Chat(ctx context.Context, messages []Message, tools []Too
 		return nil, fmt.Errorf("API base not configured")
 	}
 
+	// Handle model name prefixes for some providers that might get confused
+	// Especially for vLLM or local servers that don't expect "openai/" prefix
+	effectiveModel := model
+	if strings.Contains(p.apiBase, "192.168") || strings.Contains(p.apiBase, "localhost") || strings.Contains(p.apiBase, "0.0.0.0") {
+		if idx := strings.LastIndex(model, "/"); idx != -1 {
+			effectiveModel = model[idx+1:]
+		}
+	}
+
 	requestBody := map[string]interface{}{
-		"model":    model,
+		"model":    effectiveModel,
 		"messages": messages,
 	}
 
@@ -165,108 +174,78 @@ func (p *HTTPProvider) GetDefaultModel() string {
 	return ""
 }
 
-func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error) {
-	var apiKey, apiBase string
-	lowerModel := strings.ToLower(model)
-
-	// Explicit provider prefixes
-	if strings.HasPrefix(lowerModel, "vllm/") || strings.HasPrefix(lowerModel, "ollama/") || strings.HasPrefix(lowerModel, "local/") {
-		apiKey = cfg.Providers.VLLM.APIKey
-		apiBase = cfg.Providers.VLLM.APIBase
-		if strings.HasPrefix(model, "vllm/") {
-			model = strings.TrimPrefix(model, "vllm/")
-		} else if strings.HasPrefix(model, "ollama/") {
-			model = strings.TrimPrefix(model, "ollama/")
-		} else {
-			model = strings.TrimPrefix(model, "local/")
-		}
-		return NewHTTPProvider(apiKey, apiBase), nil
-	}
-
-	switch {
-	case strings.HasSuffix(lowerModel, ".gguf") || strings.HasSuffix(lowerModel, ".bin"):
-		// Local model files should use VLLM provider if configured
-		if cfg.Providers.VLLM.APIBase != "" {
-			apiKey = cfg.Providers.VLLM.APIKey
-			apiBase = cfg.Providers.VLLM.APIBase
-		} else {
-			return nil, fmt.Errorf("local model detected (.gguf/.bin) but VLLM API base is not configured")
-		}
-
-	case strings.HasPrefix(model, "openrouter/") || strings.HasPrefix(model, "anthropic/") || strings.HasPrefix(model, "openai/") || strings.HasPrefix(model, "meta-llama/") || strings.HasPrefix(model, "deepseek/") || strings.HasPrefix(model, "google/"):
-		apiKey = cfg.Providers.OpenRouter.APIKey
-		if cfg.Providers.OpenRouter.APIBase != "" {
-			apiBase = cfg.Providers.OpenRouter.APIBase
-		} else {
-			apiBase = "https://openrouter.ai/api/v1"
-		}
-
-	case strings.HasPrefix(model, "anthropic/") || strings.Contains(lowerModel, "claude"):
-		apiKey = cfg.Providers.Anthropic.APIKey
-		apiBase = cfg.Providers.Anthropic.APIBase
-		if apiBase == "" {
-			apiBase = "https://api.anthropic.com/v1"
-		}
-
-	case strings.HasPrefix(model, "openai/") || (strings.Contains(lowerModel, "gpt") && !strings.Contains(lowerModel, "oss")):
-		apiKey = cfg.Providers.OpenAI.APIKey
-		apiBase = cfg.Providers.OpenAI.APIBase
-		if apiBase == "" {
-			apiBase = "https://api.openai.com/v1"
-		}
-
-	case strings.HasPrefix(model, "google/") || strings.Contains(lowerModel, "gemini"):
-		apiKey = cfg.Providers.Gemini.APIKey
-		apiBase = cfg.Providers.Gemini.APIBase
-		if apiBase == "" {
-			apiBase = "https://generativelanguage.googleapis.com/v1beta"
-		}
-
-	case strings.Contains(lowerModel, "glm") || strings.Contains(lowerModel, "zhipu") || strings.Contains(lowerModel, "zai"):
-		apiKey = cfg.Providers.Zhipu.APIKey
-		apiBase = cfg.Providers.Zhipu.APIBase
-		if apiBase == "" {
-			apiBase = "https://open.bigmodel.cn/api/paas/v4"
-		}
-
-	case strings.HasPrefix(model, "groq/") || strings.Contains(lowerModel, "groq"):
-		apiKey = cfg.Providers.Groq.APIKey
-		apiBase = cfg.Providers.Groq.APIBase
-		if apiBase == "" {
-			apiBase = "https://api.groq.com/openai/v1"
-		}
-
-	case cfg.Providers.VLLM.APIBase != "" && apiKey == "":
-		// Fallback to VLLM if specifically configured and no other provider matched yet
-		apiKey = cfg.Providers.VLLM.APIKey
-		apiBase = cfg.Providers.VLLM.APIBase
-
+func findModelConfig(providerName, modelName string, cfg *config.Config) (*config.ModelConfig, error) {
+	var provider config.ProviderConfig
+	switch strings.ToLower(providerName) {
+	case "anthropic":
+		provider = cfg.Providers.Anthropic
+	case "openai":
+		provider = cfg.Providers.OpenAI
+	case "openrouter":
+		provider = cfg.Providers.OpenRouter
+	case "groq":
+		provider = cfg.Providers.Groq
+	case "zhipu":
+		provider = cfg.Providers.Zhipu
+	case "vllm":
+		provider = cfg.Providers.VLLM
+	case "gemini":
+		provider = cfg.Providers.Gemini
 	default:
-		if cfg.Providers.OpenRouter.APIKey != "" {
-			apiKey = cfg.Providers.OpenRouter.APIKey
-			if cfg.Providers.OpenRouter.APIBase != "" {
-				apiBase = cfg.Providers.OpenRouter.APIBase
-			} else {
-				apiBase = "https://openrouter.ai/api/v1"
+		return nil, fmt.Errorf("unknown provider: %s", providerName)
+	}
+
+	for _, m := range provider.Models {
+		if strings.EqualFold(m.Model, modelName) {
+			return &m, nil
+		}
+	}
+
+	return nil, fmt.Errorf("model %s not found in provider %s", modelName, providerName)
+}
+
+func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error) {
+	// If explicit provider is specified in Agents.Defaults, use it
+	if cfg.Agents.Defaults.Provider != "" && strings.EqualFold(cfg.Agents.Defaults.Model, model) {
+		mCfg, err := findModelConfig(cfg.Agents.Defaults.Provider, model, cfg)
+		if err == nil {
+			return NewHTTPProvider(mCfg.APIKey, mCfg.APIBase), nil
+		}
+	}
+
+	// Logic for finding model in any provider if not explicitly matched above
+	providersList := []struct {
+		name string
+		cfg  config.ProviderConfig
+	}{
+		{"vllm", cfg.Providers.VLLM},
+		{"openai", cfg.Providers.OpenAI},
+		{"anthropic", cfg.Providers.Anthropic},
+		{"gemini", cfg.Providers.Gemini},
+		{"zhipu", cfg.Providers.Zhipu},
+		{"groq", cfg.Providers.Groq},
+		{"openrouter", cfg.Providers.OpenRouter},
+	}
+
+	for _, p := range providersList {
+		for _, m := range p.cfg.Models {
+			if strings.EqualFold(m.Model, model) {
+				return NewHTTPProvider(m.APIKey, m.APIBase), nil
 			}
-		} else {
-			return nil, fmt.Errorf("no API key configured for model: %s", model)
 		}
 	}
 
-	if apiKey == "" && !strings.HasPrefix(model, "bedrock/") {
-		// If it's VLLM/local, allow empty API key
-		isLocal := apiBase != "" && (strings.Contains(apiBase, "localhost") || strings.Contains(apiBase, "127.0.0.1") || strings.Contains(apiBase, "0.0.0.0"))
-		if !isLocal && apiBase != cfg.Providers.VLLM.APIBase {
-			return nil, fmt.Errorf("no API key configured for provider (model: %s)", model)
+	// Legacy/Prefix-based fallback for backward compatibility or direct model strings
+	lowerModel := strings.ToLower(model)
+	if strings.HasPrefix(lowerModel, "vllm/") || strings.HasPrefix(lowerModel, "ollama/") || strings.HasPrefix(lowerModel, "local/") {
+		// Use first VLLM model if available
+		if len(cfg.Providers.VLLM.Models) > 0 {
+			m := cfg.Providers.VLLM.Models[0]
+			return NewHTTPProvider(m.APIKey, m.APIBase), nil
 		}
 	}
 
-	if apiBase == "" {
-		return nil, fmt.Errorf("no API base configured for provider (model: %s)", model)
-	}
-
-	return NewHTTPProvider(apiKey, apiBase), nil
+	return nil, fmt.Errorf("no configuration found for model: %s", model)
 }
 
 type fallbackEntry struct {
@@ -309,7 +288,21 @@ func (p *FallbackProvider) GetDefaultModel() string {
 
 func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 	primaryModel := cfg.Agents.Defaults.Model
-	primaryProvider, err := createSingleProvider(primaryModel, cfg)
+	primaryProviderName := cfg.Agents.Defaults.Provider
+
+	var primaryProvider LLMProvider
+	var err error
+
+	if primaryProviderName != "" {
+		mCfg, err := findModelConfig(primaryProviderName, primaryModel, cfg)
+		if err == nil {
+			primaryProvider = NewHTTPProvider(mCfg.APIKey, mCfg.APIBase)
+		}
+	}
+
+	if primaryProvider == nil {
+		primaryProvider, err = createSingleProvider(primaryModel, cfg)
+	}
 
 	fallback := &FallbackProvider{entries: make([]fallbackEntry, 0)}
 
@@ -326,51 +319,6 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 			}
 			if p, _ := createSingleProvider(m, cfg); p != nil {
 				fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: m})
-			}
-		}
-	}
-
-	// Only add hardcoded defaults if we don't have enough configured fallbacks
-	if len(fallback.entries) <= 1 {
-		// 1. Fallback to OpenAI if available
-		if cfg.Providers.OpenAI.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "gpt") {
-			if p, _ := createSingleProvider("openai/gpt-4o", cfg); p != nil {
-				fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "gpt-4o"})
-			}
-		}
-
-		// 2. Fallback to Gemini if available
-		if cfg.Providers.Gemini.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "gemini") {
-			if p, _ := createSingleProvider("google/gemini-2.0-flash", cfg); p != nil { // Updated version name to match latest
-				fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "gemini-2.0-flash"})
-			}
-		}
-
-		// 3. Fallback to Anthropic if available
-		if cfg.Providers.Anthropic.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "claude") {
-			if p, _ := createSingleProvider("anthropic/claude-3-5-sonnet-20241022", cfg); p != nil {
-				fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "claude-3-5-sonnet-20241022"})
-			}
-		}
-
-		// 4. Fallback to Zhipu if available
-		if cfg.Providers.Zhipu.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "glm") {
-			if p, _ := createSingleProvider("glm-4", cfg); p != nil {
-				fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "glm-4"})
-			}
-		}
-
-		// 5. Fallback to Groq if available
-		if cfg.Providers.Groq.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "groq") {
-			if p, _ := createSingleProvider("groq/llama3-70b-8192", cfg); p != nil {
-				fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "llama3-70b-8192"})
-			}
-		}
-
-		// 6. Fallback to OpenRouter (using a safe default like claude-3.5-sonnet) if available
-		if cfg.Providers.OpenRouter.APIKey != "" && !strings.Contains(strings.ToLower(primaryModel), "openrouter") {
-			if p, _ := createSingleProvider("openrouter/anthropic/claude-3.5-sonnet", cfg); p != nil {
-				fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: "anthropic/claude-3.5-sonnet"})
 			}
 		}
 	}
