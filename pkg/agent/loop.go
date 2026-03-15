@@ -301,8 +301,13 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 		}
 
 		if len(response.ToolCalls) == 0 {
-			finalContent = response.Content
-			break
+			// Robust parsing: check if content contains a JSON tool call
+			if tc := al.tryParseToolCallFromContent(response.Content); tc != nil {
+				response.ToolCalls = []providers.ToolCall{*tc}
+			} else {
+				finalContent = response.Content
+				break
+			}
 		}
 
 		assistantMsg := providers.Message{
@@ -391,6 +396,72 @@ func (al *AgentLoop) findCurrentModelConfig() *config.ModelConfig {
 	for _, p := range allProviders {
 		if cfg := getInProvider(p); cfg != nil {
 			return cfg
+		}
+	}
+
+	return nil
+}
+
+func (al *AgentLoop) tryParseToolCallFromContent(content string) *providers.ToolCall {
+	content = strings.TrimSpace(content)
+	// Remove markdown code blocks if present
+	if strings.Contains(content, "```") {
+		lines := strings.Split(content, "\n")
+		var jsonLines []string
+		inBlock := false
+		for _, line := range lines {
+			if strings.HasPrefix(line, "```") {
+				inBlock = !inBlock
+				continue
+			}
+			if inBlock {
+				jsonLines = append(jsonLines, line)
+			}
+		}
+		if len(jsonLines) > 0 {
+			content = strings.Join(jsonLines, "\n")
+		} else {
+			// Fallback: strip starts/ends
+			content = strings.TrimPrefix(content, "```json")
+			content = strings.TrimPrefix(content, "```")
+			content = strings.TrimSuffix(content, "```")
+		}
+		content = strings.TrimSpace(content)
+	}
+
+	if !strings.HasPrefix(content, "{") || !strings.HasSuffix(content, "}") {
+		return nil
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(content), &data); err != nil {
+		return nil
+	}
+
+	// Case 1: Nanobot/MaruBot direct command style {"command": "..."} -> shell
+	if cmd, ok := data["command"].(string); ok && cmd != "" {
+		return &providers.ToolCall{
+			ID:        fmt.Sprintf("call_%d", time.Now().UnixNano()),
+			Name:      "shell",
+			Arguments: data,
+		}
+	}
+
+	// Case 2: OpenAI-like structure embedded in content {"name": "...", "arguments": {...}}
+	if name, ok := data["name"].(string); ok && name != "" {
+		argsMap := make(map[string]interface{})
+		if args, exists := data["arguments"]; exists {
+			switch v := args.(type) {
+			case map[string]interface{}:
+				argsMap = v
+			case string:
+				json.Unmarshal([]byte(v), &argsMap)
+			}
+		}
+		return &providers.ToolCall{
+			ID:        fmt.Sprintf("call_%d", time.Now().UnixNano()),
+			Name:      name,
+			Arguments: argsMap,
 		}
 	}
 
