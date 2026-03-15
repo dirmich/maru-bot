@@ -33,6 +33,7 @@
     }
   },
   "providers": {
+    "vllm": { "api_base": "", "api_key": "" },
     "openai": { "api_key": "YOUR_OPENAI_API_KEY" },
     "gemini": { 
       "api_key": "YOUR_GEMINI_API_KEY",

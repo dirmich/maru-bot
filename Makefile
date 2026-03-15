@@ -10,7 +10,13 @@ MAIN_GO=$(CMD_DIR)/main.go
 VERSION?=$(shell git describe --tags --exact-match 2>/dev/null || echo "")
 # If VERSION is empty, main.go's harcoded version will be used because we'll conditionalize LDFLAGS
 BUILD_TIME=$(shell date +%FT%T%z)
-LDFLAGS=$(if $(VERSION),-ldflags "-X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME)",-ldflags "-X main.buildTime=$(BUILD_TIME)")
+# Base LDFLAGS
+LDFLAGS_BASE=$(if $(VERSION),-X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME),-X main.buildTime=$(BUILD_TIME))
+# For Linux/Darwin (Console)
+LDFLAGS_CONSOLE=-ldflags "$(LDFLAGS_BASE)"
+# For Windows (GUI - to hide CMD window)
+LDFLAGS_WINDOWSGUI=-ldflags "$(LDFLAGS_BASE) -H windowsgui"
+
 CGO_ENABLED=0
 export CGO_ENABLED
 
@@ -72,7 +78,7 @@ all: build
 build:
 	@echo "Building $(BINARY_NAME) for $(PLATFORM)/$(ARCH)..."
 	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=0 $(GO) build $(GOFLAGS) $(LDFLAGS) -o $(BINARY_PATH) ./$(CMD_DIR)
+	CGO_ENABLED=0 $(GO) build $(GOFLAGS) $(LDFLAGS_CONSOLE) -o $(BINARY_PATH) ./$(CMD_DIR)
 	@echo "Build complete: $(BINARY_PATH)"
 	@ln -sf $(BINARY_NAME)-$(PLATFORM)-$(ARCH) $(BUILD_DIR)/$(BINARY_NAME)
 
@@ -80,12 +86,45 @@ build:
 build-all:
 	@echo "Building for multiple platforms..."
 	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 ./$(CMD_DIR)
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64 ./$(CMD_DIR)
-	CGO_ENABLED=0 GOOS=linux GOARCH=riscv64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-riscv64 ./$(CMD_DIR)
-# 	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 ./$(CMD_DIR)
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe ./$(CMD_DIR)
+	@# Linux
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 ./$(CMD_DIR)
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64 ./$(CMD_DIR)
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm ./$(CMD_DIR)
+	CGO_ENABLED=0 GOOS=linux GOARCH=riscv64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-riscv64 ./$(CMD_DIR)
+	@# Windows
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build $(LDFLAGS_WINDOWSGUI) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe ./$(CMD_DIR)
+	CGO_ENABLED=0 GOOS=windows GOARCH=386 $(GO) build $(LDFLAGS_WINDOWSGUI) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-386.exe ./$(CMD_DIR)
+	@# Darwin
+	@echo "Building for macOS (CGO required for Tray Icon)..."
+	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 ./$(CMD_DIR)
+	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 ./$(CMD_DIR)
 	@echo "All builds complete"
+
+## package-win: Package Windows binaries into ZIP files (Single + Installable)
+package-win: build-all
+	@echo "📦 Packaging Windows binaries (x64 & x86) with Go-Zip tool..."
+	@mkdir -p build/marubot-win-x64/config
+	@cp build/marubot-windows-amd64.exe build/marubot-win-x64/marubot.exe
+	@cp README.md build/marubot-win-x64/
+	@cp config/maru-config.json build/marubot-win-x64/config/maru-config.json
+	@go run scripts/zip_pack.go build/marubot-windows-x64.zip build/marubot-win-x64
+	@rm -rf build/marubot-win-x64
+
+	@mkdir -p build/marubot-win-x86/config
+	@cp build/marubot-windows-386.exe build/marubot-win-x86/marubot.exe
+	@cp README.md build/marubot-win-x86/
+	@cp config/maru-config.json build/marubot-win-x86/config/maru-config.json
+	@go run scripts/zip_pack.go build/marubot-windows-x86.zip build/marubot-win-x86
+	@rm -rf build/marubot-win-x86
+	@echo "✓ Windows packages created."
+
+## package-dmg: Package macOS binaries into DMG files
+package-dmg: build-all
+	@echo "📦 Packaging macOS DMGs..."
+	@chmod +x scripts/build_dmg.sh
+	@./scripts/build_dmg.sh amd64
+	@./scripts/build_dmg.sh arm64
+	@echo "✓ macOS DMGs created."
 
 ## install: Install marubot to system and copy builtin skills
 install: build
@@ -124,7 +163,7 @@ install-skills:
 	@echo "Skills installation complete!"
 
 ## public: Sync public files to ../marubot (for public repo maintenance)
-public:
+public: package-win package-dmg
 	@chmod +x scripts/publish.sh
 	@./scripts/publish.sh
 

@@ -2,9 +2,9 @@ package session
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/dirmich/marubot/pkg/providers"
@@ -18,126 +18,129 @@ type Session struct {
 }
 
 type SessionManager struct {
-	sessions map[string]*Session
-	mu       sync.RWMutex
-	storage  string
+	storage string
+	db      *SQLiteStore
 }
 
 func NewSessionManager(storage string) *SessionManager {
-	sm := &SessionManager{
-		sessions: make(map[string]*Session),
-		storage:  storage,
+	dbPath := filepath.Join(storage, "history.db")
+	db, err := NewSQLiteStore(dbPath)
+	if err != nil {
+		fmt.Printf("Warning: Failed to initialize SQLite session store: %v. Falling back to memory (non-persistent).\n", err)
 	}
 
-	if storage != "" {
-		os.MkdirAll(storage, 0755)
-		sm.loadSessions()
+	sm := &SessionManager{
+		storage: storage,
+		db:      db,
 	}
 
 	return sm
 }
 
-func (sm *SessionManager) GetOrCreate(key string) *Session {
-	sm.mu.RLock()
-	session, ok := sm.sessions[key]
-	sm.mu.RUnlock()
-
-	if !ok {
-		sm.mu.Lock()
-		session = &Session{
-			Key:      key,
-			Messages: []providers.Message{},
-			Created:  time.Now(),
-			Updated:  time.Now(),
-		}
-		sm.sessions[key] = session
-		sm.mu.Unlock()
-	}
-
-	return session
-}
-
 func (sm *SessionManager) AddMessage(sessionKey, role, content string) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	session, ok := sm.sessions[sessionKey]
-	if !ok {
-		session = &Session{
-			Key:      sessionKey,
-			Messages: []providers.Message{},
-			Created:  time.Now(),
+	if sm.db != nil {
+		if err := sm.db.SaveMessage(sessionKey, role, content); err != nil {
+			fmt.Printf("Error saving message to SQLite: %v\n", err)
 		}
-		sm.sessions[sessionKey] = session
 	}
-
-	session.Messages = append(session.Messages, providers.Message{
-		Role:    role,
-		Content: content,
-	})
-	session.Updated = time.Now()
 }
 
 func (sm *SessionManager) GetHistory(key string) []providers.Message {
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
-
-	session, ok := sm.sessions[key]
-	if !ok {
+	if sm.db == nil {
 		return []providers.Message{}
 	}
 
-	history := make([]providers.Message, len(session.Messages))
-	copy(history, session.Messages)
-	return history
+	// For standard history, we return a reasonable amount (e.g. 50)
+	msgs, err := sm.db.GetMessages(key, 50)
+	if err != nil {
+		fmt.Printf("Error getting history from SQLite: %v\n", err)
+		return []providers.Message{}
+	}
+	return msgs
 }
 
-func (sm *SessionManager) Save(session *Session) error {
-	if sm.storage == "" {
+func (sm *SessionManager) SearchRelevant(query string, limit int) []providers.Message {
+	if sm.db == nil {
+		return nil
+	}
+	msgs, err := sm.db.SearchRelevant(query, limit)
+	if err != nil {
+		fmt.Printf("Error searching relevant messages: %v\n", err)
+		return nil
+	}
+	return msgs
+}
+
+func (sm *SessionManager) GetActiveFacts(category string) ([]string, error) {
+	if sm.db == nil {
+		return nil, nil
+	}
+	return sm.db.GetActiveFacts(category)
+}
+
+func (sm *SessionManager) PruneStaleFacts() error {
+	if sm.db == nil {
+		return nil
+	}
+	return sm.db.PruneStaleFacts()
+}
+
+func (sm *SessionManager) Close() error {
+	if sm.db != nil {
+		return sm.db.Close()
+	}
+	return nil
+}
+
+// MigrateJSONToSQLite moves existing .json sessions to the sqlite database
+func (sm *SessionManager) MigrateJSONToSQLite() error {
+	if sm.db == nil || sm.storage == "" {
 		return nil
 	}
 
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-
-	sessionPath := filepath.Join(sm.storage, session.Key+".json")
-
-	data, err := json.MarshalIndent(session, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(sessionPath, data, 0644)
-}
-
-func (sm *SessionManager) loadSessions() error {
 	files, err := os.ReadDir(sm.storage)
 	if err != nil {
 		return err
 	}
 
+	fmt.Printf("📦 Migrating session files from %s to SQLite...\n", sm.storage)
+	count := 0
 	for _, file := range files {
-		if file.IsDir() {
+		if file.IsDir() || filepath.Ext(file.Name()) != ".json" {
 			continue
 		}
 
-		if filepath.Ext(file.Name()) != ".json" {
-			continue
-		}
-
-		sessionPath := filepath.Join(sm.storage, file.Name())
-		data, err := os.ReadFile(sessionPath)
+		path := filepath.Join(sm.storage, file.Name())
+		data, err := os.ReadFile(path)
 		if err != nil {
+			fmt.Printf("  ⚠️ Failed to read %s: %v\n", file.Name(), err)
 			continue
 		}
 
-		var session Session
+		var session struct {
+			Key      string              `json:"key"`
+			Messages []providers.Message `json:"messages"`
+		}
+
 		if err := json.Unmarshal(data, &session); err != nil {
+			fmt.Printf("  ⚠️ Failed to parse %s: %v\n", file.Name(), err)
 			continue
 		}
 
-		sm.sessions[session.Key] = &session
+		// Save all messages to DB
+		for _, m := range session.Messages {
+			if err := sm.db.SaveMessage(session.Key, m.Role, m.Content); err != nil {
+				fmt.Printf("  ❌ Failed to save message from %s: %v\n", session.Key, err)
+			}
+		}
+
+		// Success - Rename file to .bak or delete
+		os.Rename(path, path+".bak")
+		count++
 	}
 
+	if count > 0 {
+		fmt.Printf("✅ Migration complete. %d sessions moved to history.db\n", count)
+	}
 	return nil
 }

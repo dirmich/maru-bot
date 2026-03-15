@@ -62,6 +62,85 @@ func (t *DynamicTool) Execute(ctx context.Context, args map[string]interface{}) 
 	return output, nil
 }
 
+type CreateSkillTool struct {
+	skillsDir string
+}
+
+func NewCreateSkillTool(workspace string) *CreateSkillTool {
+	skillsDir := filepath.Join(workspace, "skills")
+	os.MkdirAll(skillsDir, 0755)
+	return &CreateSkillTool{skillsDir: skillsDir}
+}
+
+func (t *CreateSkillTool) Name() string {
+	return "create_skill"
+}
+
+func (t *CreateSkillTool) Description() string {
+	return "Create a new high-level Skill by creating a directory with SKILL.md and optional manifest/scripts. Use this for complex behaviors or specialized guidelines."
+}
+
+func (t *CreateSkillTool) Parameters() map[string]interface{} {
+	return map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"name": map[string]interface{}{
+				"type":        "string",
+				"description": "Unique name of the skill (e.g., 'ssh_master')",
+			},
+			"description": map[string]interface{}{
+				"type":        "string",
+				"description": "Brief description of the skill",
+			},
+			"skill_md": map[string]interface{}{
+				"type":        "string",
+				"description": "Content for SKILL.md (Instructions and guidelines for the AI)",
+			},
+			"manifest": map[string]interface{}{
+				"type":        "object",
+				"description": "Optional manifest.json content (description, always, requires)",
+			},
+		},
+		"required": []string{"name", "description", "skill_md"},
+	}
+}
+
+func (t *CreateSkillTool) Execute(ctx context.Context, args map[string]interface{}) (string, error) {
+	name, _ := args["name"].(string)
+	description, _ := args["description"].(string)
+	skillMD, _ := args["skill_md"].(string)
+	manifestIn, _ := args["manifest"].(map[string]interface{})
+
+	if strings.Contains(name, "..") || strings.Contains(name, "/") || strings.Contains(name, "\\") {
+		return "", fmt.Errorf("invalid skill name")
+	}
+
+	skillPath := filepath.Join(t.skillsDir, name)
+	if err := os.MkdirAll(skillPath, 0755); err != nil {
+		return "", fmt.Errorf("failed to create skill directory: %w", err)
+	}
+
+	// Write SKILL.md
+	if err := os.WriteFile(filepath.Join(skillPath, "SKILL.md"), []byte(skillMD), 0644); err != nil {
+		return "", fmt.Errorf("failed to write SKILL.md: %w", err)
+	}
+
+	// Write manifest.json
+	manifest := map[string]interface{}{
+		"name":        name,
+		"description": description,
+	}
+	for k, v := range manifestIn {
+		manifest[k] = v
+	}
+	metaJSON, _ := json.MarshalIndent(manifest, "", "  ")
+	if err := os.WriteFile(filepath.Join(skillPath, "manifest.json"), metaJSON, 0644); err != nil {
+		return "", fmt.Errorf("failed to write manifest.json: %w", err)
+	}
+
+	return fmt.Sprintf("Successfully created new skill: %s. It is now part of my core knowledge and will be active in future interactions.", name), nil
+}
+
 type CreateToolTool struct {
 	registry     *ToolRegistry
 	extensionDir string
@@ -76,11 +155,11 @@ func NewCreateToolTool(registry *ToolRegistry, extensionDir string) *CreateToolT
 }
 
 func (t *CreateToolTool) Name() string {
-	return "create_custom_tool"
+	return "create_tool"
 }
 
 func (t *CreateToolTool) Description() string {
-	return "Dynamically create a new tool by providing a script and its definition. This is the core of MaruBot's 'Auto-Evolution' capability, allowing the agent to expand its own toolset autonomously."
+	return "Dynamically create a new atomic tool by providing a script and its definition. This allows MaruBot to expand its own toolset autonomously."
 }
 
 func (t *CreateToolTool) Parameters() map[string]interface{} {

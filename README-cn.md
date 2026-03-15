@@ -1,5 +1,4 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.11) 🦞
-
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.61) 🦞
 **MaruBot** 是一款基于超轻量级 MaruBot 引擎，专为在树莓派 (Raspberry Pi) 等单板计算机 (SBC) 上直接控制硬件并进行交互而优化的 **"物理 AI 助手 (Physical AI Assistant)"**。
 
 ## ✨ 0.4.0 更新
@@ -60,35 +59,17 @@
 
 ## 🚀 快速开始 (Quick Start)
 
-最快速启动 MaruBot 的方法。
-
-### 1. 一键安装
-在终端执行以下命令，即可一次性完成引擎和 Web 管理后台的下载与安装：
-
+### 1. 🐧 Linux / 🍎 macOS (Terminal)
+在终端执行以下命令即可立即安装 (需要 curl):
 ```bash
-# Official MaruBot One-Line Installer
 curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash
 ```
 
-### 2. 必要设置 (注册 API 密钥)
-安装完成后，请注册您要使用的 AI 模型的 API 密钥：
-
-```bash
-# OpenAI API 密钥设置示例
-marubot config set providers.openai.api_key "YOUR_OPENAI_KEY"
-
-# 选择默认模型
-marubot config set agents.defaults.model "gpt-4o"
-```
-
-### 3. 运行智能体
-```bash
-# 控制台交互模式
-marubot agent
-
-# 或 Web 管理后台仪表板 (http://localhost:3000)
-marubot start
-```
+### 2. 🪟 Windows (GUI/Manual)
+Windows 用户建议从 **官方发布页面** 下载文件，而不是使用终端命令:
+1. 访问 [官方发布页面 (Releases)](https://github.com/dirmich/maru-bot/releases)。
+2. 选择适合您系统的 `marubot-windows-xxx.zip` 或 `exe` 文件 (64位或32位)。
+3. 运行下载的文件，它会自动安装到 `~/.marubot/bin` 并激活任务栏图标。
 
 ---
 
@@ -125,4 +106,4 @@ marubot start
 ## 📝 开源协议
 遵循 MIT License。 MaruBot 基于 [picoclaw](https://github.com/sipeed/picoclaw) 开发。
 
-*开发与分析: Antigravity AI (2026)*
+*开发与分析: Antigravity AI (2026-03-13)*

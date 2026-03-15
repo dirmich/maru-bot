@@ -29,11 +29,10 @@ type AgentsConfig struct {
 }
 
 type AgentDefaults struct {
-	Workspace         string  `json:"workspace" env:"MARUBOT_AGENTS_DEFAULTS_WORKSPACE"`
-	Model             string  `json:"model" env:"MARUBOT_AGENTS_DEFAULTS_MODEL"`
-	MaxTokens         int     `json:"max_tokens" env:"MARUBOT_AGENTS_DEFAULTS_MAX_TOKENS"`
-	Temperature       float64 `json:"temperature" env:"MARUBOT_AGENTS_DEFAULTS_TEMPERATURE"`
-	MaxToolIterations int     `json:"max_tool_iterations" env:"MARUBOT_AGENTS_DEFAULTS_MAX_TOOL_ITERATIONS"`
+	Workspace         string   `json:"workspace" env:"MARUBOT_AGENTS_DEFAULTS_WORKSPACE"`
+	Provider          string   `json:"provider" env:"MARUBOT_AGENTS_DEFAULTS_PROVIDER"`
+	Model             string   `json:"model" env:"MARUBOT_AGENTS_DEFAULTS_MODEL"`
+	FallbackModels    []string `json:"fallback_models" env:"MARUBOT_AGENTS_DEFAULTS_FALLBACK_MODELS"`
 }
 
 type ChannelsConfig struct {
@@ -98,8 +97,16 @@ type ProvidersConfig struct {
 }
 
 type ProviderConfig struct {
-	APIKey  string `json:"api_key" env:"MARUBOT_PROVIDERS_{{.Name}}_API_KEY"`
-	APIBase string `json:"api_base" env:"MARUBOT_PROVIDERS_{{.Name}}_API_BASE"`
+	Models []ModelConfig `json:"models"`
+}
+
+type ModelConfig struct {
+	Model             string  `json:"model"`
+	APIKey            string  `json:"api_key"`
+	APIBase           string  `json:"api_base"`
+	MaxTokens         int     `json:"max_tokens"`
+	Temperature       float64 `json:"temperature"`
+	MaxToolIterations int     `json:"max_tool_iterations"`
 }
 
 type GatewayConfig struct {
@@ -148,11 +155,10 @@ func DefaultConfig() *Config {
 		Language: "ko",
 		Agents: AgentsConfig{
 			Defaults: AgentDefaults{
-				Workspace:         "~/.marubot/workspace",
-				Model:             "glm-4.7",
-				MaxTokens:         8192,
-				Temperature:       0.7,
-				MaxToolIterations: 20,
+				Workspace:      "~/.marubot/workspace",
+				Provider:       "vllm",
+				Model:          "openai/gpt-oss-20b",
+				FallbackModels: []string{"gpt-4o", "claude-3-5-sonnet-20241022", "gemini-2.0-flash"},
 			},
 		},
 		Channels: ChannelsConfig{
@@ -194,17 +200,40 @@ func DefaultConfig() *Config {
 			},
 		},
 		Providers: ProvidersConfig{
-			Anthropic:  ProviderConfig{},
-			OpenAI:     ProviderConfig{},
-			OpenRouter: ProviderConfig{},
-			Groq:       ProviderConfig{},
-			Zhipu:      ProviderConfig{},
-			VLLM:       ProviderConfig{},
-			Gemini:     ProviderConfig{},
+			Anthropic: ProviderConfig{
+				Models: []ModelConfig{},
+			},
+			OpenAI: ProviderConfig{
+				Models: []ModelConfig{},
+			},
+			OpenRouter: ProviderConfig{
+				Models: []ModelConfig{},
+			},
+			Groq: ProviderConfig{
+				Models: []ModelConfig{},
+			},
+			Zhipu: ProviderConfig{
+				Models: []ModelConfig{},
+			},
+			VLLM: ProviderConfig{
+				Models: []ModelConfig{
+					{
+						Model:             "openai/gpt-oss-20b",
+						APIKey:            "vllm",
+						APIBase:           "http://192.168.0.20:8000/v1",
+						MaxTokens:         8192,
+						Temperature:       0.7,
+						MaxToolIterations: 20,
+					},
+				},
+			},
+			Gemini: ProviderConfig{
+				Models: []ModelConfig{},
+			},
 		},
 		Gateway: GatewayConfig{
 			Host: "0.0.0.0",
-			Port: 18790,
+			Port: 8080,
 		},
 		Tools: ToolsConfig{
 			Web: WebToolsConfig{
@@ -244,9 +273,51 @@ func LoadConfig(path string) (*Config, error) {
 
 	data, err := os.ReadFile(path)
 	if err == nil {
+		// Temporary struct to capture old format fields for migration
+		var oldCfg struct {
+			Agents struct {
+				Defaults struct {
+					MaxTokens         int     `json:"max_tokens"`
+					Temperature       float64 `json:"temperature"`
+					MaxToolIterations int     `json:"max_tool_iterations"`
+				} `json:"defaults"`
+			} `json:"agents"`
+			Providers map[string]struct {
+				APIKey  string `json:"api_key"`
+				APIBase string `json:"api_base"`
+			} `json:"providers"`
+		}
+		json.Unmarshal(data, &oldCfg)
+
 		if err := json.Unmarshal(data, cfg); err != nil {
 			return nil, err
 		}
+
+		// Migrate old format to new format if needed
+		migrateProvider := func(name string, p *ProviderConfig) {
+			if old, ok := oldCfg.Providers[name]; ok && old.APIKey != "" {
+				// If Models is empty, migrate the old direct fields
+				if len(p.Models) == 0 {
+					p.Models = append(p.Models, ModelConfig{
+						Model:             cfg.Agents.Defaults.Model, // Use current default model
+						APIKey:            old.APIKey,
+						APIBase:           old.APIBase,
+						MaxTokens:         oldCfg.Agents.Defaults.MaxTokens,
+						Temperature:       oldCfg.Agents.Defaults.Temperature,
+						MaxToolIterations: oldCfg.Agents.Defaults.MaxToolIterations,
+					})
+				}
+			}
+		}
+
+		migrateProvider("anthropic", &cfg.Providers.Anthropic)
+		migrateProvider("openai", &cfg.Providers.OpenAI)
+		migrateProvider("openrouter", &cfg.Providers.OpenRouter)
+		migrateProvider("groq", &cfg.Providers.Groq)
+		migrateProvider("zhipu", &cfg.Providers.Zhipu)
+		migrateProvider("vllm", &cfg.Providers.VLLM)
+		migrateProvider("gemini", &cfg.Providers.Gemini)
+
 	} else if !os.IsNotExist(err) {
 		return nil, err
 	}
@@ -373,46 +444,104 @@ func (c *Config) WorkspacePath() string {
 func (c *Config) GetAPIKey() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	if c.Providers.OpenRouter.APIKey != "" {
-		return c.Providers.OpenRouter.APIKey
+	
+	// Use default model from defaults if configured
+	model := c.Agents.Defaults.Model
+	provider := c.Agents.Defaults.Provider
+	
+	if provider != "" {
+		mCfg := c.findModelConfig(provider, model)
+		if mCfg != nil {
+			return mCfg.APIKey
+		}
 	}
-	if c.Providers.Anthropic.APIKey != "" {
-		return c.Providers.Anthropic.APIKey
+	
+	// Fallback global search
+	providers := []ProviderConfig{
+		c.Providers.OpenRouter,
+		c.Providers.Anthropic,
+		c.Providers.OpenAI,
+		c.Providers.Gemini,
+		c.Providers.Zhipu,
+		c.Providers.Groq,
+		c.Providers.VLLM,
 	}
-	if c.Providers.OpenAI.APIKey != "" {
-		return c.Providers.OpenAI.APIKey
-	}
-	if c.Providers.Gemini.APIKey != "" {
-		return c.Providers.Gemini.APIKey
-	}
-	if c.Providers.Zhipu.APIKey != "" {
-		return c.Providers.Zhipu.APIKey
-	}
-	if c.Providers.Groq.APIKey != "" {
-		return c.Providers.Groq.APIKey
-	}
-	if c.Providers.VLLM.APIKey != "" {
-		return c.Providers.VLLM.APIKey
+	for _, p := range providers {
+		for _, m := range p.Models {
+			if m.APIKey != "" {
+				return m.APIKey
+			}
+		}
 	}
 	return ""
+}
+
+func (c *Config) findModelConfig(providerName, modelName string) *ModelConfig {
+	var provider ProviderConfig
+	switch strings.ToLower(providerName) {
+	case "anthropic": provider = c.Providers.Anthropic
+	case "openai": provider = c.Providers.OpenAI
+	case "openrouter": provider = c.Providers.OpenRouter
+	case "groq": provider = c.Providers.Groq
+	case "zhipu": provider = c.Providers.Zhipu
+	case "vllm": provider = c.Providers.VLLM
+	case "gemini": provider = c.Providers.Gemini
+	default: return nil
+	}
+	for _, m := range provider.Models {
+		if strings.EqualFold(m.Model, modelName) {
+			return &m
+		}
+	}
+	return nil
 }
 
 func (c *Config) GetAPIBase() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	if c.Providers.OpenRouter.APIKey != "" {
-		if c.Providers.OpenRouter.APIBase != "" {
-			return c.Providers.OpenRouter.APIBase
+	
+	model := c.Agents.Defaults.Model
+	provider := c.Agents.Defaults.Provider
+	
+	if provider != "" {
+		mCfg := c.findModelConfig(provider, model)
+		if mCfg != nil {
+			return mCfg.APIBase
 		}
-		return "https://openrouter.ai/api/v1"
-	}
-	if c.Providers.Zhipu.APIKey != "" {
-		return c.Providers.Zhipu.APIBase
-	}
-	if c.Providers.VLLM.APIKey != "" && c.Providers.VLLM.APIBase != "" {
-		return c.Providers.VLLM.APIBase
 	}
 	return ""
+}
+
+func (c *Config) IsAIConfigured() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	
+	allProviders := []ProviderConfig{
+		c.Providers.Anthropic,
+		c.Providers.OpenAI,
+		c.Providers.OpenRouter,
+		c.Providers.Groq,
+		c.Providers.Zhipu,
+		c.Providers.Gemini,
+		c.Providers.VLLM,
+	}
+	for _, p := range allProviders {
+		if len(p.Models) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Config) IsChannelEnabled() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.Channels.WhatsApp.Enabled ||
+		c.Channels.Telegram.Enabled ||
+		c.Channels.Feishu.Enabled ||
+		c.Channels.Discord.Enabled ||
+		c.Channels.MaixCam.Enabled ||
+		c.Channels.Webhook.Enabled
 }
 
 func expandHome(path string) string {

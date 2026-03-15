@@ -111,24 +111,42 @@ else
 fi
 
 # 1. Check Architecture and OS
-if [[ "$(uname -m)" != "aarch64" && "$(uname -m)" != "armv7l" ]]; then
-    echo -e "${RED}${MSG_ARCH_ERR}${NC}"
-    exit 1
+IS_PI=false
+if [[ "$(uname -m)" == "aarch64" || "$(uname -m)" == "armv7l" ]]; then
+    IS_PI=true
+fi
+
+if [ "$IS_PI" = false ]; then
+    echo -e "${YELLOW}⚠️ Notice: This environment is not Raspberry Pi (ARM). Hardware-specific features (GPIO, etc.) will be disabled.${NC}"
 fi
 
 # 2. Install Required Packages
 echo -e "${BLUE}${MSG_PKG_INST}${NC}"
-sudo apt update
-sudo apt install -y git make libcamera-apps alsa-utils vlc-plugin-base curl wget
+if command -v apt >/dev/null 2>&1; then
+    sudo apt update
+    sudo apt install -y git make curl wget
+    if [ "$IS_PI" = true ]; then
+        sudo apt install -y libcamera-apps alsa-utils vlc-plugin-base
+    fi
+else
+    echo -e "${YELLOW}⚠️ 'apt' not found. Skipping system package installation. Ensure git, make, curl, and wget are installed manually.${NC}"
+fi
 
 # Install Go (1.24+)
 GO_REQUIRED="1.24"
 INSTALL_GO=false
 
-if [ -f "/usr/local/go/bin/go" ]; then
-    EXISTING_VERSION=$(/usr/local/go/bin/go version | awk '{print $3}' | sed 's/go//')
+# Check for go in common locations
+if command -v go >/dev/null 2>&1; then
+    DETECTED_GO=$(command -v go)
+elif [ -f "/usr/local/go/bin/go" ]; then
+    DETECTED_GO="/usr/local/go/bin/go"
+fi
+
+if [ ! -z "$DETECTED_GO" ]; then
+    EXISTING_VERSION=$($DETECTED_GO version | awk '{print $3}' | sed 's/go//')
     if [[ "$EXISTING_VERSION" == "$GO_REQUIRED"* ]] || [[ "$EXISTING_VERSION" > "$GO_REQUIRED" ]]; then
-        echo -e "${GREEN}✓ Go $EXISTING_VERSION is already installed.${NC}"
+        echo -e "${GREEN}✓ Go $EXISTING_VERSION is already installed at $DETECTED_GO.${NC}"
         INSTALL_GO=false
     else
         echo -e "${BLUE}ℹ️ Upgrading Go from $EXISTING_VERSION to $GO_REQUIRED+...${NC}"
@@ -150,27 +168,66 @@ if [ "$INSTALL_GO" = true ]; then
     if ! grep -q "/usr/local/go/bin" ~/.bashrc; then echo 'export PATH=/usr/local/go/bin:$PATH' >> ~/.bashrc; fi
 fi
 
-# Ensure /usr/local/go/bin is at the front of PATH for this script session
-export PATH=/usr/local/go/bin:$PATH
-GO_CMD="/usr/local/go/bin/go"
-if [ ! -f "$GO_CMD" ]; then GO_CMD="go"; fi
+# Ensure Go is in PATH for this script session
+if [ -f "/usr/local/go/bin/go" ]; then
+    export PATH=/usr/local/go/bin:$PATH
+    GO_CMD="/usr/local/go/bin/go"
+else
+    GO_CMD=$(command -v go)
+fi
+
+if [ -z "$GO_CMD" ]; then
+    echo -e "${RED}❌ Go not found even after installation attempt.${NC}"
+    exit 1
+fi
 
 # 3. Clone Source Code
 INSTALL_DIR="$HOME/marubot"
+DOWNLOAD_ARCHIVE() {
+    echo -e "${BLUE}ℹ️ Downloading archive via curl/wget...${NC}"
+    mkdir -p "$INSTALL_DIR"
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL https://github.com/dirmich/maru-bot/archive/refs/heads/main.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
+    elif command -v wget >/dev/null 2>&1; then
+        wget -qO- https://github.com/dirmich/maru-bot/archive/refs/heads/main.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
+    else
+        echo -e "${RED}❌ Neither curl nor wget are available.${NC}"
+        return 1
+    fi
+}
+
 if [ -d "$INSTALL_DIR" ]; then
     echo -e "${BLUE}🔄 Updating to latest source code...${NC}"
     cd "$INSTALL_DIR"
-    if ! git pull; then
-        echo -e "${YELLOW}⚠️ Git update failed. Retrying fresh clone...${NC}"
+    if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
+        if ! git pull; then
+            echo -e "${YELLOW}⚠️ Git update failed. Retrying fresh download...${NC}"
+            cd "$HOME"
+            rm -rf "$INSTALL_DIR"
+            if ! DOWNLOAD_ARCHIVE; then exit 1; fi
+            cd "$INSTALL_DIR"
+        fi
+    else
+        echo -e "${YELLOW}⚠️ Not a git repository or git missing. Downloading fresh archive...${NC}"
         cd "$HOME"
         rm -rf "$INSTALL_DIR"
-        git clone --depth 1 https://github.com/dirmich/maru-bot.git "$INSTALL_DIR"
+        if ! DOWNLOAD_ARCHIVE; then exit 1; fi
         cd "$INSTALL_DIR"
     fi
 else
     echo -e "${BLUE}${MSG_CLONE}${NC}"
-    git clone --depth 1 https://github.com/dirmich/maru-bot.git "$INSTALL_DIR"
-    cd "$INSTALL_DIR"
+    if command -v git >/dev/null 2>&1; then
+        if ! git clone --depth 1 https://github.com/dirmich/maru-bot.git "$INSTALL_DIR"; then
+            echo -e "${YELLOW}⚠️ Git clone failed. Falling back to archive download...${NC}"
+            rm -rf "$INSTALL_DIR"
+            if ! DOWNLOAD_ARCHIVE; then exit 1; fi
+        fi
+        cd "$INSTALL_DIR"
+    else
+        echo -e "${YELLOW}⚠️ 'git' not found. Downloading archive...${NC}"
+        if ! DOWNLOAD_ARCHIVE; then exit 1; fi
+        cd "$INSTALL_DIR"
+    fi
 fi
 
 # 4. Install Optional Web Admin Build Tools (Only if source is present)
@@ -228,16 +285,22 @@ fi
 # 5-2. Go Build
 echo -e "${BLUE}    ${MSG_GO_BUILD}${NC}"
 $GO_CMD mod tidy
-make GO="$GO_CMD" build
+$GO_CMD clean -cache # Ensure new code is recompiled
+make GO="$GO_CMD" clean build
 
 # 6. Install System and Deploy Resources
 echo -e "${BLUE}🏗️ Installing system and deploying resources...${NC}"
 
 if [ -f "build/marubot" ]; then
-    echo "  📦 Copying executable to /usr/local/bin/marubot..."
-    sudo rm -f /usr/local/bin/marubot
-    sudo cp build/marubot /usr/local/bin/
-    sudo chmod +x /usr/local/bin/marubot
+    echo "  📦 Installing executable to /usr/local/bin/marubot..."
+    # Using 'install' is more reliable for replacing busy binaries
+    sudo install -m 755 build/marubot /usr/local/bin/marubot
+    
+    # 6-1. Clean up potential duplicate binaries to prevent PATH confusion
+    if [ -f "$HOME/go/bin/marubot" ]; then
+        echo "  ⚠️  Detected old binary at ~/go/bin/marubot. Removing to prevent path confusion..."
+        rm -f "$HOME/go/bin/marubot"
+    fi
 else
     echo -e "${RED}❌ marubot executable not found. Build failed.${NC}"
     exit 1
@@ -278,9 +341,11 @@ if [ -d "$RESOURCE_DIR/web-admin" ]; then
     rm -rf "$RESOURCE_DIR/web-admin"
 fi
 
-# 7. Hardware Setup
-chmod +x maru-setup.sh
-./maru-setup.sh
+# 7. Hardware Setup (Only for Raspberry Pi)
+if [ "$IS_PI" = true ] && [ -f "./maru-setup.sh" ]; then
+    chmod +x maru-setup.sh
+    ./maru-setup.sh
+fi
 
 # 8. Finalize PATH and Config
 if grep -q "marubot/build" ~/.bashrc 2>/dev/null; then

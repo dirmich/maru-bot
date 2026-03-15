@@ -1,120 +1,117 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.11) 🦞
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.61) 🦞
 
-**MaruBot** is a **"Physical AI Assistant"** optimized for directly controlling hardware and interacting on SBCs (Single Board Computers) like Raspberry Pi, based on the ultra-lightweight MaruBot engine.
-
-## ✨ 0.4.6 Update
-- **GPIO Legend Fix**: Improved the layout and styling of the GPIO color guide for better readability.
-- **Visual Refinement**: Fixed color boxes alignment and overlap issues in the Web Admin dashboard.
+**MaruBot** is an ultra-efficient, physical AI assistant inspired by the philosophy of [PicoClaw](https://github.com/sipeed/picoclaw). It is designed to run in extremely constrained environments, requiring as little as **10MB of RAM**. MaruBot supports Raspberry Pi, Generic Linux servers, and Windows PCs, and features a powerful 'Auto-Evolution' engine that allows it to expand its own capabilities autonomously.
 
 ---
 
-## ✨ Key Concepts
-1. **Engine Reuse**: Uses high-efficiency Go binaries, maintaining RAM usage under 10MB.
-2. **Raspberry Pi Optimized**: Automates GPIO, camera, microphone, and speaker permission settings.
-3. **Hyper-Local Setup**: Complete configuration interactively through a dedicated script (`maru-setup.sh`) instead of complex JSON editing.
-4. **Physical Interaction**: Pre-included tools for the AI agent to control servo motors, LEDs, and various sensors (DHT, PIR, etc.).
+## ✨ Key Features
+
+### 1. 🚀 Ultra-lightweight & High Performance
+- **10MB RAM Usage:** Optimized Go binary ensures smooth operation even on low-end embedded devices.
+- **Single Binary:** No-dependency deployment makes installation and management effortless.
+
+### 2. 🌍 Multi-Platform Support
+- **Raspberry Pi:** Full support for GPIO, camera, and hardware sensors (ARM32/64).
+- **Linux:** Compatible with Ubuntu, Debian, AWS EC2, and other standard Linux distros.
+- **Windows:** Official support for both 64-bit (amd64) and 32-bit (386) architectures.
+- **macOS:** Official support for Intel and Apple Silicon (arm64) via DMG installers.
+
+### 3. 🧬 Auto-Evolution Engine
+- **`create_tool`**: The agent can autonomously code and register new atomic tools using Bash or Python scripts.
+- **`create_skill`**: Automatically generates high-level 'Skills' (folder-based guidelines and workflows) to master new domains.
+
+### 4. 🧠 Smart Memory System (RAG)
+- **SQLite FTS5:** Persistent long-term memory using SQLite Full-Text Search for lightning-fast context retrieval.
+- **Facts & Preferences:** Remembers user preferences and core facts across sessions.
+
+### 5. 🛠️ Advanced Automation & Hardware Integration
+- **Cron Scheduler:** Supports scheduled tasks like "Remind me of the weather at 9 AM tomorrow."
+- **SSH Manager:** Intelligent management of SSH keys and remote server connections.
+- **MAVLink Drone:** Capability to interface with flight controllers for physical drone missions.
 
 ---
 
-## 📂 Directory Structure
-- `/config`: Hardware and agent configuration files for MaruBot.
-- `maru-setup.sh`: Script for Raspberry Pi initialization and hardware integration.
-- `/tools`: GPIO/I2C/SPI control utilities for the AI agent.
-- `/bin`: MaruBot binary links or executables.
-
----
-
-## 📋 Prerequisites
-
-Before starting, ensure you have the following ready:
-- **Hardware**: Raspberry Pi (Full ARM64/32 support), Power Adapter, SD Card
-- **OS**: Raspberry Pi OS (Bullseye or newer recommended)
-- **API Key**: API keys for LLM services like OpenAI, Gemini, etc.
+## 📂 Project Structure
+- `/config`: Core hardware and agent configuration files.
+- `/skills`: Specialized knowledge and domain guidelines (`SKILL.md`).
+- `/extensions`: Dynamic tool scripts created via `create_tool`.
+- `/memory`: SQLite conversation database and fact storage.
 
 ---
 
 ## 🚀 Quick Start
 
-The fastest way to get MaruBot up and running.
-
-### 1. One-Click Installation
-Run the following command in your terminal to install the engine and Web Admin together:
-
+### 1. 🐧 Linux / 🍎 macOS (Terminal)
+Run the following command in your terminal to install instantly (requires curl):
 ```bash
-# Official MaruBot One-Line Installer
 curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash
 ```
 
-### 2. Essential Configuration (API Key)
-After installation, register the API key for the AI model you want to use:
+### 2. 🪟 Windows (GUI/Manual)
+For Windows users, we recommend downloading the files from the **Official Release Page** instead of using terminal commands:
+1. Visit the [Official Release Page](https://github.com/dirmich/maru-bot/releases).
+2. Download the `marubot-windows-xxx.zip` or `exe` appropriate for your OS (64-bit or 32-bit).
+3. Running the downloaded file will automatically install MaruBot to `~/.marubot/bin` and activate the tray icon.
 
+### 3. 🍎 macOS (GUI)
+1. Visit the [Official Release Page](https://github.com/dirmich/maru-bot/releases).
+2. Download the `.dmg` file for your CPU architecture (Intel or Apple Silicon).
+3. Open the DMG and run `MaruBot.app` to see the icon in your menu bar.
+
+> [!TIP]
+> **Note for Windows Users**: Since the binary is not signed with a commercial certificate, you might see a 'Windows protected your PC' warning from SmartScreen. This is expected. To run MaruBot, click **'More info'** and then **'Run anyway'**.
+
+> [!TIP]
+> **Note for macOS Users**: For versions without Apple notarization, you may see a "Gatekeeper" warning on first launch. Officially signed versions will run directly; otherwise, go to **'System Settings > Privacy & Security'** and click **'Open Anyway'**, or **'Right-click > Open'** on the app icon.
+
+### 3. Setup API Keys & Default Model
 ```bash
-# Example: Set OpenAI API Key
-marubot config set providers.openai.api_key "YOUR_OPENAI_KEY"
+# Example for OpenAI API Key
+marubot config set providers.openai.api_key "YOUR_KEY"
 
-# Select default model
+# Select default model (e.g. gpt-4o, gemini-2.5-flash, etc.)
 marubot config set agents.defaults.model "gpt-4o"
 ```
+*💡 If the default model fails to connect, MaruBot will automatically fallback to other providers if their API keys are configured!*
 
-### 3. Run Agent
+### 4. Start Interaction
 ```bash
-# Console interaction mode
 marubot agent
-
-# Or Web Admin Dashboard (http://localhost:3000)
-marubot start
 ```
+*(Or use `marubot start` for the Web Dashboard at http://localhost:8080)*
 
 ---
 
-## 🛠️ Detailed Installation & Hardware Setup
+## 🧩 Extension Guide (Skills & Tools)
+MaruBot allows users to easily expand its capabilities.
 
-If the one-click installer doesn't work or you prefer manual setup:
+### Adding a Tool
+To register a simple action or script, just ask the AI directly:
+```text
+"Write a python script to show system information and register it as a new tool"
+```
+The AI will autonomously code and save the script with its metadata to the **`extensions` folder**, making it available instantly.
 
-1. **Install Essentials**: `sudo apt install -y git make golang libcamera-apps`
-2. **Clone Repo**: `git clone https://github.com/dirmich/maru-bot.git marubot`
-3. **Hardware Init**: `cd marubot && bash maru-setup.sh`
-   - This script verifies GPIO permissions and activates camera/audio interfaces.
-
----
-
-## ⚙️ Configuration
-
-After installation, you must configure your API keys to use AI models.
-
-1. **Using CLI (Recommended)**:
-   ```bash
-   # Set OpenAI API Key
-   marubot config set providers.openai.api_key "YOUR_KEY"
-   
-   # Change default model
-   marubot config set agents.defaults.model "gpt-4o"
-   ```
-
-2. **Manual File Edit**:
-   ```bash
-   ```
-   nano ~/.marubot/config.json
-   ```
-   Locate the `providers` section and enter your key for the service you wish to use (e.g., openai, gemini).
+### Adding a Skill
+For complex workflows, knowledge bases or prompt templates, you can create a skill:
+```text
+"Create a new skill for coding templates"
+marubot skills show <skill-name>
+```
+Simply create a directory under `~/.marubot/workspace/skills/<skill-name>` and author a `SKILL.md` file inside it. MaruBot will automatically load and learn it.
 
 ---
 
----
-
----
-
-## 🔧 Hardware Features
-- **GPIO**: LED control, button input detection.
-- **I2C/SPI**: Real-time sensor data reading (Temp, Humidity, Light).
-- **Camera**: AI-driven image capture and analysis (Libcamera integration).
-- **Audio**: Voice command reception and speaker output via local hardware.
+## 🛠️ Hardware Integration
+MaruBot automatically detects your platform and enables supported tools:
+- **GPIO**: Control LEDs, buttons, and relays.
+- **Camera**: Visual recognition via Libcamera or USB webcams.
+- **Sensors**: MPU6050 (IMU), Ultrasonic, GPS, etc.
+- **Motors**: Direct control of Servos and DC motors.
 
 ---
 
 ## 📝 License
-Distributed under the MIT License.
+MaruBot follows the MIT License. Feel free to modify and distribute.
 
-MaruBot is based on [picoclaw](https://github.com/sipeed/picoclaw) and has been enhanced with additional features optimized for Raspberry Pi.
-
-*Developed & Analyzed by: Antigravity AI (2026)*
+*Developed & Analyzed by Antigravity AI (2026-03-13)*

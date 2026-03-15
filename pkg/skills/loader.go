@@ -46,8 +46,9 @@ func NewSkillsLoader(workspace string, builtinSkills string) *SkillsLoader {
 }
 
 func (sl *SkillsLoader) ListSkills(filterUnavailable bool) []SkillInfo {
-	skills := make([]SkillInfo, 0)
+	skillMap := make(map[string]SkillInfo)
 
+	// Load from workspace skills first (they override builtins)
 	if sl.workspaceSkills != "" {
 		if dirs, err := os.ReadDir(sl.workspaceSkills); err == nil {
 			for _, dir := range dirs {
@@ -69,30 +70,24 @@ func (sl *SkillsLoader) ListSkills(filterUnavailable bool) []SkillInfo {
 						} else {
 							info.Available = true
 						}
-						skills = append(skills, info)
+						skillMap[info.Name] = info
 					}
 				}
 			}
 		}
 	}
 
+	// Load from builtin skills
 	if sl.builtinSkills != "" {
 		if dirs, err := os.ReadDir(sl.builtinSkills); err == nil {
 			for _, dir := range dirs {
 				if dir.IsDir() {
+					if _, exists := skillMap[dir.Name()]; exists {
+						continue
+					}
+
 					skillFile := filepath.Join(sl.builtinSkills, dir.Name(), "SKILL.md")
 					if _, err := os.Stat(skillFile); err == nil {
-						exists := false
-						for _, s := range skills {
-							if s.Name == dir.Name() && s.Source == "workspace" {
-								exists = true
-								break
-							}
-						}
-						if exists {
-							continue
-						}
-
 						info := SkillInfo{
 							Name:   dir.Name(),
 							Path:   skillFile,
@@ -108,24 +103,22 @@ func (sl *SkillsLoader) ListSkills(filterUnavailable bool) []SkillInfo {
 						} else {
 							info.Available = true
 						}
-						skills = append(skills, info)
+						skillMap[info.Name] = info
 					}
 				}
 			}
 		}
 	}
 
-	if filterUnavailable {
-		filtered := make([]SkillInfo, 0)
-		for _, s := range skills {
-			if s.Available {
-				filtered = append(filtered, s)
-			}
+	result := make([]SkillInfo, 0, len(skillMap))
+	for _, s := range skillMap {
+		if filterUnavailable && !s.Available {
+			continue
 		}
-		return filtered
+		result = append(result, s)
 	}
 
-	return skills
+	return result
 }
 
 func (sl *SkillsLoader) LoadSkill(name string) (string, bool) {
@@ -165,34 +158,22 @@ func (sl *SkillsLoader) LoadSkillsForContext(skillNames []string) string {
 func (sl *SkillsLoader) BuildSkillsSummary() string {
 	allSkills := sl.ListSkills(false)
 	if len(allSkills) == 0 {
-		return ""
+		return "No specialized skills available."
 	}
 
 	var lines []string
-	lines = append(lines, "<skills>")
 	for _, s := range allSkills {
-		escapedName := escapeXML(s.Name)
-		escapedDesc := escapeXML(s.Description)
-		escapedPath := escapeXML(s.Path)
-
-		available := "true"
+		status := "✅ Available"
 		if !s.Available {
-			available = "false"
+			status = "❌ Missing Dependencies"
 		}
 
-		lines = append(lines, fmt.Sprintf("  <skill available=\"%s\">", available))
-		lines = append(lines, fmt.Sprintf("    <name>%s</name>", escapedName))
-		lines = append(lines, fmt.Sprintf("    <description>%s</description>", escapedDesc))
-		lines = append(lines, fmt.Sprintf("    <location>%s</location>", escapedPath))
-
+		line := fmt.Sprintf("- **%s**: %s (%s)", s.Name, s.Description, status)
 		if !s.Available && s.Missing != "" {
-			escapedMissing := escapeXML(s.Missing)
-			lines = append(lines, fmt.Sprintf("    <requires>%s</requires>", escapedMissing))
+			line += fmt.Sprintf(" - Requires: %s", s.Missing)
 		}
-
-		lines = append(lines, "  </skill>")
+		lines = append(lines, line)
 	}
-	lines = append(lines, "</skills>")
 
 	return strings.Join(lines, "\n")
 }
@@ -210,13 +191,9 @@ func (sl *SkillsLoader) GetAlwaysSkills() []string {
 }
 
 func (sl *SkillsLoader) getSkillMetadata(skillPath string) *SkillMetadata {
-	content, err := os.ReadFile(skillPath)
+	manifestPath := filepath.Join(filepath.Dir(skillPath), "manifest.json")
+	content, err := os.ReadFile(manifestPath)
 	if err != nil {
-		return nil
-	}
-
-	frontmatter := sl.extractFrontmatter(string(content))
-	if frontmatter == "" {
 		return &SkillMetadata{
 			Name: filepath.Base(filepath.Dir(skillPath)),
 		}
@@ -229,8 +206,10 @@ func (sl *SkillsLoader) getSkillMetadata(skillPath string) *SkillMetadata {
 		Requires    *SkillRequirements `json:"requires"`
 	}
 
-	if err := json.Unmarshal([]byte(frontmatter), &metadata); err != nil {
-		return nil
+	if err := json.Unmarshal(content, &metadata); err != nil {
+		return &SkillMetadata{
+			Name: filepath.Base(filepath.Dir(skillPath)),
+		}
 	}
 
 	return &SkillMetadata{
@@ -239,15 +218,6 @@ func (sl *SkillsLoader) getSkillMetadata(skillPath string) *SkillMetadata {
 		Always:      metadata.Always,
 		Requires:    metadata.Requires,
 	}
-}
-
-func (sl *SkillsLoader) extractFrontmatter(content string) string {
-	re := regexp.MustCompile(`^---\n(.*?)\n---`)
-	match := re.FindStringSubmatch(content)
-	if len(match) > 1 {
-		return match[1]
-	}
-	return ""
 }
 
 func (sl *SkillsLoader) stripFrontmatter(content string) string {
@@ -262,18 +232,14 @@ func (sl *SkillsLoader) checkRequirements(requires *SkillRequirements) bool {
 
 	for _, bin := range requires.Bins {
 		if _, err := exec.LookPath(bin); err != nil {
-			continue
-		} else {
-			return true
+			return false
 		}
 	}
-
 	for _, env := range requires.Env {
 		if os.Getenv(env) == "" {
 			return false
 		}
 	}
-
 	return true
 }
 
