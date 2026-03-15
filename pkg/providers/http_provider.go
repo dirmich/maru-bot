@@ -41,6 +41,7 @@ func (p *HTTPProvider) Chat(ctx context.Context, messages []Message, tools []Too
 
 	// Use the model name exactly as configured
 	effectiveModel := model
+	fmt.Printf("[Debug] Sending request with model: %s to %s\n", effectiveModel, p.apiBase)
 
 	requestBody := map[string]interface{}{
 		"model":    effectiveModel,
