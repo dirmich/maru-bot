@@ -1,0 +1,46 @@
+{
+  "language": "ko",
+  "admin_password": "admin",
+  "agents": {
+    "defaults": {
+      "workspace": "~/.marubot/workspace",
+      "provider": "vllm",
+      "model": "openai/sample-10b",
+      "fallback_models": [
+        "gpt-4o",
+        "claude-3-5-sonnet-20241022",
+        "gemini-1.5-pro"
+      ]
+    }
+  },
+  "providers": {
+    "vllm": {
+      "models": [
+        {
+          "model": "openai/sample-10b",
+          "api_key": "vllm",
+          "api_base": "http://192.168.0.20:8000/v1",
+          "max_tokens": 4096,
+          "temperature": 0.7,
+          "max_tool_iterations": 10
+        }
+      ]
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": false,
+      "token": "",
+      "allow_from": []
+    }
+  },
+  "hardware": {
+    "gpio": {
+      "enabled": true,
+      "pins": {
+        "led_status": 18,
+        "button_action": 23
+      }
+    }
+  }
+}

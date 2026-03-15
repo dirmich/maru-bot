@@ -39,14 +39,8 @@ func (p *HTTPProvider) Chat(ctx context.Context, messages []Message, tools []Too
 		return nil, fmt.Errorf("API base not configured")
 	}
 
-	// Handle model name prefixes for some providers that might get confused
-	// Especially for vLLM or local servers that don't expect "openai/" prefix
+	// Use the model name exactly as configured
 	effectiveModel := model
-	if strings.Contains(p.apiBase, "192.168") || strings.Contains(p.apiBase, "localhost") || strings.Contains(p.apiBase, "0.0.0.0") {
-		if idx := strings.LastIndex(model, "/"); idx != -1 {
-			effectiveModel = model[idx+1:]
-		}
-	}
 
 	requestBody := map[string]interface{}{
 		"model":    effectiveModel,

@@ -30,8 +30,8 @@
     - [x] `README.md` (KR) 및 `README-en.md` (EN) 고도화
     - [x] 사용자 지침(영문 커밋 등) `USER.md` 영구 기록 및 웹어드민 하드웨어 메뉴 스마트 필터링 적용
     - [x] 공개 저장소(`maru-bot`) 전 영역 문서 동기화 및 바이너리 릴리스
-- [ ] v0.4.44: `install.sh` 내 `git` 미탑재 환경 소스 확보 폴백 구현
-    - [ ] `git clone` 실패 시 `curl` 또는 `wget`으로 GitHub archive(tar.gz) 획득 로직 추가
+- [x] v0.4.44: `install.sh` 내 `git` 미탑재 환경 소스 확보 폴백 구현
+    - [x] `git clone` 실패 시 `curl` 또는 `wget`으로 GitHub archive(tar.gz) 획득 로직 추가
 - [x] **Task 2.3: IMU(MPU6050) 가속도/자이로 센서 연동**
     - [x] I2C 통신 기반 센서 데이터 읽기
     - [x] 로봇의 기울기 및 방향(Bearing) 계산 도구 구현
@@ -359,3 +359,5 @@
 - [x] 2026-02-22: GPIO 모니터링 및 하드웨어 인식 고도화 완료 및 최종 배포.
 - **2026-03-05**: MaruBot v0.4.7 업데이트. GPIO 실시간 토글 제어, 설정 우선순위(`usersetting.json`) 개선, 중첩 핀 매핑 평탄화 및 대시보드 UI 연동 완료.
 - **2026-03-05**: MaruBot v0.4.8 업데이트. 로컬 모델(vLLM/llama.cpp) 프로바이더 매칭 로직 개선, `.gguf` 자동 인식 및 인증 완화 적용.
+- **2026-03-15**: MaruBot v0.4.64 업데이트. `install.sh` 내 `git` 실패 시 `curl`/`wget` 폴백 로직 강화 및 안정성 보완.
+- **2026-03-15**: MaruBot v0.4.66 업데이트. 모델 명칭 자동 변조(Stripping) 로직을 완전히 제거하여 설정된 그대로 사용하도록 수정.
