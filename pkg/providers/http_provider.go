@@ -230,7 +230,7 @@ func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error)
 		}
 	}
 
-	// Legacy/Prefix-based fallback for backward compatibility or direct model strings
+	// Legacy/Prefix-based fallback for direct model strings
 	lowerModel := strings.ToLower(model)
 	if strings.HasPrefix(lowerModel, "vllm/") || strings.HasPrefix(lowerModel, "ollama/") || strings.HasPrefix(lowerModel, "local/") {
 		// Use first VLLM model if available
