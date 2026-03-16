@@ -209,23 +209,24 @@ func uninstallCmd() {
 
 	// 0. Remove Windows Service (if applicable)
 	if runtime.GOOS == "windows" {
-		svcConfig := &service.Config{
-			Name: "MaruBot",
-		}
-		s, err := service.New(nil, svcConfig)
-		if err == nil {
-			fmt.Println("Removing Windows service...")
-			s.Stop()
-			if err := s.Uninstall(); err == nil {
-				fmt.Println("✓ Windows service removed.")
-			} else {
-				// Fallback to sc delete
-				fmt.Printf("Standard uninstall failed (%v), trying sc delete...\n", err)
-				exec.Command("sc", "stop", "MaruBot").Run()
-				if err := exec.Command("sc", "delete", "MaruBot").Run(); err == nil {
-					fmt.Println("✓ Windows service removed via sc delete.")
+		svcNames := []string{"MaruBot", "marubot"}
+		for _, svcName := range svcNames {
+			svcConfig := &service.Config{
+				Name: svcName,
+			}
+			s, err := service.New(nil, svcConfig)
+			if err == nil {
+				fmt.Printf("Attempting to remove Windows service '%s'...\n", svcName)
+				s.Stop()
+				if err := s.Uninstall(); err == nil {
+					fmt.Printf("✓ Windows service '%s' removed via kardianos/service.\n", svcName)
 				} else {
-					fmt.Println("✗ Failed to remove Windows service. You may need to run 'sc delete MaruBot' manually.")
+					// Fallback to sc delete
+					fmt.Printf("Standard uninstall for '%s' failed (%v), trying sc delete...\n", svcName, err)
+					exec.Command("sc", "stop", svcName).Run()
+					if err := exec.Command("sc", "delete", svcName).Run(); err == nil {
+						fmt.Printf("✓ Windows service '%s' removed via sc delete.\n", svcName)
+					}
 				}
 			}
 		}
