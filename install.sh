@@ -53,8 +53,8 @@ esac
 # Check for existing password in config.json
 EXISTING_PWD=""
 if [ -f "$HOME/.marubot/config.json" ]; then
-    # Try to extract existing password using sed and grep
-    EXISTING_PWD=$(grep -oP '"admin_password":\s*"\K[^"]+' "$HOME/.marubot/config.json" || true)
+    # Try to extract existing password using more compatible sed/grep
+    EXISTING_PWD=$(grep "\"admin_password\":" "$HOME/.marubot/config.json" | sed -E 's/.*"admin_password":\s*"([^"]+)".*/\1/' || true)
 fi
 
 PROMPT_PWD_SUFFIX=" [Default: admin]"
@@ -155,7 +155,8 @@ fi
 
 if [ ! -z "$DETECTED_GO" ]; then
     EXISTING_VERSION=$($DETECTED_GO version | awk '{print $3}' | sed 's/go//')
-    if [[ "$EXISTING_VERSION" == "$GO_REQUIRED"* ]] || [[ "$EXISTING_VERSION" > "$GO_REQUIRED" ]]; then
+    # More robust version comparison
+    if [[ "$EXISTING_VERSION" == "$GO_REQUIRED"* ]] || [ "$(printf '%s\n%s' "$GO_REQUIRED" "$EXISTING_VERSION" | sort -V | head -n1)" = "$GO_REQUIRED" ]; then
         echo -e "${GREEN}✓ Go $EXISTING_VERSION is already installed at $DETECTED_GO.${NC}"
         INSTALL_GO=false
     else
@@ -168,10 +169,20 @@ fi
 
 if [ "$INSTALL_GO" = true ]; then
     echo -e "${BLUE}🐹 Installing latest Go $GO_REQUIRED+ ...${NC}"
-    ARCH=$(uname -m)
     BITS=$(getconf LONG_BIT)
-    if [ "$ARCH" = "aarch64" ] && [ "$BITS" = "64" ]; then GO_ARCH="arm64"; else GO_ARCH="armv6l"; fi
+    if [ "$ARCH" = "aarch64" ] && [ "$BITS" = "64" ]; then 
+        GO_ARCH="arm64"
+    elif [[ "$ARCH" == "arm"* ]]; then
+        GO_ARCH="armv6l"
+    elif [ "$ARCH" = "x86_64" ]; then
+        GO_ARCH="amd64"
+    elif [ "$ARCH" = "i686" ] || [ "$ARCH" = "i386" ]; then
+        GO_ARCH="386"
+    else
+        GO_ARCH="amd64" # Fallback to amd64
+    fi
     WGET_URL="https://go.dev/dl/go1.24.0.linux-$GO_ARCH.tar.gz"
+    echo "Downloading from $WGET_URL ..."
     wget -O go_dist.tar.gz "$WGET_URL"
     sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go_dist.tar.gz
     rm go_dist.tar.gz
