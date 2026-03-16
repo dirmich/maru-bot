@@ -100,6 +100,7 @@ if [ "$MARUBOT_LANG" = "ko" ]; then
     MSG_GO_BUILD="🛠️ MaruBot 엔진 빌드 중..."
     MSG_SUCCESS="🎉 MaruBot 설치가 완료되었습니다!"
     MSG_DASHBOARD="대시보드 실행: marubot start"
+    MSG_UPGRADE="🚀 MaruBot 업그레이드 시도 중..."
 elif [ "$MARUBOT_LANG" = "ja" ]; then
     MSG_ARCH_ERR="❌ このスクリプトはRaspberry Pi(ARM)環境専用です。"
     MSG_PKG_INST="📦 必須パッケージをインストール中..."
@@ -109,6 +110,7 @@ elif [ "$MARUBOT_LANG" = "ja" ]; then
     MSG_GO_BUILD="🛠️ MaruBotエンジンをビルド中..."
     MSG_SUCCESS="🎉 MaruBotのインストールが完了しました！"
     MSG_DASHBOARD="ダッシュボードの実行: marubot start"
+    MSG_UPGRADE="🚀 MaruBotアップグレードを試行中..."
 else
     MSG_ARCH_ERR="❌ This script is only for Raspberry Pi (ARM) environments."
     MSG_PKG_INST="📦 Installing required packages..."
@@ -118,6 +120,7 @@ else
     MSG_GO_BUILD="🛠️ Building MaruBot engine..."
     MSG_SUCCESS="🎉 MaruBot installation complete!"
     MSG_DASHBOARD="Run dashboard: marubot start"
+    MSG_UPGRADE="🚀 Attempting MaruBot upgrade..."
 fi
 
 # 1. Check Architecture and OS

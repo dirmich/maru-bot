@@ -82,7 +82,7 @@ export function SettingsPage() {
 
     if (!config) return <div className="p-8">{t.loading}</div>;
 
-    const updateConfig = (path: string[], value: any) => {
+    const updateConfig = (path: (string | number)[], value: any) => {
         const newConfig = JSON.parse(JSON.stringify(config));
         let current = newConfig;
         for (let i = 0; i < path.length - 1; i++) {
@@ -152,33 +152,51 @@ export function SettingsPage() {
                     <CardDescription>{t.settings_providers_desc}</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 space-y-8">
-                    {config.providers && Object.entries(config.providers).map(([name, prov]: [string, any]) => (
-                        <div key={name} className="space-y-3 group">
-                            <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-4 bg-indigo-500 rounded-full"></div>
-                                <span className="font-bold uppercase text-xs tracking-wider text-slate-500">{name}</span>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <span className="text-[10px] font-medium text-slate-400 ml-1">{t.settings_api_key}</span>
-                                    <Input
-                                        placeholder="API Key"
-                                        type="password"
-                                        value={prov.api_key || ''}
-                                        onChange={(e) => updateConfig(['providers', name, 'api_key'], e.target.value)}
-                                    />
+                    {config.providers && Object.entries(config.providers).map(([name, prov]: [string, any]) => {
+                        const hasModels = Array.isArray(prov.models) && prov.models.length > 0;
+                        const apiKey = hasModels ? (prov.models[0].api_key || '') : (prov.api_key || '');
+                        const apiBase = hasModels ? (prov.models[0].api_base || '') : (prov.api_base || '');
+                        const apiKeyPath = hasModels ? ['providers', name, 'models', 0, 'api_key'] : ['providers', name, 'api_key'];
+                        const apiBasePath = hasModels ? ['providers', name, 'models', 0, 'api_base'] : ['providers', name, 'api_base'];
+
+                        return (
+                            <div key={name} className="space-y-3 group">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1.5 h-4 bg-indigo-500 rounded-full"></div>
+                                    <span className="font-bold uppercase text-xs tracking-wider text-slate-500">{name}</span>
                                 </div>
-                                <div className="space-y-1">
-                                    <span className="text-[10px] font-medium text-slate-400 ml-1">{t.settings_api_base}</span>
-                                    <Input
-                                        placeholder="Auto"
-                                        value={prov.api_base || ''}
-                                        onChange={(e) => updateConfig(['providers', name, 'api_base'], e.target.value)}
-                                    />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] font-medium text-slate-400 ml-1">{t.settings_api_key}</span>
+                                        <Input
+                                            placeholder="API Key"
+                                            type="password"
+                                            value={apiKey}
+                                            onChange={(e) => updateConfig(apiKeyPath, e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] font-medium text-slate-400 ml-1">{t.settings_api_base}</span>
+                                        <Input
+                                            placeholder="Auto"
+                                            value={apiBase}
+                                            onChange={(e) => updateConfig(apiBasePath, e.target.value)}
+                                        />
+                                    </div>
                                 </div>
+                                {hasModels && (
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] font-medium text-slate-400 ml-1">Current Model</span>
+                                        <Input
+                                            className="bg-slate-50 dark:bg-slate-800/50 text-xs py-1 h-7"
+                                            value={prov.models[0].model || ''}
+                                            onChange={(e) => updateConfig(['providers', name, 'models', 0, 'model'], e.target.value)}
+                                        />
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </CardContent>
                 <CardFooter className="p-6 border-t bg-slate-50 dark:bg-slate-900 justify-end">
                     <Button onClick={() => setShowSaveConfirm(true)} className="bg-indigo-600 hover:bg-indigo-700 min-w-[120px]">

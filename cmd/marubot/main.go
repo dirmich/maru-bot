@@ -207,9 +207,13 @@ func uninstallCmd() {
 		return
 	}
 
-	// 0. Remove Windows Service (if applicable)
+	// 0. Remove Services and Kill Processes (Cross-platform)
 	if runtime.GOOS == "windows" {
 		svcNames := []string{"MaruBot", "marubot"}
+		// Try to kill the process first to unlock files
+		exec.Command("taskkill", "/F", "/IM", "marubot.exe", "/T").Run()
+		time.Sleep(500 * time.Millisecond)
+
 		for _, svcName := range svcNames {
 			svcConfig := &service.Config{
 				Name: svcName,
@@ -218,18 +222,31 @@ func uninstallCmd() {
 			if err == nil {
 				fmt.Printf("Attempting to remove Windows service '%s'...\n", svcName)
 				s.Stop()
-				if err := s.Uninstall(); err == nil {
-					fmt.Printf("✓ Windows service '%s' removed via kardianos/service.\n", svcName)
-				} else {
-					// Fallback to sc delete
-					fmt.Printf("Standard uninstall for '%s' failed (%v), trying sc delete...\n", svcName, err)
-					exec.Command("sc", "stop", svcName).Run()
-					if err := exec.Command("sc", "delete", svcName).Run(); err == nil {
-						fmt.Printf("✓ Windows service '%s' removed via sc delete.\n", svcName)
-					}
-				}
+				s.Uninstall()
+				// Robust fallback
+				exec.Command("sc", "stop", svcName).Run()
+				exec.Command("sc", "delete", svcName).Run()
 			}
 		}
+	} else if runtime.GOOS == "linux" {
+		// Stop and disable systemd service if exists
+		u, _ := user.Current()
+		if u != nil {
+			serviceDir := filepath.Join(u.HomeDir, ".config", "systemd", "user")
+			servicePath := filepath.Join(serviceDir, "marubot.service")
+			if _, err := os.Stat(servicePath); err == nil {
+				fmt.Println("Removing Linux systemd user service...")
+				exec.Command("systemctl", "--user", "stop", "marubot.service").Run()
+				exec.Command("systemctl", "--user", "disable", "marubot.service").Run()
+				os.Remove(servicePath)
+				exec.Command("systemctl", "--user", "daemon-reload").Run()
+			}
+		}
+		// Kill any remaining marubot processes
+		exec.Command("pkill", "-9", "marubot").Run()
+	} else if runtime.GOOS == "darwin" {
+		// For macOS, just pkill for now (can expand to launchctl if needed)
+		exec.Command("pkill", "-9", "marubot").Run()
 	}
 
 	fmt.Print("Do you want to keep your user data (config, memory, workspace)? (Y/n): ")
@@ -1580,6 +1597,10 @@ func startCmd() {
 
 	// Double-fork / Detach logic
 	if !runForeground && os.Getenv("MARUBOT_DAEMON") != "1" {
+		// Clean up existing instance before starting a new one in background
+		stopCmd()
+		time.Sleep(1 * time.Second)
+
 		exe, err := os.Executable()
 		if err != nil {
 			fmt.Printf("Error getting executable path: %v\n", err)
@@ -1631,14 +1652,11 @@ func startCmd() {
 		f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err == nil {
 			// Redirect stdout/stderr to log file
-			// Note: This only redirects Go's fmt.Print output if we assign it,
-			// but for true redirection we'd need syscalls which are OS specific.
-			// Ideally just use a logger.
-			// For simplicity in this cross-platform Go app without syscalls:
-			// We will just let it run. Stdout/Stderr are discarded by the parent anyway.
-			// But creating a log file is good practice.
+			os.Stdout = f
+			os.Stderr = f
+			fmt.Printf("\n--- MaruBot Log Started at %v ---\n", time.Now().Format(time.RFC3339))
 		}
-		defer f.Close()
+		// Note: we don't defer f.Close() here because it should stay open for the life of the process
 	}
 
 	if runForeground {
@@ -1653,9 +1671,11 @@ func startCmd() {
 		return
 	}
 
-	// Validate configuration: At least one AI provider and one channel must be enabled
+	// Validate configuration: At least one AI provider must be enabled
 	// If password is also missing, we prioritize security setup.
-	if cfg.AdminPassword == "" || !cfg.IsAIConfigured() || !cfg.IsChannelEnabled() {
+	// We no longer require a channel to be enabled to leave setup mode, 
+	// because web-admin chat is always available.
+	if cfg.AdminPassword == "" || !cfg.IsAIConfigured() {
 		showGuideMessage(cfg)
 		
 		// In GUI/Desktop environments, we might want to keep the process alive

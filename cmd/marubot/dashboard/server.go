@@ -128,7 +128,12 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		}
 
 		cookie, err := r.Cookie("marubot_session")
-		if err != nil || cookie.Value != s.config.AdminPassword {
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		if cookie.Value != s.config.AdminPassword {
+			fmt.Printf("Auth failed: session cookie mismatch.\n")
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -209,6 +214,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]bool{"success": true})
 	} else {
+		fmt.Printf("Login failed: password mismatch. expected=%s, got=%s\n", s.config.AdminPassword, req.Password)
 		http.Error(w, "Invalid password", http.StatusUnauthorized)
 	}
 }
