@@ -337,8 +337,26 @@ func LoadConfig(path string) (*Config, error) {
 				}
 			}
 
-			// Final unmarshal for everything else (merges into cfg)
-			if err := json.Unmarshal(userData, cfg); err != nil {
+			// Special handling for flat provider structures in usersetting.json
+			if providers, ok := userCfg["providers"].(map[string]interface{}); ok {
+				for pName, pData := range providers {
+					if pMap, ok := pData.(map[string]interface{}); ok {
+						// If it doesn't have "models" but has "api_base" or "model", it's a flat structure
+						if _, hasModels := pMap["models"]; !hasModels {
+							if _, hasBase := pMap["api_base"]; hasBase {
+								// Move flat fields into a single ModelConfig under models
+								models := []interface{}{pMap}
+								pMap = map[string]interface{}{"models": models}
+								providers[pName] = pMap
+							}
+						}
+					}
+				}
+			}
+
+			// Re-marshal the updated userCfg and unmarshal into cfg
+			updatedData, _ := json.Marshal(userCfg)
+			if err := json.Unmarshal(updatedData, cfg); err != nil {
 				return nil, err
 			}
 		}
@@ -495,6 +513,7 @@ func (c *Config) findModelConfig(providerName, modelName string) *ModelConfig {
 	}
 	return nil
 }
+
 
 func (c *Config) GetAPIBase() string {
 	c.mu.RLock()

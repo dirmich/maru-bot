@@ -39,14 +39,9 @@ func (p *HTTPProvider) Chat(ctx context.Context, messages []Message, tools []Too
 		return nil, fmt.Errorf("API base not configured")
 	}
 
-	// Handle model name prefixes for some providers that might get confused
-	// Especially for vLLM or local servers that don't expect "openai/" prefix
+	// Use the model name exactly as configured
 	effectiveModel := model
-	if strings.Contains(p.apiBase, "192.168") || strings.Contains(p.apiBase, "localhost") || strings.Contains(p.apiBase, "0.0.0.0") {
-		if idx := strings.LastIndex(model, "/"); idx != -1 {
-			effectiveModel = model[idx+1:]
-		}
-	}
+	fmt.Printf("[Debug] Sending request with model: %s to %s\n", effectiveModel, p.apiBase)
 
 	requestBody := map[string]interface{}{
 		"model":    effectiveModel,
@@ -235,7 +230,7 @@ func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error)
 		}
 	}
 
-	// Legacy/Prefix-based fallback for backward compatibility or direct model strings
+	// Legacy/Prefix-based fallback for direct model strings
 	lowerModel := strings.ToLower(model)
 	if strings.HasPrefix(lowerModel, "vllm/") || strings.HasPrefix(lowerModel, "ollama/") || strings.HasPrefix(lowerModel, "local/") {
 		// Use first VLLM model if available

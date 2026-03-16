@@ -183,45 +183,49 @@ fi
 
 # 3. Clone Source Code
 INSTALL_DIR="$HOME/marubot"
+DOWNLOAD_ARCHIVE() {
+    echo -e "${BLUE}ℹ️ Downloading archive via curl/wget...${NC}"
+    mkdir -p "$INSTALL_DIR"
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL https://github.com/dirmich/maru-bot/archive/refs/heads/main.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
+    elif command -v wget >/dev/null 2>&1; then
+        wget -qO- https://github.com/dirmich/maru-bot/archive/refs/heads/main.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
+    else
+        echo -e "${RED}❌ Neither curl nor wget are available.${NC}"
+        return 1
+    fi
+}
+
 if [ -d "$INSTALL_DIR" ]; then
     echo -e "${BLUE}🔄 Updating to latest source code...${NC}"
     cd "$INSTALL_DIR"
     if command -v git >/dev/null 2>&1 && [ -d ".git" ]; then
         if ! git pull; then
-            echo -e "${YELLOW}⚠️ Git update failed. Retrying fresh clone...${NC}"
+            echo -e "${YELLOW}⚠️ Git update failed. Retrying fresh download...${NC}"
             cd "$HOME"
             rm -rf "$INSTALL_DIR"
-            git clone --depth 1 https://github.com/dirmich/maru-bot.git "$INSTALL_DIR"
+            if ! DOWNLOAD_ARCHIVE; then exit 1; fi
             cd "$INSTALL_DIR"
         fi
     else
-        echo -e "${YELLOW}⚠️ 'git' not found or not a git repository. Downloading fresh archive...${NC}"
+        echo -e "${YELLOW}⚠️ Not a git repository or git missing. Downloading fresh archive...${NC}"
         cd "$HOME"
         rm -rf "$INSTALL_DIR"
-        mkdir -p "$INSTALL_DIR"
-        if command -v curl >/dev/null 2>&1; then
-            curl -fsSL https://github.com/dirmich/maru-bot/archive/refs/heads/main.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
-        else
-            wget -qO- https://github.com/dirmich/maru-bot/archive/refs/heads/main.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
-        fi
+        if ! DOWNLOAD_ARCHIVE; then exit 1; fi
         cd "$INSTALL_DIR"
     fi
 else
     echo -e "${BLUE}${MSG_CLONE}${NC}"
     if command -v git >/dev/null 2>&1; then
-        git clone --depth 1 https://github.com/dirmich/maru-bot.git "$INSTALL_DIR"
+        if ! git clone --depth 1 https://github.com/dirmich/maru-bot.git "$INSTALL_DIR"; then
+            echo -e "${YELLOW}⚠️ Git clone failed. Falling back to archive download...${NC}"
+            rm -rf "$INSTALL_DIR"
+            if ! DOWNLOAD_ARCHIVE; then exit 1; fi
+        fi
         cd "$INSTALL_DIR"
     else
-        echo -e "${YELLOW}⚠️ 'git' not found. Downloading archive via curl/wget...${NC}"
-        mkdir -p "$INSTALL_DIR"
-        if command -v curl >/dev/null 2>&1; then
-            curl -fsSL https://github.com/dirmich/maru-bot/archive/refs/heads/main.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
-        elif command -v wget >/dev/null 2>&1; then
-            wget -qO- https://github.com/dirmich/maru-bot/archive/refs/heads/main.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
-        else
-            echo -e "${RED}❌ Neither git, curl, nor wget are available. Cannot download source code.${NC}"
-            exit 1
-        fi
+        echo -e "${YELLOW}⚠️ 'git' not found. Downloading archive...${NC}"
+        if ! DOWNLOAD_ARCHIVE; then exit 1; fi
         cd "$INSTALL_DIR"
     fi
 fi

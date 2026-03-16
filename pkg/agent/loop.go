@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings" // Added strings import
 	"time"
@@ -301,8 +302,13 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 		}
 
 		if len(response.ToolCalls) == 0 {
-			finalContent = response.Content
-			break
+			// Robust parsing: check if content contains a JSON tool call
+			if tc := al.tryParseToolCallFromContent(response.Content); tc != nil {
+				response.ToolCalls = []providers.ToolCall{*tc}
+			} else {
+				finalContent = response.Content
+				break
+			}
 		}
 
 		assistantMsg := providers.Message{
@@ -391,6 +397,73 @@ func (al *AgentLoop) findCurrentModelConfig() *config.ModelConfig {
 	for _, p := range allProviders {
 		if cfg := getInProvider(p); cfg != nil {
 			return cfg
+		}
+	}
+
+	return nil
+}
+
+func (al *AgentLoop) tryParseToolCallFromContent(content string) *providers.ToolCall {
+	content = strings.TrimSpace(content)
+	
+	// Fast path for pure JSON
+	if strings.HasPrefix(content, "{") && strings.HasSuffix(content, "}") {
+		return al.parseJSONToolCall(content)
+	}
+
+	// Remove markdown code blocks if present
+	if strings.Contains(content, "```") {
+		re := regexp.MustCompile("(?s)```(?:json)?\n?(.*?)\n?```")
+		match := re.FindStringSubmatch(content)
+		if len(match) > 1 {
+			if tc := al.parseJSONToolCall(strings.TrimSpace(match[1])); tc != nil {
+				return tc
+			}
+		}
+	}
+
+	// Try extracting the first valid JSON object from the text
+	start := strings.Index(content, "{")
+	end := strings.LastIndex(content, "}")
+	if start != -1 && end != -1 && end > start {
+		if tc := al.parseJSONToolCall(content[start : end+1]); tc != nil {
+			return tc
+		}
+	}
+
+	return nil
+}
+
+func (al *AgentLoop) parseJSONToolCall(content string) *providers.ToolCall {
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(content), &data); err != nil {
+		return nil
+	}
+
+	// Case 1: Nanobot/MaruBot direct command style {"command": "..."} -> shell
+	if cmd, ok := data["command"].(string); ok && cmd != "" {
+		return &providers.ToolCall{
+			ID:        fmt.Sprintf("call_%d", time.Now().UnixNano()),
+			Name:      "shell",
+			Arguments: data,
+		}
+	}
+
+	// Case 2: OpenAI-like structure embedded in content {"name": "...", "arguments": {...}}
+	if name, ok := data["name"].(string); ok && name != "" {
+		argsMap := make(map[string]interface{})
+		if args, exists := data["arguments"]; exists {
+			switch v := args.(type) {
+			case map[string]interface{}:
+				argsMap = v
+			case string:
+				json.Unmarshal([]byte(v), &argsMap)
+			}
+		}
+		return &providers.ToolCall{
+			ID:        fmt.Sprintf("call_%d", time.Now().UnixNano()),
+			Name:      name,
+			Arguments: argsMap,
 		}
 	}
 
