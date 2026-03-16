@@ -128,7 +128,8 @@ type ToolsConfig struct {
 }
 
 type HardwareConfig struct {
-	GPIO GPIOConfig `json:"gpio"`
+	IsRaspberryPi *bool      `json:"is_raspberry_pi,omitempty" env:"MARUBOT_HARDWARE_IS_RASPBERRY_PI"`
+	GPIO          GPIOConfig `json:"gpio"`
 }
 
 type GPIOConfig struct {

@@ -24,13 +24,11 @@ export CGO_ENABLED
 GO?=go
 GOFLAGS?=-v
 
-# Installation
-INSTALL_PREFIX?=$(HOME)/.local
-INSTALL_BIN_DIR=$(INSTALL_PREFIX)/bin
-INSTALL_MAN_DIR=$(INSTALL_PREFIX)/share/man/man1
-
-# Workspace and Skills
+# MARUBOT_HOME is the base directory for resources and binary
 MARUBOT_HOME?=$(HOME)/.marubot
+
+# Installation
+INSTALL_BIN_DIR=$(MARUBOT_HOME)/bin
 WORKSPACE_DIR?=$(MARUBOT_HOME)/workspace
 WORKSPACE_SKILLS_DIR=$(WORKSPACE_DIR)/skills
 BUILTIN_SKILLS_DIR=$(CURDIR)/skills
@@ -170,10 +168,10 @@ public: package-win package-dmg
 ## uninstall: Remove marubot from system
 uninstall:
 	@echo "Uninstalling $(BINARY_NAME)..."
+	-@$(INSTALL_BIN_DIR)/$(BINARY_NAME) uninstall
 	@rm -f $(INSTALL_BIN_DIR)/$(BINARY_NAME)
 	@echo "Removed binary from $(INSTALL_BIN_DIR)/$(BINARY_NAME)"
-	@echo "Note: Only the executable file has been deleted."
-	@echo "If you need to delete all configurations (config.json, workspace, etc.), run 'make uninstall-all'"
+	@echo "Note: Core configuration and workspace are kept unless you run 'make uninstall-all'"
 
 ## uninstall-all: Remove marubot and all data
 uninstall-all:
@@ -213,9 +211,8 @@ help:
 	@echo ""
 	@echo "Examples:"
 	@echo "  make build              # Build for current platform"
-	@echo "  make install            # Install to /usr/local/bin"
-	@echo "  make install-user       # Install to ~/.local/bin"
-	@echo "  make uninstall          # Remove from /usr/local/bin"
+	@echo "  make install            # Install to $(INSTALL_BIN_DIR)"
+	@echo "  make uninstall          # Remove from $(INSTALL_BIN_DIR)"
 	@echo "  make install-skills     # Install skills to workspace"
 	@echo ""
 	@echo "Environment Variables:"
