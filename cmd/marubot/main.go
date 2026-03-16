@@ -502,7 +502,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-" + config.Version + "
+` + config.Version + `
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage

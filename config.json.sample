@@ -5,7 +5,7 @@
     "defaults": {
       "workspace": "~/.marubot/workspace",
       "provider": "vllm",
-      "model": "openai/sample-10b",
+      "model": "openai/gpt-oss-20b",
       "fallback_models": [
         "gpt-4o",
         "claude-3-5-sonnet-20241022",
@@ -17,7 +17,7 @@
     "vllm": {
       "models": [
         {
-          "model": "openai/sample-10b",
+          "model": "openai/gpt-oss-20b",
           "api_key": "vllm",
           "api_base": "http://192.168.0.20:8000/v1",
           "max_tokens": 4096,
