@@ -25,6 +25,10 @@ export function SettingsPage() {
             openai: { api_key: "", api_base: "" },
             gemini: { api_key: "", api_base: "" },
             anthropic: { api_key: "", api_base: "" }
+        },
+        channels: {
+            telegram: { enabled: false, token: "", allow_from: [] },
+            discord: { enabled: false, token: "", allow_from: [] }
         }
     });
 

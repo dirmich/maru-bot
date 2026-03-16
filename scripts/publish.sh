@@ -105,8 +105,12 @@ if [ -d "$SOURCE_DIR/build" ]; then
     echo "  ✓ 빌드 자산 수집 및 패키징 완료 (Path: $RELEASE_DIR)"
 
     # Copy macOS DMGs
-    echo "  🍎 Copying macOS DMGs..."
-    cp "$SOURCE_DIR/build/marubot-macos-"* "$RELEASE_DIR/"
+    echo "  🍎 Copying macOS DMGs (if any)..."
+    if ls "$SOURCE_DIR/build/marubot-macos-"* 1> /dev/null 2>&1; then
+        cp "$SOURCE_DIR/build/marubot-macos-"* "$RELEASE_DIR/"
+    else
+        echo "    - No macOS binaries found, skipping."
+    fi
 else
     echo "  ⚠️ build 폴더를 찾을 수 없어 바이너리 복사 건너뜜"
 fi

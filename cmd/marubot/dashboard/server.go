@@ -369,7 +369,13 @@ func (s *Server) handleSystemStats(w http.ResponseWriter, r *http.Request) {
 
 	stats["is_ai_configured"] = s.config.IsAIConfigured()
 	stats["is_channel_configured"] = s.config.IsChannelEnabled()
-	stats["is_rpi"] = isRPi()
+	
+	// User config override takes precedence, otherwise use platform detection
+	if s.config.Hardware.IsRaspberryPi != nil {
+		stats["is_rpi"] = *s.config.Hardware.IsRaspberryPi
+	} else {
+		stats["is_rpi"] = isRPi()
+	}
 
 	json.NewEncoder(w).Encode(stats)
 }

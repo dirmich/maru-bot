@@ -9,8 +9,18 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${BLUE}🤖 Starting MaruBot One-Click Installer...${NC}"
+# 0. Parse Arguments
+FORCE_RPI=false
+for arg in "$@"; do
+    if [ "$arg" == "--rpi" ]; then
+        FORCE_RPI=true
+    fi
+done
 
+echo -e "${BLUE}🤖 Starting MaruBot One-Click Installer...${NC}"
+if [ "$FORCE_RPI" = true ]; then
+    echo -e "${BLUE}ℹ️ Raspberry Pi mode forced via parameter.${NC}"
+fi
 # 0. Language Selection
 # 0. Language Selection
 echo "Language / 언어 / 言語:"
@@ -292,14 +302,24 @@ make GO="$GO_CMD" clean build
 echo -e "${BLUE}🏗️ Installing system and deploying resources...${NC}"
 
 if [ -f "build/marubot" ]; then
-    echo "  📦 Installing executable to /usr/local/bin/marubot..."
-    # Using 'install' is more reliable for replacing busy binaries
-    sudo install -m 755 build/marubot /usr/local/bin/marubot
+    INSTALL_BIN_DIR="$HOME/.marubot/bin"
+    mkdir -p "$INSTALL_BIN_DIR"
+    echo "  📦 Installing executable to $INSTALL_BIN_DIR/marubot..."
+    cp build/marubot "$INSTALL_BIN_DIR/marubot"
+    chmod +x "$INSTALL_BIN_DIR/marubot"
     
-    # 6-1. Clean up potential duplicate binaries to prevent PATH confusion
-    if [ -f "$HOME/go/bin/marubot" ]; then
-        echo "  ⚠️  Detected old binary at ~/go/bin/marubot. Removing to prevent path confusion..."
-        rm -f "$HOME/go/bin/marubot"
+    # Add to PATH if not already there
+    if [[ ":$PATH:" != *":$INSTALL_BIN_DIR:"* ]]; then
+        echo "  🌐 Adding $INSTALL_BIN_DIR to PATH..."
+        case "$SHELL" in
+            */zsh)
+                echo "export PATH=\"\$PATH:$INSTALL_BIN_DIR\"" >> ~/.zshrc
+                ;;
+            *)
+                echo "export PATH=\"\$PATH:$INSTALL_BIN_DIR\"" >> ~/.bashrc
+                ;;
+        esac
+        export PATH="$PATH:$INSTALL_BIN_DIR"
     fi
 else
     echo -e "${RED}❌ marubot executable not found. Build failed.${NC}"
@@ -329,6 +349,17 @@ if [ -f "$RESOURCE_DIR/config.json" ]; then
     else
         # Add after opening brace
         sed -i "0,/{/s/{/{\n  \"admin_password\": \"$MARUBOT_PWD\",/" "$RESOURCE_DIR/config.json"
+    fi
+
+    # Set is_raspberry_pi field if forced
+    if [ "$FORCE_RPI" = true ]; then
+        if grep -q "\"is_raspberry_pi\":" "$RESOURCE_DIR/config.json"; then
+            sed -i "s/\"is_raspberry_pi\": .*/\"is_raspberry_pi\": true,/" "$RESOURCE_DIR/config.json"
+        else
+            # Add after opening brace (under hardware section if possible, but simple add for now)
+            # Find hardware section and add or just add at start
+            sed -i "0,/{/s/{/{\n  \"hardware\": {\n    \"is_raspberry_pi\": true\n  },/" "$RESOURCE_DIR/config.json"
+        fi
     fi
 fi
 
