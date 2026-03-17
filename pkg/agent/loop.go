@@ -352,14 +352,16 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 	}
 
 	if finalContent == "" {
-		// Fallback: Try to find the last meaningful assistant message if finalContent is completely empty
+		// Fallback: Try to find the last meaningful assistant message.
+		// Exclude messages that look like raw tool call JSON (start with '{')
 		for i := len(messages) - 1; i >= 0; i-- {
-			if messages[i].Role == "assistant" && messages[i].Content != "" {
-				finalContent = messages[i].Content
+			c := strings.TrimSpace(messages[i].Content)
+			if messages[i].Role == "assistant" && c != "" && !strings.HasPrefix(c, "{") {
+				finalContent = c
 				break
 			}
 		}
-		
+
 		if finalContent == "" {
 			finalContent = "I've completed processing but have no response to give."
 		}

@@ -305,6 +305,9 @@ func markdownToTelegramHTML(text string) string {
 		return ""
 	}
 
+	// Strip any HTML <br> tags the LLM may have output and replace with newline
+	text = regexp.MustCompile(`(?i)<br\s*/?>`).ReplaceAllString(text, "\n")
+
 	codeBlocks := extractCodeBlocks(text)
 	text = codeBlocks.text
 

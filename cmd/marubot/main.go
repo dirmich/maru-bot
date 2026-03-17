@@ -36,6 +36,7 @@ import (
 	"github.com/dirmich/marubot/pkg/logger"
 	"github.com/dirmich/marubot/pkg/providers"
 	"github.com/dirmich/marubot/pkg/skills"
+	"github.com/dirmich/marubot/pkg/utils"
 	"github.com/dirmich/marubot/pkg/voice"
 
 	"github.com/chzyer/readline"
@@ -390,6 +391,24 @@ func onboard() {
 	fmt.Println("  1. Add your API key to", configPath)
 	fmt.Println("     Get one at: https://openrouter.ai/keys")
 	fmt.Println("  2. Chat: marubot agent -m \"Hello!\"")
+}
+
+func ensureAdminPassword(cfg *config.Config) {
+	fmt.Printf("Set Admin Password for Web Dashboard: ")
+	var password string
+	fmt.Scanln(&password)
+
+	if password == "" {
+		fmt.Println("Password cannot be empty. Defaulting to 'admin'.")
+		password = "admin"
+	}
+
+	cfg.AdminPassword = utils.HashPassword(password)
+	if err := config.SaveConfig(getConfigPath(), cfg); err != nil {
+		fmt.Printf("Error saving config: %v\n", err)
+	} else {
+		fmt.Println("Password saved successfully.")
+	}
 }
 
 func createWorkspaceTemplates(workspace string) {
@@ -1680,11 +1699,15 @@ func startCmd() {
 		return
 	}
 
+	if cfg.AdminPassword == "" {
+		ensureAdminPassword(cfg)
+	}
+
 	// Validate configuration: At least one AI provider must be enabled
 	// If password is also missing, we prioritize security setup.
 	// We no longer require a channel to be enabled to leave setup mode, 
 	// because web-admin chat is always available.
-	if cfg.AdminPassword == "" || !cfg.IsAIConfigured() {
+	if !cfg.IsAIConfigured() {
 		showGuideMessage(cfg)
 		
 		// In GUI/Desktop environments, we might want to keep the process alive
