@@ -1700,7 +1700,7 @@ func startCmd() {
 			// even in Setup Mode.
 			bus := bus.NewMessageBus()
 			dummyAgent := agent.NewAgentLoop(cfg, bus, nil, Version)
-			dashServer := dashboard.NewServer(dashAddr, dummyAgent, cfg, Version)
+			dashServer := dashboard.NewServer(dashAddr, dummyAgent, cfg, getConfigPath(), Version)
 			
 			go func() {
 				if err := dashServer.Start(); err != nil {
@@ -1790,7 +1790,7 @@ func startCmd() {
 
 	// Initialize Dashboard Server
 	port := "8080"
-	server := dashboard.NewServer(":"+port, agentLoop, cfg, Version)
+	server := dashboard.NewServer(":"+port, agentLoop, cfg, getConfigPath(), Version)
 
 	if runForeground {
 		go func() {
@@ -2226,18 +2226,10 @@ if ($result -eq "Yes") {
 		fmt.Sscanf(strings.TrimSpace(string(out)), "%d", &newPort)
 		if newPort > 0 {
 			cfg.Gateway.Port = newPort
-			// Save to usersetting.json for persistence
-			userSettingsPath := filepath.Join(filepath.Dir(getConfigPath()), "usersetting.json")
-			var settings map[string]interface{}
-			data, err := os.ReadFile(userSettingsPath)
-			if err == nil {
-				json.Unmarshal(data, &settings)
-			} else {
-				settings = make(map[string]interface{})
+			// Save directly to config.json
+			if err := config.SaveConfig(getConfigPath(), cfg); err != nil {
+				fmt.Printf("Error saving config: %v\n", err)
 			}
-			settings["gateway.port"] = newPort
-			newData, _ := json.MarshalIndent(settings, "", "  ")
-			os.WriteFile(userSettingsPath, newData, 0644)
 			return true
 		}
 	} else {

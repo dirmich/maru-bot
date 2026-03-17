@@ -215,7 +215,11 @@ export function GpioPage() {
                             />
                         </CardContent>
                         <CardFooter className="justify-end border-t pt-4">
-                            <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white">
+                            <Button 
+                                onClick={handleSave} 
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                                disabled={configuredPins.some(p => isInvalidPin(p.pin))}
+                            >
                                 <Save className="w-4 h-4 mr-2" /> {t.gpio_save}
                             </Button>
                         </CardFooter>
@@ -284,7 +288,7 @@ export function GpioPage() {
                                             const isError = isInvalidPin(item.pin);
                                             if (selectedPin !== undefined && item.pin !== selectedPin) return null;
                                             return (
-                                                <TableRow key={`${groupName}-${localIdx}`} className="border-b last:border-0 hover:bg-white dark:hover:bg-slate-800 transition-colors">
+                                                <TableRow key={`${groupName}-${localIdx}`} className={`border-b last:border-0 transition-colors ${isError ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30' : 'hover:bg-white dark:hover:bg-slate-800'}`}>
                                                     <TableCell className="w-12 px-3 py-2 text-center">
                                                         {item.mode === 'OUT' ? (
                                                             <Switch

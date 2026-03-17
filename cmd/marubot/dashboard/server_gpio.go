@@ -131,9 +131,13 @@ func (s *Server) handleGpioToggle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isInput {
-		log.Printf("[GPIO] [WebAdmin Access] Pin %d (%s) read. Level: %d", pin, label, levelInt)
+		if s.config.Hardware.GPIOTestMode {
+			log.Printf("[GPIO] [WebAdmin Access] Pin %d (%s) read. Level: %d", pin, label, levelInt)
+		}
 	} else {
-		log.Printf("[GPIO] [WebAdmin Access] Pin %d (%s) toggled. Old: %d, New: %d", pin, label, levelInt, levelInt)
+		if s.config.Hardware.GPIOTestMode {
+			log.Printf("[GPIO] [WebAdmin Access] Pin %d (%s) toggled. Old: %d, New: %d", pin, label, levelInt, levelInt)
+		}
 	}
 
 	json.NewEncoder(w).Encode(map[string]interface{}{

@@ -127,9 +127,13 @@ func (s *Server) handleGpioToggleSim(w http.ResponseWriter, r *http.Request) {
 	simMu.Unlock()
 
 	if isInput {
-		log.Printf("[GPIO Simulation] [WebAdmin Access] Pin %d (%s) read. Level: %d", pin, label, level)
+		if s.config.Hardware.GPIOTestMode {
+			log.Printf("[GPIO Simulation] [WebAdmin Access] Pin %d (%s) read. Level: %d", pin, label, level)
+		}
 	} else {
-		log.Printf("[GPIO Simulation] [WebAdmin Access] Pin %d (%s) toggled. Old: %d, New: %d", pin, label, level, newLevel)
+		if s.config.Hardware.GPIOTestMode {
+			log.Printf("[GPIO Simulation] [WebAdmin Access] Pin %d (%s) toggled. Old: %d, New: %d", pin, label, level, newLevel)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

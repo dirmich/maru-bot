@@ -24,23 +24,25 @@ var webAdminAssets embed.FS
 
 // Server handles the MaruBot dashboard web interface and API
 type Server struct {
-	addr      string
-	agent     *agent.AgentLoop
-	config    *config.Config
-	skillMgr  *skills.SkillInstaller
-	skillLoad *skills.SkillsLoader
-	version   string
+	addr       string
+	agent      *agent.AgentLoop
+	config     *config.Config
+	configPath string
+	skillMgr   *skills.SkillInstaller
+	skillLoad  *skills.SkillsLoader
+	version    string
 }
 
 // NewServer creates a new dashboard server instance
-func NewServer(addr string, agent *agent.AgentLoop, cfg *config.Config, version string) *Server {
+func NewServer(addr string, agent *agent.AgentLoop, cfg *config.Config, configPath string, version string) *Server {
 	return &Server{
-		addr:      addr,
-		agent:     agent,
-		config:    cfg,
-		skillMgr:  skills.NewSkillInstaller(cfg.WorkspacePath()),
-		skillLoad: skills.NewSkillsLoader(cfg.WorkspacePath(), ""),
-		version:   version,
+		addr:       addr,
+		agent:      agent,
+		config:     cfg,
+		configPath: configPath,
+		skillMgr:   skills.NewSkillInstaller(cfg.WorkspacePath()),
+		skillLoad:  skills.NewSkillsLoader(cfg.WorkspacePath(), ""),
+		version:    version,
 	}
 }
 
@@ -61,6 +63,7 @@ func (s *Server) Start() error {
 	// Protected API Routes
 	mux.Handle("/api/chat", s.authMiddleware(http.HandlerFunc(s.handleChat)))
 	mux.Handle("/api/config", s.authMiddleware(http.HandlerFunc(s.handleConfig)))
+	mux.Handle("/api/config/fetch-models", s.authMiddleware(http.HandlerFunc(s.handleFetchModels)))
 	mux.Handle("/api/skills", s.authMiddleware(http.HandlerFunc(s.handleSkills)))
 	s.registerGPIORoutes(mux)
 	mux.Handle("/api/logs", s.authMiddleware(http.HandlerFunc(s.handleLogs)))
@@ -182,9 +185,7 @@ func (s *Server) handleSetPassword(w http.ResponseWriter, r *http.Request) {
 	s.config.AdminPassword = req.Password
 
 	// Save updated config to config.json
-	home, _ := os.UserHomeDir()
-	configPath := filepath.Join(home, ".marubot", "config.json")
-	if err := config.SaveConfig(configPath, s.config); err != nil {
+	if err := config.SaveConfig(s.configPath, s.config); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to save config: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -280,10 +281,7 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		s.config.Update(newCfg)
 
 		// Save to config.json for persistence
-		home, _ := os.UserHomeDir()
-		configPath := filepath.Join(home, ".marubot", "config.json")
-
-		if err := config.SaveConfig(configPath, s.config); err != nil {
+		if err := config.SaveConfig(s.configPath, s.config); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save config: %v", err), http.StatusInternalServerError)
 			return
 		}
@@ -427,4 +425,175 @@ func (s *Server) handleUpgrade(w http.ResponseWriter, r *http.Request) {
 		"status":  "ok",
 		"message": "Upgrade started. The system will restart automatically.",
 	})
+}
+func (s *Server) handleFetchModels(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Provider string `json:"provider"`
+		APIKey   string `json:"api_key"`
+		APIBase  string `json:"api_base"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.APIKey == "" {
+		http.Error(w, "API Key is required", http.StatusBadRequest)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	var models []string
+	var err error
+
+	provider := strings.ToLower(req.Provider)
+	switch provider {
+	case "openai", "groq", "openrouter", "vllm":
+		models, err = s.fetchOpenAIModels(ctx, req.APIKey, req.APIBase, provider)
+	case "gemini":
+		models, err = s.fetchGeminiModels(ctx, req.APIKey)
+	case "anthropic":
+		models, err = s.fetchAnthropicModels(ctx, req.APIKey)
+	default:
+		err = fmt.Errorf("provider %s not supported for model fetching", req.Provider)
+	}
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to fetch models: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "ok",
+		"models": models,
+	})
+}
+
+func (s *Server) fetchOpenAIModels(ctx context.Context, apiKey, apiBase, provider string) ([]string, error) {
+	baseUrl := apiBase
+	if baseUrl == "" {
+		switch provider {
+		case "openai": baseUrl = "https://api.openai.com/v1"
+		case "groq": baseUrl = "https://api.groq.com/openai/v1"
+		case "openrouter": baseUrl = "https://openrouter.ai/api/v1"
+		}
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", baseUrl+"/models", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error (%d): %s", resp.StatusCode, string(body))
+	}
+
+	var data struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+
+	var models []string
+	for _, m := range data.Data {
+		models = append(models, m.ID)
+	}
+	return models, nil
+}
+
+func (s *Server) fetchGeminiModels(ctx context.Context, apiKey string) ([]string, error) {
+	url := "https://generativelanguage.googleapis.com/v1beta/models?key=" + apiKey
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error (%d): %s", resp.StatusCode, string(body))
+	}
+
+	var data struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+
+	var models []string
+	for _, m := range data.Models {
+		// Name usually starts with "models/", strip it
+		name := m.Name
+		if strings.HasPrefix(name, "models/") {
+			name = name[7:]
+		}
+		// Only include generative models
+		if strings.Contains(name, "gemini") {
+			models = append(models, name)
+		}
+	}
+	return models, nil
+}
+
+func (s *Server) fetchAnthropicModels(ctx context.Context, apiKey string) ([]string, error) {
+	// Anthropic's models list API
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.anthropic.com/v1/models", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("x-api-key", apiKey)
+	req.Header.Set("anthropic-version", "2023-06-01")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error (%d): %s", resp.StatusCode, string(body))
+	}
+
+	var data struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+
+	var models []string
+	for _, m := range data.Data {
+		models = append(models, m.ID)
+	}
+	return models, nil
 }

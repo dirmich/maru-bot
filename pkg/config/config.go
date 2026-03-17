@@ -98,7 +98,9 @@ type ProvidersConfig struct {
 }
 
 type ProviderConfig struct {
-	Models []ModelConfig `json:"models"`
+	APIKey  string        `json:"api_key,omitempty"`
+	APIBase string        `json:"api_base,omitempty"`
+	Models  []ModelConfig `json:"models"`
 }
 
 type ModelConfig struct {
@@ -355,44 +357,34 @@ func LoadConfig(path string) (*Config, error) {
 	return cfg, nil
 }
 
-// MigrateUserSettings merges data from usersetting.json into Config and saves it to config.json
+// MigrateUserSettings merges all data from usersetting.json into Config and saves it to config.json
 func MigrateUserSettings(configPath, userSettingsPath string, cfg *Config) error {
 	userData, err := os.ReadFile(userSettingsPath)
 	if err != nil {
 		return err
 	}
 
+	// 1. First, decode into a map to log what's being migrated (optional, for debug)
 	var userCfg map[string]interface{}
 	if err := json.Unmarshal(userData, &userCfg); err != nil {
 		return err
 	}
 
-	// Merge logic (GPIO Pins)
-	if hw, ok := userCfg["hardware"].(map[string]interface{}); ok {
-		if gp, ok := hw["gpio"].(map[string]interface{}); ok {
-			if pins, ok := gp["pins"].(map[string]interface{}); ok {
-				cfg.Hardware.GPIO.Pins = pins
-			}
-		}
-	}
-	
-	// Legacy key-based mapping if exists in usersetting.json
-	for k, v := range userCfg {
-		if k == "admin_password" {
-			if pw, ok := v.(string); ok {
-				cfg.AdminPassword = pw
-			}
-		}
-		// Add other direct keys here if needed for migration from very old versions
+	// 2. Unmarshal directly into the existing Config struct to merge all fields automatically.
+	// Since cfg already has defaults/existing data, this will overwrite only what's in usersetting.json.
+	if err := json.Unmarshal(userData, cfg); err != nil {
+		return err
 	}
 
-	// Save merged config back to config.json
+	// 3. Save merged config back to config.json
 	if err := SaveConfig(configPath, cfg); err != nil {
 		return err
 	}
 
-	// Remove usersetting.json instead of backing up to avoid confusion
-	return os.Remove(userSettingsPath)
+	// 4. Rename usersetting.json to usersetting.json.bak for safety
+	bakPath := userSettingsPath + ".bak"
+	os.Remove(bakPath) // Remove old backup if exists
+	return os.Rename(userSettingsPath, bakPath)
 }
 
 // FlattenPins converts nested pin maps into flat underscore-separated keys
@@ -473,27 +465,21 @@ func (c *Config) Update(newCfg *Config) {
 		c.Agents = newCfg.Agents
 	}
 
-	// Merge Channels config to avoid overwriting all with empty values
-	if newCfg.Channels.Telegram.Token != "" || newCfg.Channels.Telegram.Enabled {
-		c.Channels.Telegram = newCfg.Channels.Telegram
-	}
-	if newCfg.Channels.WhatsApp.BridgeURL != "" || newCfg.Channels.WhatsApp.Enabled {
-		c.Channels.WhatsApp = newCfg.Channels.WhatsApp
-	}
-	if newCfg.Channels.Discord.Token != "" || newCfg.Channels.Discord.Enabled {
-		c.Channels.Discord = newCfg.Channels.Discord
-	}
-	if newCfg.Channels.Feishu.AppID != "" || newCfg.Channels.Feishu.Enabled {
-		c.Channels.Feishu = newCfg.Channels.Feishu
-	}
+	// Merge Channels config
+	c.Channels.Telegram = newCfg.Channels.Telegram
+	c.Channels.WhatsApp = newCfg.Channels.WhatsApp
+	c.Channels.Discord = newCfg.Channels.Discord
+	c.Channels.Feishu = newCfg.Channels.Feishu
+	c.Channels.MaixCam = newCfg.Channels.MaixCam
+	c.Channels.Webhook = newCfg.Channels.Webhook
 
 	// Merge Providers (assuming the UI sends the full provider model list it wants to update)
-	if len(newCfg.Providers.OpenAI.Models) > 0 { c.Providers.OpenAI = newCfg.Providers.OpenAI }
-	if len(newCfg.Providers.Anthropic.Models) > 0 { c.Providers.Anthropic = newCfg.Providers.Anthropic }
-	if len(newCfg.Providers.Gemini.Models) > 0 { c.Providers.Gemini = newCfg.Providers.Gemini }
-	if len(newCfg.Providers.Zhipu.Models) > 0 { c.Providers.Zhipu = newCfg.Providers.Zhipu }
-	if len(newCfg.Providers.Groq.Models) > 0 { c.Providers.Groq = newCfg.Providers.Groq }
-	if len(newCfg.Providers.VLLM.Models) > 0 { c.Providers.VLLM = newCfg.Providers.VLLM }
+	if len(newCfg.Providers.OpenAI.Models) > 0 || newCfg.Providers.OpenAI.APIKey != "" { c.Providers.OpenAI = newCfg.Providers.OpenAI }
+	if len(newCfg.Providers.Anthropic.Models) > 0 || newCfg.Providers.Anthropic.APIKey != "" { c.Providers.Anthropic = newCfg.Providers.Anthropic }
+	if len(newCfg.Providers.Gemini.Models) > 0 || newCfg.Providers.Gemini.APIKey != "" { c.Providers.Gemini = newCfg.Providers.Gemini }
+	if len(newCfg.Providers.Zhipu.Models) > 0 || newCfg.Providers.Zhipu.APIKey != "" { c.Providers.Zhipu = newCfg.Providers.Zhipu }
+	if len(newCfg.Providers.Groq.Models) > 0 || newCfg.Providers.Groq.APIKey != "" { c.Providers.Groq = newCfg.Providers.Groq }
+	if len(newCfg.Providers.VLLM.Models) > 0 || newCfg.Providers.VLLM.APIKey != "" { c.Providers.VLLM = newCfg.Providers.VLLM }
 
 	c.Gateway = newCfg.Gateway
 	c.Tools = newCfg.Tools
