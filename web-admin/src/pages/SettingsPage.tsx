@@ -163,14 +163,14 @@ export function SettingsPage() {
         Object.entries(config.providers).forEach(([name, prov]: [string, any]) => {
             if (name === 'ollama' && Array.isArray(prov)) {
                 prov.forEach((p, idx) => {
-                    if (p.models?.length > 0) {
+                    if (p?.models?.length > 0) {
                         groups.push({
                             provider: `ollama#${idx}`,
                             models: p.models.map((m: any) => m.model)
                         });
                     }
                 });
-            } else if (prov.models?.length > 0) {
+            } else if (prov?.models?.length > 0) {
                 groups.push({
                     provider: name,
                     models: prov.models.map((m: any) => m.model)
@@ -323,6 +323,7 @@ export function SettingsPage() {
                         {Object.entries(config.providers)
                             .filter(([name]) => name !== 'ollama')
                             .map(([name, prov]: [string, any]) => {
+                                if (!prov) return null;
                                 const isConfigured = prov.api_key || prov.api_base || (prov.models && prov.models.length > 0);
                                 if (!isConfigured) return null;
                                 
@@ -358,6 +359,7 @@ export function SettingsPage() {
 
                         {/* Ollama Providers */}
                         {Array.isArray(config.providers.ollama) && config.providers.ollama.map((prov: any, idx: number) => {
+                             if (!prov) return null;
                              const isConfigured = prov.api_base || (prov.models && prov.models.length > 0);
                              if (!isConfigured && config.providers.ollama.length === 1) return null;
 
