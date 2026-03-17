@@ -292,6 +292,18 @@ func LoadConfig(path string) (*Config, error) {
 		}
 		json.Unmarshal(data, &oldCfg)
 
+		// Special handling for GPIO pins in main config to avoid merging with defaults
+		var rawCfg map[string]interface{}
+		json.Unmarshal(data, &rawCfg)
+		if hw, ok := rawCfg["hardware"].(map[string]interface{}); ok {
+			if gp, ok := hw["gpio"].(map[string]interface{}); ok {
+				if _, ok := gp["pins"].(map[string]interface{}); ok {
+					// Clear default pins if pins are provided in the config file
+					cfg.Hardware.GPIO.Pins = make(map[string]interface{})
+				}
+			}
+		}
+
 		if err := json.Unmarshal(data, cfg); err != nil {
 			return nil, err
 		}
