@@ -129,6 +129,7 @@ type ToolsConfig struct {
 
 type HardwareConfig struct {
 	IsRaspberryPi *bool      `json:"is_raspberry_pi,omitempty" env:"MARUBOT_HARDWARE_IS_RASPBERRY_PI"`
+	GPIOTestMode  bool       `json:"gpio_test_mode" env:"MARUBOT_HARDWARE_GPIO_TEST_MODE"`
 	GPIO          GPIOConfig `json:"gpio"`
 }
 
@@ -245,6 +246,7 @@ func DefaultConfig() *Config {
 			},
 		},
 		Hardware: HardwareConfig{
+			GPIOTestMode: false,
 			GPIO: GPIOConfig{
 				Enabled: true,
 				Pins: map[string]interface{}{

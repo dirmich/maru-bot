@@ -1,6 +1,11 @@
 # 🦞 MaruBot (마루 미니봇) 프로젝트 이력 (History)
 
 ## 2026-03-17
+### v0.4.74
+- **GPIO 테스트 플래그 도입**: `config.json`의 `hardware.gpio_test_mode` 플래그를 통해 윈도우 등 비-기기 환경에서도 GPIO 기능을 강제 활성화 가능.
+- **GPIO 시뮬레이션 (Windows)**: 하드웨어가 없는 환경에서 가상의 핀 상태(Memory-based)를 제어하고 읽을 수 있는 시뮬레이션 핸들러 구현.
+- **로깅 강화**: 모든 가상 GPIO 조작 내역을 `dashboard.log`에 `[GPIO Simulation]` 접두어와 함께 실시간 기록.
+
 ### v0.4.73
 - **시스템 프롬프트 갱신**: 마크다운 테이블 내 줄바꿈 가이드 보강 (`<br>` 사용 허용 정책 수립).
 - **Web Admin 기능 강화**: `rehype-raw` 적용으로 테이블 내 줄바꿈(`<br>`) 실제 렌더링 지원.

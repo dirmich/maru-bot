@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Cpu, Save, Plus, Trash } from 'lucide-react';
+import { Cpu, Save, Plus, Trash, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from "@/lib/i18n";
 import { Switch } from "@/components/ui/switch";
@@ -204,12 +204,24 @@ export function GpioPage() {
                                         return (
                                             <TableRow key={idx}>
                                                 <TableCell className="px-2">
-                                                    {item.mode === 'OUT' && (
+                                                    {item.mode === 'OUT' ? (
                                                         <Switch
                                                             checked={item.level === 1}
                                                             onCheckedChange={() => handleToggle(item.pin, idx)}
                                                         />
-                                                    )}
+                                                    ) : item.mode === 'IN' ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`w-3 h-3 rounded-full ${item.level === 1 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-slate-300'}`} />
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="icon" 
+                                                                className="h-7 w-7 text-slate-400 hover:text-blue-500"
+                                                                onClick={() => handleToggle(item.pin, idx)}
+                                                            >
+                                                                <RefreshCw className="w-3.5 h-3.5" />
+                                                            </Button>
+                                                        </div>
+                                                    ) : null}
                                                 </TableCell>
                                                 <TableCell className="font-mono">
                                                     <Select

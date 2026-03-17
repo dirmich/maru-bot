@@ -17,6 +17,8 @@ import (
 // isRPi returns true on Linux ARM platforms (Raspberry Pi)
 func isRPi() bool { return true }
 
+func (s *Server) isRPi() bool { return true }
+
 func (s *Server) registerGPIORoutes(mux *http.ServeMux) {
 	mux.Handle("/api/gpio", s.authMiddleware(http.HandlerFunc(s.handleGpio)))
 	mux.Handle("/api/gpio/toggle", s.authMiddleware(http.HandlerFunc(s.handleGpioToggle)))
