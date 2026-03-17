@@ -142,6 +142,11 @@ export function SettingsPage() {
                         </div>
                     </div>
                 </CardContent>
+                <CardFooter className="p-4 border-t bg-slate-50/50 dark:bg-slate-900/50 flex justify-end">
+                    <Button onClick={() => setShowSaveConfirm(true)} size="sm" className="bg-blue-600 hover:bg-blue-700">
+                        {t.settings_save_btn}
+                    </Button>
+                </CardFooter>
             </Card>
 
             <Card className="border-none shadow-md overflow-hidden">
@@ -268,6 +273,11 @@ export function SettingsPage() {
                         </div>
                     ))}
                 </CardContent>
+                <CardFooter className="p-4 border-t bg-slate-50/50 dark:bg-slate-900/50 flex justify-end">
+                    <Button onClick={() => setShowSaveConfirm(true)} size="sm" className="bg-green-600 hover:bg-green-700">
+                        채널 설정 저장
+                    </Button>
+                </CardFooter>
             </Card>
 
             <Card className="border-none shadow-md overflow-hidden">
@@ -291,7 +301,7 @@ export function SettingsPage() {
                 </CardContent>
                 <CardFooter className="p-6 border-t bg-slate-50 dark:bg-slate-900 flex justify-between">
                     <Button variant="outline" className="text-rose-600 border-rose-200 hover:bg-rose-50" onClick={() => setShowResetConfirm(true)}>{t.settings_reset}</Button>
-                    <Button className="bg-rose-600 hover:bg-rose-700">보안 설정 저장</Button>
+                    <Button onClick={() => setShowSaveConfirm(true)} className="bg-rose-600 hover:bg-rose-700">보안 설정 저장</Button>
                 </CardFooter>
             </Card>
 

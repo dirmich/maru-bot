@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/dirmich/marubot/pkg/config"
 )
@@ -87,30 +85,28 @@ func (t *ConfigTool) handleGet(key string) (string, error) {
 }
 
 func (t *ConfigTool) handleSet(key string, value interface{}) (string, error) {
-	// In a real production app, we'd use reflection or a map to update the live config object.
-	// For this demo, we will write to a user-specific settings file that overrides defaults.
+	// Update the live config object
+	// For simple implementation, we update the Config object based on common keys
+	// This ensures config.json remains the single source of truth
 
-	userSettingsPath := filepath.Join(filepath.Dir(t.configPath), "usersetting.json")
-	var settings map[string]interface{}
-
-	data, err := os.ReadFile(userSettingsPath)
-	if err == nil {
-		json.Unmarshal(data, &settings)
+	// Create a temporary config to apply updates
+	updateCfg := config.DefaultConfig()
+	
+	// Map simple keys (expandable as needed)
+	valStr := fmt.Sprintf("%v", value)
+	if key == "admin_password" {
+		updateCfg.AdminPassword = valStr
+	} else if key == "language" {
+		updateCfg.Language = valStr
 	} else {
-		settings = make(map[string]interface{})
+		return "", fmt.Errorf("setting key '%s' via tool is currently restricted. Please use Web Admin", key)
 	}
 
-	// Update the key in the map
-	settings[key] = value
-
-	newData, err := json.MarshalIndent(settings, "", "  ")
-	if err != nil {
+	// Apply and Save
+	t.cfg.Update(updateCfg)
+	if err := config.SaveConfig(t.configPath, t.cfg); err != nil {
 		return "", err
 	}
 
-	if err := os.WriteFile(userSettingsPath, newData, 0644); err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("Successfully saved setting '%s' to %s. Changes will be applied on next restart.", key, userSettingsPath), nil
+	return fmt.Sprintf("Successfully saved setting '%s' to %s. Changes applied.", key, t.configPath), nil
 }

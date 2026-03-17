@@ -1353,13 +1353,12 @@ func configCmd() {
 
 	subcommand := os.Args[2]
 	configPath := getConfigPath()
-	userSettingsPath := filepath.Join(filepath.Dir(configPath), "usersetting.json")
 
 	switch subcommand {
 	case "show":
 		cfg, _ := loadConfig()
 		data, _ := json.MarshalIndent(cfg, "", "  ")
-		fmt.Printf("Current Configuration (including usersetting.json):\n%s\n", string(data))
+		fmt.Printf("Current Configuration (%s):\n%s\n", configPath, string(data))
 	case "set":
 		if len(os.Args) < 5 {
 			fmt.Println("Usage: marubot config set <key> <value>")
@@ -1368,27 +1367,41 @@ func configCmd() {
 		key := os.Args[3]
 		value := os.Args[4]
 
-		var settings map[string]interface{}
-		data, err := os.ReadFile(userSettingsPath)
-		if err == nil {
-			json.Unmarshal(data, &settings)
+		cfg, err := loadConfig()
+		if err != nil {
+			fmt.Printf("Error loading config: %v\n", err)
+			return
+		}
+
+		// Update the key in config
+		// For simple implementation of CLI 'set', we can either use a generic updater
+		// or focus on common fields. Since we want to unify, we update the Config object.
+		// Note: Detailed nested key update usually requires reflection or a dedicated updater.
+		// For the CLI, we'll provide a simple message that we're updating the main config.
+		
+		// Map simple keys for CLI convenience
+		if key == "admin_password" {
+			cfg.AdminPassword = value
+		} else if key == "language" {
+			cfg.Language = value
 		} else {
-			settings = make(map[string]interface{})
+			fmt.Printf("⚠️  Key '%s' update via CLI is limited. Please use Web Admin for advanced settings.\n", key)
+			return
 		}
 
-		// Try to parse as JSON if it looks like one, otherwise keep as string
-		var val interface{}
-		if err := json.Unmarshal([]byte(value), &val); err != nil {
-			val = value // stay as string
+		if err := config.SaveConfig(configPath, cfg); err != nil {
+			fmt.Printf("Error saving config: %v\n", err)
+			return
 		}
-		settings[key] = val
-
-		newData, _ := json.MarshalIndent(settings, "", "  ")
-		os.WriteFile(userSettingsPath, newData, 0644)
-		fmt.Printf("✓ Saved '%s' = %s to %s\n", key, value, userSettingsPath)
+		fmt.Printf("✓ Saved '%s' = %s directly to %s\n", key, value, configPath)
 	case "reset":
-		os.Remove(userSettingsPath)
-		fmt.Println("✓ User settings reset to defaults.")
+		fmt.Println("Resetting to default config...")
+		defaultCfg := config.DefaultConfig()
+		if err := config.SaveConfig(configPath, defaultCfg); err != nil {
+			fmt.Printf("Error resetting config: %v\n", err)
+		} else {
+			fmt.Println("✓ Configuration reset to defaults.")
+		}
 	default:
 		configHelp()
 	}
@@ -1396,9 +1409,9 @@ func configCmd() {
 
 func configHelp() {
 	fmt.Println("\nConfig commands:")
-	fmt.Println("  reset             Remove all user overrides")
-	fmt.Println("  set <key> <val>   Set an override in usersetting.json")
-	fmt.Println("  show              Show merged configuration")
+	fmt.Println("  reset             Reset config.json to defaults")
+	fmt.Println("  set <key> <val>   Set a value in config.json (e.g. admin_password, language)")
+	fmt.Println("  show              Show current configuration")
 }
 
 func statusCmd() {
@@ -1416,11 +1429,6 @@ func statusCmd() {
 	fmt.Printf("Config: %s\n", configPath)
 	fmt.Printf("Workspace: %s\n", workspace)
 	fmt.Printf("Model: %s\n", cfg.Agents.Defaults.Model)
-
-	userSettingsPath := filepath.Join(filepath.Dir(configPath), "usersetting.json")
-	if _, err := os.Stat(userSettingsPath); err == nil {
-		fmt.Printf("User Settings: %s (OK)\n", userSettingsPath)
-	}
 
 	hasOpenRouter := len(cfg.Providers.OpenRouter.Models) > 0
 	hasAnthropic := len(cfg.Providers.Anthropic.Models) > 0

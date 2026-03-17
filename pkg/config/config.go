@@ -22,7 +22,7 @@ type Config struct {
 	Hardware      HardwareConfig  `json:"hardware"`
 	Drone         DroneConfig     `json:"drone"`
 	GPS           GPSConfig       `json:"gps"`
-	Mu            sync.RWMutex
+	Mu            sync.RWMutex    `json:"-"`
 }
 
 type AgentsConfig struct {
@@ -342,7 +342,7 @@ func LoadConfig(path string) (*Config, error) {
 	userSettingsPath := filepath.Join(filepath.Dir(path), "usersetting.json")
 	if _, err := os.Stat(userSettingsPath); err == nil {
 		if err := MigrateUserSettings(path, userSettingsPath, cfg); err == nil {
-			log.Printf("Successfully migrated usersetting.json to %s", path)
+			log.Printf("Successfully migrated usersetting.json to %s and removed it", path)
 		} else {
 			log.Printf("Migration of usersetting.json failed: %v", err)
 		}
@@ -367,7 +367,7 @@ func MigrateUserSettings(configPath, userSettingsPath string, cfg *Config) error
 		return err
 	}
 
-	// Merge logic
+	// Merge logic (GPIO Pins)
 	if hw, ok := userCfg["hardware"].(map[string]interface{}); ok {
 		if gp, ok := hw["gpio"].(map[string]interface{}); ok {
 			if pins, ok := gp["pins"].(map[string]interface{}); ok {
@@ -376,8 +376,14 @@ func MigrateUserSettings(configPath, userSettingsPath string, cfg *Config) error
 		}
 	}
 	
-	if pw, ok := userCfg["admin_password"].(string); ok {
-		cfg.AdminPassword = pw
+	// Legacy key-based mapping if exists in usersetting.json
+	for k, v := range userCfg {
+		if k == "admin_password" {
+			if pw, ok := v.(string); ok {
+				cfg.AdminPassword = pw
+			}
+		}
+		// Add other direct keys here if needed for migration from very old versions
 	}
 
 	// Save merged config back to config.json
@@ -385,8 +391,8 @@ func MigrateUserSettings(configPath, userSettingsPath string, cfg *Config) error
 		return err
 	}
 
-	// Backup usersetting.json to avoid repeated migration
-	return os.Rename(userSettingsPath, userSettingsPath+".bak")
+	// Remove usersetting.json instead of backing up to avoid confusion
+	return os.Remove(userSettingsPath)
 }
 
 // FlattenPins converts nested pin maps into flat underscore-separated keys
@@ -455,16 +461,58 @@ func SaveConfig(path string, cfg *Config) error {
 func (c *Config) Update(newCfg *Config) {
 	c.Mu.Lock()
 	defer c.Mu.Unlock()
-	c.Language = newCfg.Language
-	c.AdminPassword = newCfg.AdminPassword
-	c.Agents = newCfg.Agents
-	c.Channels = newCfg.Channels
-	c.Providers = newCfg.Providers
+	if newCfg.Language != "" {
+		c.Language = newCfg.Language
+	}
+	if newCfg.AdminPassword != "" {
+		c.AdminPassword = newCfg.AdminPassword
+	}
+	
+	// Selective Agents update
+	if newCfg.Agents.Defaults.Model != "" {
+		c.Agents = newCfg.Agents
+	}
+
+	// Merge Channels config to avoid overwriting all with empty values
+	if newCfg.Channels.Telegram.Token != "" || newCfg.Channels.Telegram.Enabled {
+		c.Channels.Telegram = newCfg.Channels.Telegram
+	}
+	if newCfg.Channels.WhatsApp.BridgeURL != "" || newCfg.Channels.WhatsApp.Enabled {
+		c.Channels.WhatsApp = newCfg.Channels.WhatsApp
+	}
+	if newCfg.Channels.Discord.Token != "" || newCfg.Channels.Discord.Enabled {
+		c.Channels.Discord = newCfg.Channels.Discord
+	}
+	if newCfg.Channels.Feishu.AppID != "" || newCfg.Channels.Feishu.Enabled {
+		c.Channels.Feishu = newCfg.Channels.Feishu
+	}
+
+	// Merge Providers (assuming the UI sends the full provider model list it wants to update)
+	if len(newCfg.Providers.OpenAI.Models) > 0 { c.Providers.OpenAI = newCfg.Providers.OpenAI }
+	if len(newCfg.Providers.Anthropic.Models) > 0 { c.Providers.Anthropic = newCfg.Providers.Anthropic }
+	if len(newCfg.Providers.Gemini.Models) > 0 { c.Providers.Gemini = newCfg.Providers.Gemini }
+	if len(newCfg.Providers.Zhipu.Models) > 0 { c.Providers.Zhipu = newCfg.Providers.Zhipu }
+	if len(newCfg.Providers.Groq.Models) > 0 { c.Providers.Groq = newCfg.Providers.Groq }
+	if len(newCfg.Providers.VLLM.Models) > 0 { c.Providers.VLLM = newCfg.Providers.VLLM }
+
 	c.Gateway = newCfg.Gateway
 	c.Tools = newCfg.Tools
-	c.Hardware = newCfg.Hardware
-	c.Drone = newCfg.Drone
-	c.GPS = newCfg.GPS
+
+	// Selective hardware update to avoid losing GPIO pins when saving general settings
+	if newCfg.Hardware.GPIO.Enabled {
+		c.Hardware.GPIO.Enabled = true
+		if len(newCfg.Hardware.GPIO.Pins) > 0 {
+			c.Hardware.GPIO.Pins = newCfg.Hardware.GPIO.Pins
+		}
+	}
+	c.Hardware.GPIOTestMode = newCfg.Hardware.GPIOTestMode
+
+	if newCfg.Drone.Connection != "" || newCfg.Drone.Enabled {
+		c.Drone = newCfg.Drone
+	}
+	if newCfg.GPS.Device != "" || newCfg.GPS.Enabled {
+		c.GPS = newCfg.GPS
+	}
 }
 
 func (c *Config) UpdateGPIO(pins map[string]interface{}) {

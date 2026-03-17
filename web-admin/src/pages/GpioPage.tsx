@@ -130,7 +130,35 @@ export function GpioPage() {
         }
     };
 
+    const handleAddGroup = () => {
+        const newGroupName = `Group_${Object.keys(groups).length + 1}`;
+        // To create a group, we need at least one pin or just a placeholder in UI
+        handleAddPin(newGroupName);
+    };
+
+    const handleRenameGroup = (oldName: string, newName: string) => {
+        if (!newName || oldName === newName) return;
+        setConfiguredPins(prev => prev.map(p => 
+            p.group === oldName ? { ...p, group: newName } : p
+        ));
+    };
+
+    const handleRemoveGroup = (groupName: string) => {
+        setConfiguredPins(prev => prev.filter(p => p.group !== groupName));
+    };
+
+    const isInvalidPin = (pin: number) => {
+        const pinInfo = pinData.find(p => p.number === pin);
+        return pinInfo && (pinInfo.type === 'power' || pinInfo.type === 'ground');
+    };
+
     const handleSave = async () => {
+        const invalidPins = configuredPins.filter(p => isInvalidPin(p.pin));
+        if (invalidPins.length > 0) {
+            toast.error("VCC/GND 핀은 사용할 수 없습니다. 설정을 수정해 주세요.");
+            return;
+        }
+
         try {
             const pinMap: Record<string, number> = {};
             configuredPins.forEach(p => {
@@ -197,26 +225,63 @@ export function GpioPage() {
                 <div className="space-y-6 flex flex-col">
                     <div className="flex justify-between items-center mb-2">
                         <h2 className="text-xl font-bold text-slate-700 dark:text-slate-300">Configured Devices</h2>
-                        <Button size="sm" onClick={() => handleAddPin("")} className="bg-orange-600 hover:bg-orange-700 text-white">
-                            <Plus className="w-4 h-4 mr-1" /> {t.gpio_add}
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button size="sm" variant="outline" onClick={handleAddGroup} className="text-blue-600 border-blue-200">
+                                <Plus className="w-4 h-4 mr-1" /> Add Group
+                            </Button>
+                            <Button size="sm" onClick={() => handleAddPin("")} className="bg-orange-600 hover:bg-orange-700 text-white">
+                                <Plus className="w-4 h-4 mr-1" /> {t.gpio_add}
+                            </Button>
+                        </div>
                     </div>
 
                     {Object.entries(groups).map(([groupName, pins]) => (
                         <Card key={groupName} className="border-none shadow-md bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800">
                             <CardHeader className="py-3 px-4 flex flex-row items-center justify-between border-b bg-slate-100/50 dark:bg-slate-800/50 rounded-t-lg">
-                                <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                                    {groupName === "Default" ? "General" : groupName}
-                                </CardTitle>
-                                {groupName !== "Default" && (
-                                    <span className="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full font-bold">GROUP BOX</span>
-                                )}
+                                <div className="flex items-center gap-2 flex-1">
+                                    {groupName === "Default" ? (
+                                        <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                                            General
+                                        </CardTitle>
+                                    ) : (
+                                        <input
+                                            className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider bg-transparent border-b border-transparent focus:border-blue-500 focus:outline-none w-1/2"
+                                            value={groupName}
+                                            onChange={(e) => handleRenameGroup(groupName, e.target.value)}
+                                        />
+                                    )}
+                                    {groupName !== "Default" && (
+                                        <span className="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full font-bold">GROUP</span>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-7 w-7 text-slate-400 hover:text-orange-500"
+                                        onClick={() => handleAddPin(groupName === "Default" ? "" : groupName)}
+                                        title="Add Pin to Group"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                    </Button>
+                                    {groupName !== "Default" && (
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-7 w-7 text-slate-400 hover:text-red-500"
+                                            onClick={() => handleRemoveGroup(groupName)}
+                                        >
+                                            <Trash className="w-3.5 h-3.5" />
+                                        </Button>
+                                    )}
+                                </div>
                             </CardHeader>
                             <CardContent className="p-0">
                                 <Table>
                                     <TableBody>
                                         {pins.map((item, localIdx) => {
                                             const globalIdx = configuredPins.findIndex(p => p === item);
+                                            const isError = isInvalidPin(item.pin);
                                             if (selectedPin !== undefined && item.pin !== selectedPin) return null;
                                             return (
                                                 <TableRow key={`${groupName}-${localIdx}`} className="border-b last:border-0 hover:bg-white dark:hover:bg-slate-800 transition-colors">
@@ -245,20 +310,28 @@ export function GpioPage() {
                                                             value={item.pin.toString()}
                                                             onValueChange={(v) => handleUpdatePin(globalIdx, 'pin', parseInt(v))}
                                                         >
-                                                            <SelectTrigger className="h-8 text-xs font-mono border-none shadow-none bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800">
+                                                            <SelectTrigger className={`h-8 text-xs font-mono border-none shadow-none bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 ${isError ? 'text-red-500 font-bold' : ''}`}>
                                                                 <SelectValue />
                                                             </SelectTrigger>
                                                             <SelectContent>
                                                                 {pinData
-                                                                    .filter(p => p.type !== 'power' && p.type !== 'ground')
+                                                                    // .filter(p => p.type !== 'power' && p.type !== 'ground') // Let them see it but mark error if they pick it, or just keep filtering. 
+                                                                    // Actually, the user asked to show error IF configured pin is VCC/GND. 
+                                                                    // If we filter them out from the select, they can't pick them anyway.
+                                                                    // But they might be there from a config migration Or the user might want to know WHY they can't pick them.
                                                                     .sort((a, b) => a.number - b.number)
                                                                     .map(p => (
-                                                                        <SelectItem key={p.number} value={p.number.toString()}>
-                                                                            {p.number}
+                                                                        <SelectItem 
+                                                                            key={p.number} 
+                                                                            value={p.number.toString()}
+                                                                            className={p.type === 'power' || p.type === 'ground' ? 'text-red-400 italic' : ''}
+                                                                        >
+                                                                            {p.number} {p.type === 'power' ? '(VCC)' : p.type === 'ground' ? '(GND)' : ''}
                                                                         </SelectItem>
                                                                     ))}
                                                             </SelectContent>
                                                         </Select>
+                                                        {isError && <div className="text-[9px] text-red-500 font-bold mt-0.5 ml-1">VCC/GND Error</div>}
                                                     </TableCell>
                                                     <TableCell className="px-3 py-2">
                                                         <input

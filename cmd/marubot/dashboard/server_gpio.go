@@ -66,10 +66,23 @@ func (s *Server) handleGpioToggle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Pin int `json:"pin"`
+		Pin interface{} `json:"pin"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	var pin int
+	switch v := req.Pin.(type) {
+	case float64:
+		pin = int(v)
+	case int:
+		pin = v
+	case string:
+		fmt.Sscanf(v, "%d", &pin)
+	default:
+		http.Error(w, "Invalid pin format", http.StatusBadRequest)
 		return
 	}
 
@@ -77,13 +90,13 @@ func (s *Server) handleGpioToggle(w http.ResponseWriter, r *http.Request) {
 	label := ""
 	flatPins := config.FlattenPins(s.config.Hardware.GPIO.Pins)
 	for l, p := range flatPins {
-		if p == req.Pin {
+		if p == pin {
 			label = l
 			break
 		}
 	}
 
-	p := gpioreg.ByName(fmt.Sprintf("%d", req.Pin))
+	p := gpioreg.ByName(fmt.Sprintf("%d", pin))
 	if p == nil {
 		http.Error(w, "Pin not found", http.StatusNotFound)
 		return
@@ -118,9 +131,9 @@ func (s *Server) handleGpioToggle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isInput {
-		log.Printf("[GPIO] [WebAdmin Access] Pin %d (%s) read. Level: %d", req.Pin, label, levelInt)
+		log.Printf("[GPIO] [WebAdmin Access] Pin %d (%s) read. Level: %d", pin, label, levelInt)
 	} else {
-		log.Printf("[GPIO] [WebAdmin Access] Pin %d (%s) toggled. Old: %d, New: %d", req.Pin, label, levelInt, levelInt)
+		log.Printf("[GPIO] [WebAdmin Access] Pin %d (%s) toggled. Old: %d, New: %d", pin, label, levelInt, levelInt)
 	}
 
 	json.NewEncoder(w).Encode(map[string]interface{}{

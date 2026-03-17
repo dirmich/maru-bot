@@ -120,12 +120,6 @@ echo "📝 README 다국어 정리 중..."
 cp "$SOURCE_DIR/README-en.md" "$TARGET_DIR/README.md"
 cp "$SOURCE_DIR/README.md" "$TARGET_DIR/README-kor.md"
 
-# 6. 민감 정보 제거 (설정 파일 등)
-if [ -f "$TARGET_DIR/config/usersetting.json" ]; then
-    rm "$TARGET_DIR/config/usersetting.json"
-    echo "  🔒 usersetting.json (비공개 설정) 제거 완료"
-fi
-
 # 7. 명칭 최종 체크 및 치환
 echo "🔄 명칭 최종 확인 중 (maruminibot -> marubot)..."
 cd "$TARGET_DIR"

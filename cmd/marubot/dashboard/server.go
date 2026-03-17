@@ -279,13 +279,11 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		// Update In-memory config fields selectively to avoid copying mutex
 		s.config.Update(newCfg)
 
-		// Save to usersetting.json for persistence
+		// Save to config.json for persistence
 		home, _ := os.UserHomeDir()
-		userSettingsPath := filepath.Join(home, ".marubot", "usersetting.json")
+		configPath := filepath.Join(home, ".marubot", "config.json")
 
-		// Use a temporary copy for marshaling to avoid lock contention during I/O
-		data, _ := json.MarshalIndent(newCfg, "", "  ")
-		if err := os.WriteFile(userSettingsPath, data, 0644); err != nil {
+		if err := config.SaveConfig(configPath, s.config); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save config: %v", err), http.StatusInternalServerError)
 			return
 		}

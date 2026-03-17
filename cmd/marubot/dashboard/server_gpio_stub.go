@@ -44,6 +44,7 @@ func (s *Server) handleGpioSim(w http.ResponseWriter, r *http.Request) {
 		s.config.Mu.RLock()
 		pins := s.config.Hardware.GPIO.Pins
 		s.config.Mu.RUnlock()
+		log.Printf("[GPIO Simulation] [Action: GET] Returning %d pins", len(pins))
 		json.NewEncoder(w).Encode(pins)
 		return
 	}
@@ -78,10 +79,23 @@ func (s *Server) handleGpioToggleSim(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Pin int `json:"pin"`
+		Pin interface{} `json:"pin"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	var pin int
+	switch v := req.Pin.(type) {
+	case float64:
+		pin = int(v)
+	case int:
+		pin = v
+	case string:
+		fmt.Sscanf(v, "%d", &pin)
+	default:
+		http.Error(w, "Invalid pin format", http.StatusBadRequest)
 		return
 	}
 
@@ -89,7 +103,7 @@ func (s *Server) handleGpioToggleSim(w http.ResponseWriter, r *http.Request) {
 	label := ""
 	flatPins := config.FlattenPins(s.config.Hardware.GPIO.Pins)
 	for l, p := range flatPins {
-		if p == req.Pin {
+		if p == pin {
 			label = l
 			break
 		}
@@ -97,7 +111,7 @@ func (s *Server) handleGpioToggleSim(w http.ResponseWriter, r *http.Request) {
 
 	isInput := config.IsInputPin(label)
 	simMu.Lock()
-	level := simulatedPins[req.Pin]
+	level := simulatedPins[pin]
 	newLevel := level
 
 	action := "read"
@@ -108,14 +122,14 @@ func (s *Server) handleGpioToggleSim(w http.ResponseWriter, r *http.Request) {
 		if level == 1 {
 			newLevel = 0
 		}
-		simulatedPins[req.Pin] = newLevel
+		simulatedPins[pin] = newLevel
 	}
 	simMu.Unlock()
 
 	if isInput {
-		log.Printf("[GPIO Simulation] [WebAdmin Access] Pin %d (%s) read. Level: %d", req.Pin, label, level)
+		log.Printf("[GPIO Simulation] [WebAdmin Access] Pin %d (%s) read. Level: %d", pin, label, level)
 	} else {
-		log.Printf("[GPIO Simulation] [WebAdmin Access] Pin %d (%s) toggled. Old: %d, New: %d", req.Pin, label, level, newLevel)
+		log.Printf("[GPIO Simulation] [WebAdmin Access] Pin %d (%s) toggled. Old: %d, New: %d", pin, label, level, newLevel)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
