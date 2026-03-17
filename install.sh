@@ -330,6 +330,9 @@ if [ -f "build/marubot" ]; then
     INSTALL_BIN_DIR="$HOME/.marubot/bin"
     mkdir -p "$INSTALL_BIN_DIR"
     echo "  📦 Installing executable to $INSTALL_BIN_DIR/marubot..."
+    
+    # Avoid 'Text file busy' by removing the existing binary first
+    rm -f "$INSTALL_BIN_DIR/marubot"
     cp build/marubot "$INSTALL_BIN_DIR/marubot"
     chmod +x "$INSTALL_BIN_DIR/marubot"
     
