@@ -157,14 +157,19 @@ elif [ -f "/usr/local/go/bin/go" ]; then
 fi
 
 if [ ! -z "$DETECTED_GO" ]; then
-    EXISTING_VERSION=$($DETECTED_GO version | awk '{print $3}' | sed 's/go//')
-    # More robust version comparison
-    if [[ "$EXISTING_VERSION" == "$GO_REQUIRED"* ]] || [ "$(printf '%s\n%s' "$GO_REQUIRED" "$EXISTING_VERSION" | sort -V | head -n1)" = "$GO_REQUIRED" ]; then
-        echo -e "${GREEN}✓ Go $EXISTING_VERSION is already installed at $DETECTED_GO.${NC}"
-        INSTALL_GO=false
-    else
-        echo -e "${BLUE}ℹ️ Upgrading Go from $EXISTING_VERSION to $GO_REQUIRED+...${NC}"
+    if ! "$DETECTED_GO" version >/dev/null 2>&1; then
+        echo -e "${YELLOW}⚠️ Existing Go installation is broken (e.g., Exec format error). Forcing reinstall...${NC}"
         INSTALL_GO=true
+    else
+        EXISTING_VERSION=$("$DETECTED_GO" version | awk '{print $3}' | sed 's/go//')
+        # More robust version comparison
+        if [[ "$EXISTING_VERSION" == "$GO_REQUIRED"* ]] || [ "$(printf '%s\n%s' "$GO_REQUIRED" "$EXISTING_VERSION" | sort -V | head -n1)" = "$GO_REQUIRED" ]; then
+            echo -e "${GREEN}✓ Go $EXISTING_VERSION is already installed at $DETECTED_GO.${NC}"
+            INSTALL_GO=false
+        else
+            echo -e "${BLUE}ℹ️ Upgrading Go from $EXISTING_VERSION to $GO_REQUIRED+...${NC}"
+            INSTALL_GO=true
+        fi
     fi
 else
     INSTALL_GO=true
