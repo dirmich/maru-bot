@@ -336,18 +336,24 @@ if [ -f "build/marubot" ]; then
     cp build/marubot "$INSTALL_BIN_DIR/marubot"
     chmod +x "$INSTALL_BIN_DIR/marubot"
     
+    # Remove old global installation if it exists
+    if [ -f "/usr/local/bin/marubot" ]; then
+        echo "  🧹 Removing old global binary from /usr/local/bin..."
+        sudo rm -f "/usr/local/bin/marubot"
+    fi
+    
     # Add to PATH if not already there
     if [[ ":$PATH:" != *":$INSTALL_BIN_DIR:"* ]]; then
         echo "  🌐 Adding $INSTALL_BIN_DIR to PATH..."
         case "$SHELL" in
             */zsh)
-                echo "export PATH=\"\$PATH:$INSTALL_BIN_DIR\"" >> ~/.zshrc
+                echo "export PATH=\"$INSTALL_BIN_DIR:\$PATH\"" >> ~/.zshrc
                 ;;
             *)
-                echo "export PATH=\"\$PATH:$INSTALL_BIN_DIR\"" >> ~/.bashrc
+                echo "export PATH=\"$INSTALL_BIN_DIR:\$PATH\"" >> ~/.bashrc
                 ;;
         esac
-        export PATH="$PATH:$INSTALL_BIN_DIR"
+        export PATH="$INSTALL_BIN_DIR:$PATH"
     fi
 else
     echo -e "${RED}❌ marubot executable not found. Build failed.${NC}"
