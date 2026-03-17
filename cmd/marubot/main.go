@@ -210,8 +210,9 @@ func uninstallCmd() {
 	// 0. Remove Services and Kill Processes (Cross-platform)
 	if runtime.GOOS == "windows" {
 		svcNames := []string{"MaruBot", "marubot"}
-		// Try to kill the process first to unlock files
-		exec.Command("taskkill", "/F", "/IM", "marubot.exe", "/T").Run()
+		// Try to kill the process first to unlock files (using //F and //IM for bash compatibility in Windows)
+		exec.Command("taskkill", "/F", "/IM", "marubot.exe /T").Run()
+		exec.Command("taskkill", "//F", "//IM", "marubot.exe", "//T").Run()
 		time.Sleep(500 * time.Millisecond)
 
 		for _, svcName := range svcNames {
@@ -223,7 +224,7 @@ func uninstallCmd() {
 				fmt.Printf("Attempting to remove Windows service '%s'...\n", svcName)
 				s.Stop()
 				s.Uninstall()
-				// Robust fallback
+				// Robust fallback via sc.exe
 				exec.Command("sc", "stop", svcName).Run()
 				exec.Command("sc", "delete", svcName).Run()
 			}
