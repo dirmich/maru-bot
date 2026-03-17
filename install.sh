@@ -179,16 +179,21 @@ if [ "$INSTALL_GO" = true ]; then
     echo -e "${BLUE}🐹 Installing latest Go $GO_REQUIRED+ ...${NC}"
     ARCH=$(uname -m)
     BITS=$(getconf LONG_BIT)
-    if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]] && [ "$BITS" = "64" ]; then 
-        GO_ARCH="arm64"
-    elif [[ "$ARCH" == "arm"* ]]; then
+    if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then 
+        if [ "$BITS" = "64" ]; then
+            GO_ARCH="arm64"
+        else
+            GO_ARCH="armv6l"
+        fi
+    elif [[ "$ARCH" == *"arm"* || "$ARCH" == *"aarch32"* ]]; then
         GO_ARCH="armv6l"
     elif [[ "$ARCH" == "x86_64" || "$ARCH" == "amd64" ]]; then
         GO_ARCH="amd64"
     elif [[ "$ARCH" == "i686" || "$ARCH" == "i386" ]]; then
         GO_ARCH="386"
     else
-        GO_ARCH="amd64" # Fallback to amd64
+        GO_ARCH="armv6l" # Default to armv6l on unknown for RPi safety, or we could leave as amd64 but print a warning
+        echo -e "${YELLOW}⚠️ Unknown architecture ($ARCH). Defaulting to armv6l for Raspberry Pi.${NC}"
     fi
     WGET_URL="https://go.dev/dl/go1.24.0.linux-$GO_ARCH.tar.gz"
     echo "Downloading from $WGET_URL ..."
