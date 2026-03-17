@@ -123,9 +123,16 @@ func (s *Server) handleGpioToggle(w http.ResponseWriter, r *http.Request) {
 	if newLevel == gpio.High {
 		levelInt = 1
 	}
+
+	action := "read"
+	if !isInput {
+		action = "toggle"
+	}
+
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": "ok",
 		"level":  levelInt,
+		"action": action,
 		"mode":   map[bool]string{true: "IN", false: "OUT"}[isInput],
 	})
 }

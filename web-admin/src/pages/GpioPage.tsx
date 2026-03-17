@@ -111,7 +111,9 @@ export function GpioPage() {
                 const newPins = [...configuredPins];
                 newPins[index].level = data.level;
                 setConfiguredPins(newPins);
-                toast.success(`Pin ${pin} toggled to ${data.level === 1 ? 'HIGH' : 'LOW'}`);
+                
+                const verb = data.action === 'read' ? 'is' : 'toggled to';
+                toast.success(`Pin ${pin} ${verb} ${data.level === 1 ? 'HIGH' : 'LOW'}`);
             }
         } catch (e) {
             toast.error("Toggle failed");
