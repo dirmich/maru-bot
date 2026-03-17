@@ -85,21 +85,37 @@ func (s *Server) handleGpioToggle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Find pin label to determine mode
+	label := ""
+	flatPins := config.FlattenPins(s.config.Hardware.GPIO.Pins)
+	for l, p := range flatPins {
+		if p == req.Pin {
+			label = l
+			break
+		}
+	}
+
 	p := gpioreg.ByName(fmt.Sprintf("%d", req.Pin))
 	if p == nil {
 		http.Error(w, "Pin not found", http.StatusNotFound)
 		return
 	}
 
+	isInput := config.IsInputPin(label)
 	level := p.Read()
-	newLevel := gpio.High
-	if level == gpio.High {
-		newLevel = gpio.Low
-	}
+	newLevel := level
 
-	if err := p.Out(newLevel); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to toggle pin: %v", err), http.StatusInternalServerError)
-		return
+	if !isInput {
+		// Only toggle for output pins
+		newLevel = gpio.High
+		if level == gpio.High {
+			newLevel = gpio.Low
+		}
+
+		if err := p.Out(newLevel); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to toggle pin: %v", err), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -110,5 +126,6 @@ func (s *Server) handleGpioToggle(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": "ok",
 		"level":  levelInt,
+		"mode":   map[bool]string{true: "IN", false: "OUT"}[isInput],
 	})
 }

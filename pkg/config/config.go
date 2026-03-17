@@ -591,3 +591,12 @@ func expandHome(path string) string {
 	}
 	return path
 }
+
+func IsInputPin(name string) bool {
+	n := strings.ToLower(name)
+	return (n == "button" || n == "sensor" ||
+		(len(n) > 6 && n[:6] == "button") ||
+		(len(n) > 6 && n[:6] == "sensor") ||
+		(len(n) > 7 && n[len(n)-7:] == "_button") ||
+		(len(n) > 7 && n[len(n)-7:] == "_sensor"))
+}

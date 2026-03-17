@@ -4,6 +4,7 @@
 ### v0.4.74
 - **GPIO 테스트 플래그 도입**: `config.json`의 `hardware.gpio_test_mode` 플래그를 통해 윈도우 등 비-기기 환경에서도 GPIO 기능을 강제 활성화 가능.
 - **GPIO 시뮬레이션 (Windows)**: 하드웨어가 없는 환경에서 가상의 핀 상태(Memory-based)를 제어하고 읽을 수 있는 시뮬레이션 핸들러 구현.
+- **동작 세분화**: 핀 모드(`IN`/`OUT`)를 자동 판별하여 입력 핀은 **읽기(Read)**, 출력 핀은 **토글(Toggle)** 로 동작하도록 고도화.
 - **버그 수정**: `config.json` 로딩 시 GPIO 핀 설정이 기본값(DefaultConfig)과 병합되는 현상 수정 (병합 대신 덮어쓰기 방식으로 변경).
 - **버그 수정**: 백엔드 API 응답 필드명 불일치(`is_rpi` → `is_raspberry_pi`)를 해결하여 웹 관리자 사이드바에서 GPIO 메뉴가 정상 노출되도록 수정.
 - **로깅 강화**: 모든 가상 GPIO 조작 내역을 `dashboard.log`에 `[GPIO Simulation]` 접두어와 함께 실시간 기록.

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/dirmich/marubot/pkg/config"
-	"github.com/dirmich/marubot/pkg/hardware/gpio"
 	"github.com/dirmich/marubot/pkg/providers"
 	"github.com/dirmich/marubot/pkg/skills"
 )
@@ -34,7 +33,7 @@ func NewContextBuilder(workspace, version string, cfg *config.Config) *ContextBu
 		var pinDetails []string
 		for name, val := range cfg.Hardware.GPIO.Pins {
 			direction := "Output"
-			if gpio.IsInputPin(name) {
+			if config.IsInputPin(name) {
 				direction = "Input (Monitoring Enabled)"
 			}
 			pinDetails = append(pinDetails, fmt.Sprintf("- %s: Pin %v (%s)", name, val, direction))

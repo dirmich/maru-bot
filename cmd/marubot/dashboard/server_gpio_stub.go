@@ -98,20 +98,44 @@ func (s *Server) handleGpioToggleSim(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Find pin label to determine mode
+	label := ""
+	flatPins := config.FlattenPins(s.config.Hardware.GPIO.Pins)
+	for l, p := range flatPins {
+		if p == req.Pin {
+			label = l
+			break
+		}
+	}
+
+	isInput := config.IsInputPin(label)
 	simMu.Lock()
 	level := simulatedPins[req.Pin]
-	newLevel := 1
-	if level == 1 {
-		newLevel = 0
+	newLevel := level
+
+	action := "read"
+	if !isInput {
+		// Toggle only for output pins
+		action = "toggle"
+		newLevel = 1
+		if level == 1 {
+			newLevel = 0
+		}
+		simulatedPins[req.Pin] = newLevel
 	}
-	simulatedPins[req.Pin] = newLevel
 	simMu.Unlock()
 
-	log.Printf("[GPIO Simulation] Pin %d toggled. Old: %d, New: %d", req.Pin, level, newLevel)
+	if isInput {
+		log.Printf("[GPIO Simulation] Pin %d (%s) read. Level: %d", req.Pin, label, level)
+	} else {
+		log.Printf("[GPIO Simulation] Pin %d (%s) toggled. Old: %d, New: %d", req.Pin, label, level, newLevel)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": "ok",
 		"level":  newLevel,
+		"action": action,
+		"mode":   map[bool]string{true: "IN", false: "OUT"}[isInput],
 	})
 }
