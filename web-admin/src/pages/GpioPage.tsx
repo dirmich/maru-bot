@@ -236,6 +236,7 @@ export function GpioPage() {
                                                         <SelectContent>
                                                             {pinData
                                                                 .filter(p => p.type !== 'power' && p.type !== 'ground')
+                                                                .sort((a, b) => a.number - b.number)
                                                                 .map(p => {
                                                                     const isUsedByOthers = configuredPins.some((cp, cpidx) => cp.pin === p.number && cpidx !== idx);
                                                                     return (

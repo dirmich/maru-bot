@@ -67,6 +67,9 @@ func (s *Server) handleGpio(w http.ResponseWriter, r *http.Request) {
 		newData, _ := json.MarshalIndent(settings, "", "  ")
 		os.WriteFile(userSettingsPath, newData, 0644)
 
+		// Also update the main config.json
+		config.SaveConfig(filepath.Join(home, ".marubot", "config.json"), s.config)
+
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	}
 }

@@ -79,6 +79,10 @@ func (s *Server) handleGpioSim(w http.ResponseWriter, r *http.Request) {
 		newData, _ := json.MarshalIndent(settings, "", "  ")
 		os.WriteFile(userSettingsPath, newData, 0644)
 
+		// Also update the main config.json
+		userConfigPath := filepath.Join(home, ".marubot", "config.json")
+		config.SaveConfig(userConfigPath, s.config)
+
 		log.Printf("[GPIO Simulation] Updated pin configuration: %v", pins)
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	}
