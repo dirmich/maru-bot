@@ -401,10 +401,11 @@ func (s *Server) handleSystemStats(w http.ResponseWriter, r *http.Request) {
 	
 	// User config override takes precedence, otherwise use platform detection (considering test mode)
 	if s.config.Hardware.IsRaspberryPi != nil {
-		stats["is_rpi"] = *s.config.Hardware.IsRaspberryPi
+		stats["is_raspberry_pi"] = *s.config.Hardware.IsRaspberryPi
 	} else {
-		stats["is_rpi"] = s.isRPi()
+		stats["is_raspberry_pi"] = s.isRPi()
 	}
+	stats["is_rpi"] = stats["is_raspberry_pi"] // Maintain both for compatibility
 
 	json.NewEncoder(w).Encode(stats)
 }
