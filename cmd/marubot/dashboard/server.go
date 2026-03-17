@@ -69,7 +69,7 @@ func (s *Server) Start() error {
 
 	// Static File Serving (SPA Fallback)
 	fileServer := http.FileServer(http.FS(distFS))
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	staticHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 
 		if strings.HasPrefix(path, "/api/") {
@@ -102,9 +102,21 @@ func (s *Server) Start() error {
 			http.Error(w, "Failed to serve index", http.StatusInternalServerError)
 		}
 	})
+	mux.Handle("/", staticHandler)
+
+	// Wrap everything in recovery middleware
+	recoveryHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				fmt.Printf("CRITICAL: Server Panic recovered: %v\n", err)
+				http.Error(w, "Internal Server Error (Panic)", http.StatusInternalServerError)
+			}
+		}()
+		mux.ServeHTTP(w, r)
+	})
 
 	fmt.Printf("Dashboard server listening on http://%s\n", s.addr)
-	return http.ListenAndServe(s.addr, mux)
+	return http.ListenAndServe(s.addr, recoveryHandler)
 }
 
 func (s *Server) getFileModTime(f fs.File) time.Time {
@@ -237,12 +249,23 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		fmt.Printf("[Debug] Received chat request: %s\n", req.Message)
+
+		if s.agent == nil {
+			fmt.Println("[Error] Agent is nil in Server")
+			http.Error(w, "Agent not initialized", http.StatusInternalServerError)
+			return
+		}
+
+		fmt.Println("[Debug] Calling agent.ProcessDirect...")
 		resp, err := s.agent.ProcessDirect(r.Context(), req.Message, "web-admin")
 		if err != nil {
+			fmt.Printf("[Error] Agent processing failed: %v\n", err)
 			http.Error(w, fmt.Sprintf("AI processing error: %v", err), http.StatusInternalServerError)
 			return
 		}
 
+		fmt.Println("[Debug] Chat successful, sending response.")
 		json.NewEncoder(w).Encode(map[string]string{"response": resp})
 	}
 }

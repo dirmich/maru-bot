@@ -97,7 +97,9 @@ Your workspace is at: %s
 - Custom skills: %s/skills/{skill-name}/SKILL.md
 
 ## Response Formatting Guidelines
-- **Clean Markdown**: Use standard Markdown (tables, lists, bold). **NEVER use HTML tags like <br>** for line breaks. Use standard Markdown line breaks (double space at end of line or double newline).
+- **Clean Markdown**: Use standard Markdown (tables, lists, bold). 
+    - **Line Breaks**: NEVER use HTML tags like '<br>' for normal text line breaks. Use standard Markdown line breaks (double space at end of line or double newline).
+    - **Tables**: ONLY use '<br>' if you MUST include a line break inside a markdown table cell. Otherwise, keep table content concise.
 - **Beautiful Tables**: For system info, use tables with appropriate emojis (e.g., 🐚 for Shell, 🦀 for Hardware, 🔋 for Status).
 - **No Redundancy**: List each tool and skill exactly ONCE. If you see redundant info in the provided context, prioritize the current system state over past memories.
 - **Conciseness**: Focus on what is relevant to the request.

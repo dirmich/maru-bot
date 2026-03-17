@@ -1688,9 +1688,10 @@ func startCmd() {
 			if port == 0 { port = 8080 }
 			dashAddr := fmt.Sprintf("0.0.0.0:%d", port)
 			
-			// We need a dummy agent for the dashboard to start, but it won't be able to do much
-			// until providers are configured.
-			dummyAgent := &agent.AgentLoop{} 
+			// 💡 Fix: Properly initialize dummyAgent components to prevent Nil Pointer Panic 
+			// even in Setup Mode.
+			bus := bus.NewMessageBus()
+			dummyAgent := agent.NewAgentLoop(cfg, bus, nil, Version)
 			dashServer := dashboard.NewServer(dashAddr, dummyAgent, cfg, Version)
 			
 			go func() {

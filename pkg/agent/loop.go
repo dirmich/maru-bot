@@ -449,6 +449,15 @@ func (al *AgentLoop) parseJSONToolCall(content string) *providers.ToolCall {
 		}
 	}
 
+	// Case 1.1: Direct config action style {"action": "get", "key": "..."} -> config
+	if action, ok := data["action"].(string); ok && (action == "get" || action == "set") {
+		return &providers.ToolCall{
+			ID:        fmt.Sprintf("call_%d", time.Now().UnixNano()),
+			Name:      "config",
+			Arguments: data,
+		}
+	}
+
 	// Case 2: OpenAI-like structure embedded in content {"name": "...", "arguments": {...}}
 	if name, ok := data["name"].(string); ok && name != "" {
 		argsMap := make(map[string]interface{})
