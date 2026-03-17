@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,7 +22,7 @@ type Config struct {
 	Hardware      HardwareConfig  `json:"hardware"`
 	Drone         DroneConfig     `json:"drone"`
 	GPS           GPSConfig       `json:"gps"`
-	mu            sync.RWMutex
+	Mu            sync.RWMutex
 }
 
 type AgentsConfig struct {
@@ -337,43 +338,13 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, err
 	}
 
-	// Load usersetting.json as override if exists
+	// Unify: Check for usersetting.json and migrate to config.json if it exists
 	userSettingsPath := filepath.Join(filepath.Dir(path), "usersetting.json")
-	if userData, err := os.ReadFile(userSettingsPath); err == nil {
-		var userCfg map[string]interface{}
-		if err := json.Unmarshal(userData, &userCfg); err == nil {
-			// Special handling for GPIO pins: if exists in usersetting, replace the entire map
-			if hw, ok := userCfg["hardware"].(map[string]interface{}); ok {
-				if gp, ok := hw["gpio"].(map[string]interface{}); ok {
-					if pins, ok := gp["pins"].(map[string]interface{}); ok {
-						cfg.Hardware.GPIO.Pins = pins
-						delete(gp, "pins")
-					}
-				}
-			}
-
-			// Special handling for flat provider structures in usersetting.json
-			if providers, ok := userCfg["providers"].(map[string]interface{}); ok {
-				for pName, pData := range providers {
-					if pMap, ok := pData.(map[string]interface{}); ok {
-						// If it doesn't have "models" but has "api_base" or "model", it's a flat structure
-						if _, hasModels := pMap["models"]; !hasModels {
-							if _, hasBase := pMap["api_base"]; hasBase {
-								// Move flat fields into a single ModelConfig under models
-								models := []interface{}{pMap}
-								pMap = map[string]interface{}{"models": models}
-								providers[pName] = pMap
-							}
-						}
-					}
-				}
-			}
-
-			// Re-marshal the updated userCfg and unmarshal into cfg
-			updatedData, _ := json.Marshal(userCfg)
-			if err := json.Unmarshal(updatedData, cfg); err != nil {
-				return nil, err
-			}
+	if _, err := os.Stat(userSettingsPath); err == nil {
+		if err := MigrateUserSettings(path, userSettingsPath, cfg); err == nil {
+			log.Printf("Successfully migrated usersetting.json to %s", path)
+		} else {
+			log.Printf("Migration of usersetting.json failed: %v", err)
 		}
 	}
 
@@ -382,6 +353,40 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// MigrateUserSettings merges data from usersetting.json into Config and saves it to config.json
+func MigrateUserSettings(configPath, userSettingsPath string, cfg *Config) error {
+	userData, err := os.ReadFile(userSettingsPath)
+	if err != nil {
+		return err
+	}
+
+	var userCfg map[string]interface{}
+	if err := json.Unmarshal(userData, &userCfg); err != nil {
+		return err
+	}
+
+	// Merge logic
+	if hw, ok := userCfg["hardware"].(map[string]interface{}); ok {
+		if gp, ok := hw["gpio"].(map[string]interface{}); ok {
+			if pins, ok := gp["pins"].(map[string]interface{}); ok {
+				cfg.Hardware.GPIO.Pins = pins
+			}
+		}
+	}
+	
+	if pw, ok := userCfg["admin_password"].(string); ok {
+		cfg.AdminPassword = pw
+	}
+
+	// Save merged config back to config.json
+	if err := SaveConfig(configPath, cfg); err != nil {
+		return err
+	}
+
+	// Backup usersetting.json to avoid repeated migration
+	return os.Rename(userSettingsPath, userSettingsPath+".bak")
 }
 
 // FlattenPins converts nested pin maps into flat underscore-separated keys
@@ -431,8 +436,8 @@ func UnflattenPins(flat map[string]int) map[string]interface{} {
 }
 
 func SaveConfig(path string, cfg *Config) error {
-	cfg.mu.RLock()
-	defer cfg.mu.RUnlock()
+	cfg.Mu.RLock()
+	defer cfg.Mu.RUnlock()
 
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
@@ -448,8 +453,8 @@ func SaveConfig(path string, cfg *Config) error {
 }
 
 func (c *Config) Update(newCfg *Config) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.Mu.Lock()
+	defer c.Mu.Unlock()
 	c.Language = newCfg.Language
 	c.AdminPassword = newCfg.AdminPassword
 	c.Agents = newCfg.Agents
@@ -463,20 +468,20 @@ func (c *Config) Update(newCfg *Config) {
 }
 
 func (c *Config) UpdateGPIO(pins map[string]interface{}) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.Mu.Lock()
+	defer c.Mu.Unlock()
 	c.Hardware.GPIO.Pins = pins
 }
 
 func (c *Config) WorkspacePath() string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
 	return expandHome(c.Agents.Defaults.Workspace)
 }
 
 func (c *Config) GetAPIKey() string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
 	
 	// Use default model from defaults if configured
 	model := c.Agents.Defaults.Model
@@ -531,8 +536,8 @@ func (c *Config) findModelConfig(providerName, modelName string) *ModelConfig {
 
 
 func (c *Config) GetAPIBase() string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
 	
 	model := c.Agents.Defaults.Model
 	provider := c.Agents.Defaults.Provider
@@ -547,8 +552,8 @@ func (c *Config) GetAPIBase() string {
 }
 
 func (c *Config) IsAIConfigured() bool {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
 	
 	allProviders := []ProviderConfig{
 		c.Providers.Anthropic,
@@ -568,8 +573,8 @@ func (c *Config) IsAIConfigured() bool {
 }
 
 func (c *Config) IsChannelEnabled() bool {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
 	return c.Channels.WhatsApp.Enabled ||
 		c.Channels.Telegram.Enabled ||
 		c.Channels.Feishu.Enabled ||

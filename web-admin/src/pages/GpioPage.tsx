@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Cpu, Save, Plus, Trash, RefreshCw } from 'lucide-react';
@@ -15,6 +15,7 @@ interface PinConfig {
     pin: number;
     mode: string;
     label: string;
+    group: string;
     level?: number;
 }
 
@@ -25,11 +26,10 @@ export function GpioPage() {
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [pendingPin, setPendingPin] = useState<number | null>(null);
 
-    const handleAddPin = () => {
-        // Find next available pin or just use 0 as placeholder
-        const newPin = { pin: 0, mode: 'OUT', label: 'New Device' };
+    const handleAddPin = (group: string = "") => {
+        const newPin = { pin: 0, mode: 'OUT', label: 'New Device', group };
         setConfiguredPins([...configuredPins, newPin]);
-        setSelectedPin(undefined); // Reset selection to show all
+        setSelectedPin(undefined);
     };
 
     const handlePinClick = (pin: number) => {
@@ -43,7 +43,6 @@ export function GpioPage() {
         if (existing) {
             setSelectedPin(pin);
         } else {
-            // Ask to add using ConfirmDialog
             setPendingPin(pin);
             setConfirmOpen(true);
         }
@@ -51,7 +50,7 @@ export function GpioPage() {
 
     const handleConfirmAdd = () => {
         if (pendingPin !== null) {
-            const newPin = { pin: pendingPin, mode: 'OUT', label: `GPIO ${pendingPin}` };
+            const newPin = { pin: pendingPin, mode: 'OUT', label: `GPIO ${pendingPin}`, group: "" };
             setConfiguredPins([...configuredPins, newPin]);
             setSelectedPin(pendingPin);
             setPendingPin(null);
@@ -79,15 +78,26 @@ export function GpioPage() {
             const res = await fetch('/api/gpio');
             if (res.ok) {
                 const data = await res.json();
-                // Data is now map[string]int (flattened)
-                const pins: PinConfig[] = Object.entries(data).map(([label, pin]: [string, any]) => {
-                    return {
-                        pin: pin as number,
-                        mode: isInput(label) ? 'IN' : 'OUT',
-                        label
-                    };
-                });
-                if (pins.length >= 0) setConfiguredPins(pins);
+                const flattened: PinConfig[] = [];
+                
+                const parseRecursive = (obj: any, group: string = "") => {
+                    for (const key in obj) {
+                        const val = obj[key];
+                        if (typeof val === 'object' && val !== null) {
+                            parseRecursive(val, group ? `${group}_${key}` : key);
+                        } else if (typeof val === 'number') {
+                            flattened.push({
+                                pin: val,
+                                label: key,
+                                group: group,
+                                mode: isInput(key) || isInput(group) ? 'IN' : 'OUT'
+                            });
+                        }
+                    }
+                };
+
+                parseRecursive(data);
+                setConfiguredPins(flattened);
             }
         } catch (e) {
             console.error("Failed to fetch GPIO", e);
@@ -99,7 +109,7 @@ export function GpioPage() {
         return l === 'button' || l === 'sensor' || l.startsWith('button_') || l.startsWith('sensor_') || l.endsWith('_button') || l.endsWith('_sensor');
     };
 
-    const handleToggle = async (pin: number, index: number) => {
+    const handleToggle = async (pin: number, label: string, group: string) => {
         try {
             const res = await fetch('/api/gpio/toggle', {
                 method: 'POST',
@@ -108,9 +118,9 @@ export function GpioPage() {
             });
             if (res.ok) {
                 const data = await res.json();
-                const newPins = [...configuredPins];
-                newPins[index].level = data.level;
-                setConfiguredPins(newPins);
+                setConfiguredPins(prev => prev.map(p => 
+                    (p.pin === pin && p.label === label && p.group === group) ? { ...p, level: data.level } : p
+                ));
                 
                 const verb = data.action === 'read' ? 'is' : 'toggled to';
                 toast.success(`Pin ${pin} ${verb} ${data.level === 1 ? 'HIGH' : 'LOW'}`);
@@ -122,10 +132,10 @@ export function GpioPage() {
 
     const handleSave = async () => {
         try {
-            // Transform PinConfig[] back to flat map for backend
             const pinMap: Record<string, number> = {};
             configuredPins.forEach(p => {
-                pinMap[p.label] = p.pin;
+                const fullKey = p.group ? `${p.group}_${p.label}` : p.label;
+                pinMap[fullKey] = p.pin;
             });
 
             const res = await fetch('/api/gpio', {
@@ -136,7 +146,7 @@ export function GpioPage() {
 
             if (res.ok) {
                 toast.success(t.gpio_save_success);
-                setSelectedPin(undefined); // Return to view all pins
+                setSelectedPin(undefined);
             } else {
                 toast.error('Error (HTTP ' + res.status + ')');
             }
@@ -144,6 +154,14 @@ export function GpioPage() {
             toast.error('Network Error');
         }
     };
+
+    // Group pins by group name
+    const groups = configuredPins.reduce((acc, pin) => {
+        const groupName = pin.group || "Default";
+        if (!acc[groupName]) acc[groupName] = [];
+        acc[groupName].push(pin);
+        return acc;
+    }, {} as Record<string, PinConfig[]>);
 
     return (
         <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -168,143 +186,132 @@ export function GpioPage() {
                                 onPinClick={handlePinClick}
                             />
                         </CardContent>
-                    </Card>
-                </div>
-
-                <div className="space-y-6 flex flex-col">
-                    <Card className="border-none shadow-lg flex-1">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <div>
-                                <CardTitle className="text-lg">{t.gpio_configured_devices}</CardTitle>
-                                <CardDescription>{t.gpio_configured_desc}</CardDescription>
-                            </div>
-                            <div className="flex gap-2">
-                                {selectedPin !== undefined && (
-                                    <Button size="sm" variant="outline" onClick={() => setSelectedPin(undefined)}>
-                                        {t.gpio_view_all}
-                                    </Button>
-                                )}
-                                <Button size="sm" onClick={handleAddPin} className="bg-orange-600 hover:bg-orange-700 text-white">
-                                    <Plus className="w-4 h-4 mr-1" /> {t.gpio_add}
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-12"></TableHead>
-                                        <TableHead className="w-24">{t.gpio_pin}</TableHead>
-                                        <TableHead className="w-28">{t.gpio_mode}</TableHead>
-                                        <TableHead>{t.gpio_label}</TableHead>
-                                        <TableHead className="w-10"></TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {configuredPins.map((item, idx) => {
-                                        if (selectedPin !== undefined && item.pin !== selectedPin) return null;
-                                        return (
-                                            <TableRow key={idx}>
-                                                <TableCell className="px-2">
-                                                    {item.mode === 'OUT' ? (
-                                                        <Switch
-                                                            checked={item.level === 1}
-                                                            onCheckedChange={() => handleToggle(item.pin, idx)}
-                                                        />
-                                                    ) : item.mode === 'IN' ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <span className={`w-3 h-3 rounded-full ${item.level === 1 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-slate-300'}`} />
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="icon" 
-                                                                className="h-7 w-7 text-slate-400 hover:text-blue-500"
-                                                                onClick={() => handleToggle(item.pin, idx)}
-                                                            >
-                                                                <RefreshCw className="w-3.5 h-3.5" />
-                                                            </Button>
-                                                        </div>
-                                                    ) : null}
-                                                </TableCell>
-                                                <TableCell className="font-mono">
-                                                    <Select
-                                                        value={item.pin.toString()}
-                                                        onValueChange={(v) => handleUpdatePin(idx, 'pin', parseInt(v))}
-                                                    >
-                                                        <SelectTrigger className="w-20 h-8 text-xs font-mono">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {pinData
-                                                                .filter(p => p.type !== 'power' && p.type !== 'ground')
-                                                                .sort((a, b) => a.number - b.number)
-                                                                .map(p => {
-                                                                    const isUsedByOthers = configuredPins.some((cp, cpidx) => cp.pin === p.number && cpidx !== idx);
-                                                                    return (
-                                                                        <SelectItem
-                                                                            key={p.number}
-                                                                            value={p.number.toString()}
-                                                                            disabled={isUsedByOthers}
-                                                                        >
-                                                                            {p.number} {isUsedByOthers ? '(Used)' : ''}
-                                                                        </SelectItem>
-                                                                    );
-                                                                })}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Select
-                                                        value={item.mode}
-                                                        onValueChange={(v) => handleUpdatePin(idx, 'mode', v)}
-                                                    >
-                                                        <SelectTrigger className="w-24 h-8 text-xs">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="OUT">OUT</SelectItem>
-                                                            <SelectItem value="IN">IN</SelectItem>
-                                                            <SelectItem value="PWM">PWM</SelectItem>
-                                                            <SelectItem value="I2C">I2C</SelectItem>
-                                                            <SelectItem value="SPI">SPI</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <input
-                                                        className="bg-transparent border-b border-dashed border-slate-300 dark:border-slate-700 focus:outline-none focus:border-orange-500 w-full text-sm"
-                                                        value={item.label}
-                                                        onChange={(e) => handleUpdatePin(idx, 'label', e.target.value)}
-                                                    />
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 text-slate-400 hover:text-red-500"
-                                                        onClick={() => handleRemovePin(idx)}
-                                                    >
-                                                        <Trash className="w-4 h-4" />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                    {configuredPins.length === 0 && (
-                                        <TableRow>
-                                            <TableCell colSpan={4} className="text-center text-slate-400 py-8">
-                                                {t.gpio_no_pins}
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
                         <CardFooter className="justify-end border-t pt-4">
                             <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white">
                                 <Save className="w-4 h-4 mr-2" /> {t.gpio_save}
                             </Button>
                         </CardFooter>
                     </Card>
+                </div>
+
+                <div className="space-y-6 flex flex-col">
+                    <div className="flex justify-between items-center mb-2">
+                        <h2 className="text-xl font-bold text-slate-700 dark:text-slate-300">Configured Devices</h2>
+                        <Button size="sm" onClick={() => handleAddPin("")} className="bg-orange-600 hover:bg-orange-700 text-white">
+                            <Plus className="w-4 h-4 mr-1" /> {t.gpio_add}
+                        </Button>
+                    </div>
+
+                    {Object.entries(groups).map(([groupName, pins]) => (
+                        <Card key={groupName} className="border-none shadow-md bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800">
+                            <CardHeader className="py-3 px-4 flex flex-row items-center justify-between border-b bg-slate-100/50 dark:bg-slate-800/50 rounded-t-lg">
+                                <CardTitle className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                                    {groupName === "Default" ? "General" : groupName}
+                                </CardTitle>
+                                {groupName !== "Default" && (
+                                    <span className="text-[10px] bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full font-bold">GROUP BOX</span>
+                                )}
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <Table>
+                                    <TableBody>
+                                        {pins.map((item, localIdx) => {
+                                            const globalIdx = configuredPins.findIndex(p => p === item);
+                                            if (selectedPin !== undefined && item.pin !== selectedPin) return null;
+                                            return (
+                                                <TableRow key={`${groupName}-${localIdx}`} className="border-b last:border-0 hover:bg-white dark:hover:bg-slate-800 transition-colors">
+                                                    <TableCell className="w-12 px-3 py-2 text-center">
+                                                        {item.mode === 'OUT' ? (
+                                                            <Switch
+                                                                checked={item.level === 1}
+                                                                onCheckedChange={() => handleToggle(item.pin, item.label, item.group)}
+                                                            />
+                                                        ) : (
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <span className={`w-3 h-3 rounded-full ${item.level === 1 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-slate-300'}`} />
+                                                                <Button 
+                                                                    variant="ghost" 
+                                                                    size="icon" 
+                                                                    className="h-7 w-7 text-slate-400 hover:text-blue-500"
+                                                                    onClick={() => handleToggle(item.pin, item.label, item.group)}
+                                                                >
+                                                                    <RefreshCw className="w-3.5 h-3.5" />
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="w-20 px-3 py-2">
+                                                        <Select
+                                                            value={item.pin.toString()}
+                                                            onValueChange={(v) => handleUpdatePin(globalIdx, 'pin', parseInt(v))}
+                                                        >
+                                                            <SelectTrigger className="h-8 text-xs font-mono border-none shadow-none bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {pinData
+                                                                    .filter(p => p.type !== 'power' && p.type !== 'ground')
+                                                                    .sort((a, b) => a.number - b.number)
+                                                                    .map(p => (
+                                                                        <SelectItem key={p.number} value={p.number.toString()}>
+                                                                            {p.number}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </TableCell>
+                                                    <TableCell className="px-3 py-2">
+                                                        <input
+                                                            className="bg-transparent border-none focus:ring-0 w-full text-sm font-medium"
+                                                            value={item.label}
+                                                            placeholder="Label"
+                                                            onChange={(e) => handleUpdatePin(globalIdx, 'label', e.target.value)}
+                                                        />
+                                                        <div className="flex gap-2 mt-1">
+                                                            <input
+                                                                className="bg-transparent border-none focus:ring-0 text-[10px] text-slate-400 w-1/2"
+                                                                value={item.group}
+                                                                placeholder="Group"
+                                                                onChange={(e) => handleUpdatePin(globalIdx, 'group', e.target.value)}
+                                                            />
+                                                            <Select
+                                                                value={item.mode}
+                                                                onValueChange={(v) => handleUpdatePin(globalIdx, 'mode', v)}
+                                                            >
+                                                                <SelectTrigger className="h-4 p-0 border-none shadow-none text-[10px] text-blue-500 font-bold w-12 bg-transparent">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="OUT">OUT</SelectItem>
+                                                                    <SelectItem value="IN">IN</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="w-10 px-3 py-2">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-slate-300 hover:text-red-500"
+                                                            onClick={() => handleRemovePin(globalIdx)}
+                                                        >
+                                                            <Trash className="w-4 h-4" />
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    ))}
+
+                    {configuredPins.length === 0 && (
+                        <div className="text-center text-slate-400 py-12 bg-slate-50 dark:bg-slate-900 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+                            {t.gpio_no_pins}
+                        </div>
+                    )}
                 </div>
             </div>
 

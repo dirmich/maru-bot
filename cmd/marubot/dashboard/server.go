@@ -181,22 +181,13 @@ func (s *Server) handleSetPassword(w http.ResponseWriter, r *http.Request) {
 
 	s.config.AdminPassword = req.Password
 
-	// Save to usersetting.json
+	// Save updated config to config.json
 	home, _ := os.UserHomeDir()
-	userSettingsPath := filepath.Join(home, ".marubot", "usersetting.json")
-	
-	// Try to read existing setting if any to merge
-	var settings map[string]interface{}
-	data, err := os.ReadFile(userSettingsPath)
-	if err == nil {
-		json.Unmarshal(data, &settings)
-	} else {
-		settings = make(map[string]interface{})
+	configPath := filepath.Join(home, ".marubot", "config.json")
+	if err := config.SaveConfig(configPath, s.config); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to save config: %v", err), http.StatusInternalServerError)
+		return
 	}
-	settings["admin_password"] = req.Password
-
-	newData, _ := json.MarshalIndent(settings, "", "  ")
-	os.WriteFile(userSettingsPath, newData, 0644)
 
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok", "message": "Password set successfully"})
 }

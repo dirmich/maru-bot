@@ -5,10 +5,12 @@
 - **GPIO 테스트 플래그 도입**: `config.json`의 `hardware.gpio_test_mode` 플래그를 통해 윈도우 등 비-기기 환경에서도 GPIO 기능을 강제 활성화 가능.
 - **GPIO 시뮬레이션 (Windows)**: 하드웨어가 없는 환경에서 가상의 핀 상태(Memory-based)를 제어하고 읽을 수 있는 시뮬레이션 핸들러 구현.
 - **동작 세분화**: 핀 모드(`IN`/`OUT`)를 자동 판별하여 입력 핀은 **읽기(Read)**, 출력 핀은 **토글(Toggle)** 로 동작하도록 고도화.
-- **설정 동기화 강화**: 웹 관리자에서 GPIO 설정 변경 시 `usersetting.json`과 `config.json` 모두에 즉시 반영되도록 수정.
+- **설정 파일 단일화**: `usersetting.json`을 폐기하고 모든 설정을 `config.json` 하나로 관리 (기존 설정 자동 마이그레이션 지원).
+- **GPIO 그룹 가시화**: `config.json`의 중첩 구조(예: `motor_a`, `motor_b`)를 인식하여 웹 관리자에서 자동으로 **그룹 박스(Group Box)** Card UI로 렌더링.
+- **로깅 추적성 강화**: 웹 관리자를 통한 GPIO 조작 시 로그에 `[WebAdmin Access]` 접두어를 추가하여 동작 출처를 명확히 함.
 - **로그 가시성 개선**: 웹 관리자 로그 페이지 하단에 실제 로그 파일 경로(`~/.marubot/dashboard.log`) 명시.
 - **UI 피드백 개선**: 웹 관리자 토스트 메시지를 동작 유형에 따라 차별화 (입력: 'is HIGH', 출력: 'toggled to HIGH').
-- **버그 수정**: `config.json` 로딩 시 GPIO 핀 설정이 기본값(DefaultConfig)과 병합되는 현상 수정 (병합 대신 덮어쓰기 방식으로 변경).
+- **버그 수정**: `config.json` 로딩 시 GPIO 핀 설정이 기본값(DefaultConfig)과 병합되는 현상 수정.
 - **버그 수정**: 백엔드 API 응답 필드명 불일치(`is_rpi` → `is_raspberry_pi`)를 해결하여 웹 관리자 사이드바에서 GPIO 메뉴가 정상 노출되도록 수정.
 - **로깅 강화**: 모든 가상 GPIO 조작 내역을 `dashboard.log`에 `[GPIO Simulation]` 접두어와 함께 실시간 기록.
 

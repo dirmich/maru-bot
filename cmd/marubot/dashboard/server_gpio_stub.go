@@ -4,6 +4,7 @@ package dashboard
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -40,8 +41,10 @@ func (s *Server) handleGpioSim(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method == "GET" {
-		flat := config.FlattenPins(s.config.Hardware.GPIO.Pins)
-		json.NewEncoder(w).Encode(flat)
+		s.config.Mu.RLock()
+		pins := s.config.Hardware.GPIO.Pins
+		s.config.Mu.RUnlock()
+		json.NewEncoder(w).Encode(pins)
 		return
 	}
 
@@ -55,35 +58,15 @@ func (s *Server) handleGpioSim(w http.ResponseWriter, r *http.Request) {
 		pins := config.UnflattenPins(flatPins)
 		s.config.Hardware.GPIO.Pins = pins
 
+		// Save directly to main config.json
 		home, _ := os.UserHomeDir()
-		userSettingsPath := filepath.Join(home, ".marubot", "usersetting.json")
-
-		var settings map[string]interface{}
-		data, err := os.ReadFile(userSettingsPath)
-		if err == nil {
-			json.Unmarshal(data, &settings)
-		} else {
-			settings = make(map[string]interface{})
+		configPath := filepath.Join(home, ".marubot", "config.json")
+		if err := config.SaveConfig(configPath, s.config); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to save config: %v", err), http.StatusInternalServerError)
+			return
 		}
 
-		if settings["hardware"] == nil {
-			settings["hardware"] = make(map[string]interface{})
-		}
-		hw := settings["hardware"].(map[string]interface{})
-		if hw["gpio"] == nil {
-			hw["gpio"] = make(map[string]interface{})
-		}
-		gp := hw["gpio"].(map[string]interface{})
-		gp["pins"] = pins
-
-		newData, _ := json.MarshalIndent(settings, "", "  ")
-		os.WriteFile(userSettingsPath, newData, 0644)
-
-		// Also update the main config.json
-		userConfigPath := filepath.Join(home, ".marubot", "config.json")
-		config.SaveConfig(userConfigPath, s.config)
-
-		log.Printf("[GPIO Simulation] Updated pin configuration: %v", pins)
+		log.Printf("[GPIO Simulation] [Action: SaveConfig] Pins updated: %v", pins)
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	}
 }
@@ -130,9 +113,9 @@ func (s *Server) handleGpioToggleSim(w http.ResponseWriter, r *http.Request) {
 	simMu.Unlock()
 
 	if isInput {
-		log.Printf("[GPIO Simulation] Pin %d (%s) read. Level: %d", req.Pin, label, level)
+		log.Printf("[GPIO Simulation] [WebAdmin Access] Pin %d (%s) read. Level: %d", req.Pin, label, level)
 	} else {
-		log.Printf("[GPIO Simulation] Pin %d (%s) toggled. Old: %d, New: %d", req.Pin, label, level, newLevel)
+		log.Printf("[GPIO Simulation] [WebAdmin Access] Pin %d (%s) toggled. Old: %d, New: %d", req.Pin, label, level, newLevel)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
