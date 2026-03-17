@@ -17,6 +17,7 @@ import (
 	"github.com/dirmich/marubot/pkg/agent"
 	"github.com/dirmich/marubot/pkg/config"
 	"github.com/dirmich/marubot/pkg/skills"
+	"github.com/dirmich/marubot/pkg/utils"
 )
 
 //go:embed dist
@@ -150,9 +151,12 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		if cookie.Value != s.config.AdminPassword {
-			fmt.Printf("Auth failed: session cookie mismatch.\n")
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
+			// Compare with hashed password for extra safety if cookie value is plaintext (legacy)
+			if utils.HashPassword(cookie.Value) != s.config.AdminPassword {
+				fmt.Printf("Auth failed: session cookie mismatch.\n")
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
 		}
 		next.ServeHTTP(w, r)
 	})
@@ -184,7 +188,7 @@ func (s *Server) handleSetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.config.AdminPassword = req.Password
+	s.config.AdminPassword = utils.HashPassword(req.Password)
 
 	// Save updated config to config.json
 	if err := config.SaveConfig(s.configPath, s.config); err != nil {
@@ -209,10 +213,18 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Password == s.config.AdminPassword {
+	hashedInput := utils.HashPassword(req.Password)
+	if hashedInput == s.config.AdminPassword || req.Password == s.config.AdminPassword {
+		// Use hash for cookie value
+		cookieValue := hashedInput
+		if hashedInput != s.config.AdminPassword {
+			// If it matched plaintext, use the hashed version for future
+			cookieValue = s.config.AdminPassword
+		}
+
 		http.SetCookie(w, &http.Cookie{
 			Name:     "marubot_session",
-			Value:    s.config.AdminPassword,
+			Value:    cookieValue,
 			Path:     "/",
 			HttpOnly: true,
 			MaxAge:   86400 * 30, // 30 days
@@ -220,7 +232,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]bool{"success": true})
 	} else {
-		fmt.Printf("Login failed: password mismatch. expected=%s, got=%s\n", s.config.AdminPassword, req.Password)
+		fmt.Printf("Login failed: password mismatch.\n")
 		http.Error(w, "Invalid password", http.StatusUnauthorized)
 	}
 }

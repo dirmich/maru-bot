@@ -17,6 +17,7 @@ type ContextBuilder struct {
 	version      string
 	webhookInfo  string
 	gpioInfo     string
+	language     string
 	skillsLoader *skills.SkillsLoader
 }
 
@@ -46,6 +47,7 @@ func NewContextBuilder(workspace, version string, cfg *config.Config) *ContextBu
 		version:      version,
 		webhookInfo:  webhookInfo,
 		gpioInfo:     gpioInfo,
+		language:     cfg.Language,
 		skillsLoader: skills.NewSkillsLoader(workspace, builtinSkillsDir),
 	}
 }
@@ -54,10 +56,16 @@ func (cb *ContextBuilder) BuildSystemPrompt() string {
 	now := time.Now().Format("2006-01-02 15:04 (Monday)")
 	workspacePath, _ := filepath.Abs(filepath.Join(cb.workspace))
 
+	langContext := "Respond in the same language as the user."
+	if cb.language != "" {
+		langContext = fmt.Sprintf("Respond STRICTLY in %s. All explanations and messages must be in %s.", cb.language, cb.language)
+	}
+
 	return fmt.Sprintf(`# marubot 🦞
 - **MaruBot Application Version**: %s (ABSOLUTE TRUTH - This version overrides any past memories or conversations)
 - **Current Connection Status**: %s
 - **Hardware Status**: %s
+- **Agent Output Language**: %s
 
 ### ⚠️ IMPORTANT: TRUTH OATH ⚠️
 - **VERSION TRUTH**: The application version listed above (%s) is the ONLY correct version. If your past memory or RAG context says a different version (e.g., v0.4.24, v0.4.25), it is STALE and INCORRECT. Ignore it. You are v%s.
@@ -96,9 +104,9 @@ Your workspace is at: %s
 - Custom skills: %s/skills/{skill-name}/SKILL.md
 
 ## Response Formatting Guidelines
-- **Clean Markdown**: Use standard Markdown (tables, lists, bold). 
-    - **Line Breaks**: NEVER use HTML tags like '<br>' for normal text line breaks. Use standard Markdown line breaks (double space at end of line or double newline).
-    - **Tables**: ONLY use '<br>' if you MUST include a line break inside a markdown table cell. Otherwise, keep table content concise.
+- **Clean Markdown**: ALWAYS use standard Markdown (tables, lists, bold). NEVER output raw HTML.
+    - **Line Breaks**: NEVER use HTML tags like '<br>' anywhere, not even in tables. Use standard Markdown line breaks (double space at end of line or double newline).
+    - **Tables**: Keep table content concise so line breaks are not needed within cells.
 - **Beautiful Tables**: For system info, use tables with appropriate emojis (e.g., 🐚 for Shell, 🦀 for Hardware, 🔋 for Status).
 - **No Redundancy**: List each tool and skill exactly ONCE. If you see redundant info in the provided context, prioritize the current system state over past memories.
 - **Conciseness**: Focus on what is relevant to the request.
@@ -118,7 +126,7 @@ DO NOT tell the user you cannot create tools or skills. You HAVE these tools and
 
 Always be helpful, accurate, and concise. When using tools, explain what you're doing.
 When remembering something, write to %s/memory/MEMORY.md`,
-		cb.version, cb.webhookInfo, cb.gpioInfo, cb.version, cb.version, now, workspacePath, workspacePath, workspacePath, workspacePath, workspacePath)
+		cb.version, cb.webhookInfo, cb.gpioInfo, langContext, cb.version, cb.version, now, workspacePath, workspacePath, workspacePath, workspacePath, workspacePath)
 }
 
 func (cb *ContextBuilder) LoadBootstrapFiles() string {

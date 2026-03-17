@@ -19,6 +19,7 @@ import (
 
 	"github.com/dirmich/marubot/pkg/bus"
 	"github.com/dirmich/marubot/pkg/config"
+	"github.com/dirmich/marubot/pkg/logger" // Added logger
 	"github.com/dirmich/marubot/pkg/providers"
 	"github.com/dirmich/marubot/pkg/session"
 	"github.com/dirmich/marubot/pkg/tools"
@@ -298,7 +299,13 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 		})
 
 		if err != nil {
+			logger.ErrorC("agent", fmt.Sprintf("LLM call failed: %v", err))
 			return "", fmt.Errorf("LLM call failed: %w", err)
+		}
+
+		logger.InfoC("agent", fmt.Sprintf("Iteration %d: LLM response content length: %d, tool calls: %d", iteration, len(response.Content), len(response.ToolCalls)))
+		if len(response.Content) > 0 {
+			logger.InfoC("agent", fmt.Sprintf("LLM Content: %s", response.Content))
 		}
 
 		if len(response.ToolCalls) == 0 {
@@ -345,7 +352,17 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 	}
 
 	if finalContent == "" {
-		finalContent = "I've completed processing but have no response to give."
+		// Fallback: Try to find the last meaningful assistant message if finalContent is completely empty
+		for i := len(messages) - 1; i >= 0; i-- {
+			if messages[i].Role == "assistant" && messages[i].Content != "" {
+				finalContent = messages[i].Content
+				break
+			}
+		}
+		
+		if finalContent == "" {
+			finalContent = "I've completed processing but have no response to give."
+		}
 	}
 
 	al.sessions.AddMessage(msg.SessionKey, "user", msg.Content)

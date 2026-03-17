@@ -4,6 +4,16 @@
 
 ---
 
+## 🟢 Phase 0: 텔레그램 응답 및 UI/UX 유지보수 (진행 중)
+- [/] 텔레그램 및 채널 응답 이슈 디버깅 및 해결
+    - [x] 구버전 데몬 프로세스 강제 종료 및 신규 바이너리 완전 교체
+    - [x] 시스템 언어(`Language`) 설정에 따른 채널 다국어(한국어) 답변 강제 지원 (`context.go`)
+    - [x] 마크다운 출력 시 표 내 `<br/>` 태그 사용 원천 차단 (`context.go` 프롬프트 수정 완료)
+    - [x] WebAdmin 전용 대화(`web-admin` session)에서 LLM 최종 응답 추출이 안되어 발생하는 "I've completed processing..." 현상 규명 및 수정 (`loop.go` 메시지 폴백 로직 추가)
+- [x] Mac/Windows 트레이 아이콘 교체 (더 심플하고 구별되는 컬러/형태 적용)
+
+---
+
 ## 🟢 Phase 1: 기반 구축 및 기본 인터랙션 (완료 및 검증)
 - [x] PicoClaw 소스 코드 독립화 및 모듈 리팩토링 (`marubot` 모듈)
 - [x] Raspberry Pi 하드웨어 설정 자동화 스크립트 작성 (`setup-rpi.sh`)

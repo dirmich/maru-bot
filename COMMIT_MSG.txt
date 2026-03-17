@@ -1,0 +1,7 @@
+UI/UX 개선: 아이콘 교체, 마크다운 태그 방지, 웹어드민 응답 폴백, 언어 설정 주입
+
+- 아이콘 교체: Mac용 흑백 단순 PNG, Windows용 컬러 ICO 교체 (tray_icon.png/ico)
+- 마크다운 정책 강화: context.go 시스템 프롬프트에서 표 내 br 등 HTML 태그 사용 영구 금지
+- 언어 설정 주입: cfg.Language 값이 있으면 답변 언어를 해당 언어로 고정하는 지침 추가 (Agent Output Language)
+- WebAdmin 빈 응답 수정: loop.go에 messages 역순 탐색 폴백 로직 추가
+- task.md 동기화: 프로젝트 루트 및 아티팩트 task.md 최신화

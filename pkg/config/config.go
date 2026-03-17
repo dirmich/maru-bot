@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/dirmich/marubot/pkg/utils"
 )
 
 type Config struct {
@@ -353,6 +354,17 @@ func LoadConfig(path string) (*Config, error) {
 
 	if err := env.Parse(cfg); err != nil {
 		return nil, err
+	}
+
+	// Auto-encrypt password if it's plaintext
+	if cfg.AdminPassword != "" && !utils.IsPasswordHashed(cfg.AdminPassword) {
+		log.Printf("Plaintext admin password detected. Encrypting...")
+		cfg.AdminPassword = utils.HashPassword(cfg.AdminPassword)
+		if err := SaveConfig(path, cfg); err != nil {
+			log.Printf("Failed to save encrypted password: %v", err)
+		} else {
+			log.Printf("Admin password successfully encrypted.")
+		}
 	}
 
 	return cfg, nil
