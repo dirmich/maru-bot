@@ -4,6 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Terminal, RefreshCw, ScrollText } from 'lucide-react';
 import { useTranslation } from "@/lib/i18n";
+import { authenticatedFetch } from "@/lib/auth";
 
 export function LogsPage() {
     const t = useTranslation();
@@ -17,7 +18,7 @@ export function LogsPage() {
 
     const fetchLogs = async () => {
         try {
-            const res = await fetch('/api/logs');
+            const res = await authenticatedFetch('/api/logs');
             if (res.ok) {
                 const data = await res.json();
                 setLogs(data.logs || 'No logs available.');

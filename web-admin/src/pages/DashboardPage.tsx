@@ -9,6 +9,7 @@ import {
     Info
 } from 'lucide-react';
 import { useTranslation } from "@/lib/i18n";
+import { authenticatedFetch } from "@/lib/auth";
 
 interface SystemStats {
     uptime?: number;
@@ -39,7 +40,7 @@ export function DashboardPage() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const res = await fetch('/api/system/stats');
+                const res = await authenticatedFetch('/api/system/stats');
                 if (res.ok) {
                     const data = await res.json();
                     setStats(data);

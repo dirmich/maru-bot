@@ -1701,7 +1701,7 @@ func startCmd() {
 			// even in Setup Mode.
 			bus := bus.NewMessageBus()
 			dummyAgent := agent.NewAgentLoop(cfg, bus, nil, Version)
-			dashServer := dashboard.NewServer(dashAddr, dummyAgent, cfg, getConfigPath(), Version)
+			dashServer := dashboard.NewServer(dashAddr, dummyAgent, cfg, getConfigPath(), Version, reloadCmd)
 			
 			go func() {
 				if err := dashServer.Start(); err != nil {
@@ -1791,7 +1791,7 @@ func startCmd() {
 
 	// Initialize Dashboard Server
 	port := "8080"
-	server := dashboard.NewServer(":"+port, agentLoop, cfg, getConfigPath(), Version)
+	server := dashboard.NewServer(":"+port, agentLoop, cfg, getConfigPath(), Version, reloadCmd)
 
 	if runForeground {
 		go func() {

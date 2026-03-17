@@ -60,13 +60,16 @@ func (c *BaseChannel) HandleMessage(senderID, chatID, content string, media []st
 		return
 	}
 
+	sessionKey := c.name + ":" + chatID
+
 	msg := bus.InboundMessage{
-		Channel:  c.name,
-		SenderID: senderID,
-		ChatID:   chatID,
-		Content:  content,
-		Media:    media,
-		Metadata: metadata,
+		Channel:    c.name,
+		SenderID:   senderID,
+		ChatID:     chatID,
+		Content:    content,
+		Media:      media,
+		Metadata:   metadata,
+		SessionKey: sessionKey,
 	}
 
 	c.bus.PublishInbound(msg)

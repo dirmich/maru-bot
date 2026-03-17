@@ -95,6 +95,7 @@ type ProvidersConfig struct {
 	Zhipu      ProviderConfig `json:"zhipu"`
 	VLLM       ProviderConfig `json:"vllm"`
 	Gemini     ProviderConfig `json:"gemini"`
+	Ollama     []ProviderConfig `json:"ollama"`
 }
 
 type ProviderConfig struct {
@@ -480,6 +481,7 @@ func (c *Config) Update(newCfg *Config) {
 	if len(newCfg.Providers.Zhipu.Models) > 0 || newCfg.Providers.Zhipu.APIKey != "" { c.Providers.Zhipu = newCfg.Providers.Zhipu }
 	if len(newCfg.Providers.Groq.Models) > 0 || newCfg.Providers.Groq.APIKey != "" { c.Providers.Groq = newCfg.Providers.Groq }
 	if len(newCfg.Providers.VLLM.Models) > 0 || newCfg.Providers.VLLM.APIKey != "" { c.Providers.VLLM = newCfg.Providers.VLLM }
+	if len(newCfg.Providers.Ollama) > 0 { c.Providers.Ollama = newCfg.Providers.Ollama }
 
 	c.Gateway = newCfg.Gateway
 	c.Tools = newCfg.Tools
@@ -545,6 +547,15 @@ func (c *Config) GetAPIKey() string {
 			}
 		}
 	}
+
+	// Check Ollama list
+	for _, p := range c.Providers.Ollama {
+		for _, m := range p.Models {
+			if m.APIKey != "" {
+				return m.APIKey
+			}
+		}
+	}
 	return ""
 }
 
@@ -558,6 +569,16 @@ func (c *Config) findModelConfig(providerName, modelName string) *ModelConfig {
 	case "zhipu": provider = c.Providers.Zhipu
 	case "vllm": provider = c.Providers.VLLM
 	case "gemini": provider = c.Providers.Gemini
+	case "ollama":
+		// For Ollama, we search through the slice of providers
+		for _, p := range c.Providers.Ollama {
+			for _, m := range p.Models {
+				if strings.EqualFold(m.Model, modelName) {
+					return &m
+				}
+			}
+		}
+		return nil
 	default: return nil
 	}
 	for _, m := range provider.Models {
@@ -599,6 +620,13 @@ func (c *Config) IsAIConfigured() bool {
 		c.Providers.VLLM,
 	}
 	for _, p := range allProviders {
+		if len(p.Models) > 0 {
+			return true
+		}
+	}
+
+	// Check Ollama list
+	for _, p := range c.Providers.Ollama {
 		if len(p.Models) > 0 {
 			return true
 		}

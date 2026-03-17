@@ -7,6 +7,7 @@ import { Cpu, Save, Plus, Trash, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from "@/lib/i18n";
 import { Switch } from "@/components/ui/switch";
+import { authenticatedFetch } from "@/lib/auth";
 
 import { GpioSchematic, pinData } from '@/components/gpio-schematic';
 import { ConfirmDialog } from '@/components/ui-custom-dialog';
@@ -75,7 +76,7 @@ export function GpioPage() {
 
     const fetchGpio = async () => {
         try {
-            const res = await fetch('/api/gpio');
+            const res = await authenticatedFetch('/api/gpio');
             if (res.ok) {
                 const data = await res.json();
                 const flattened: PinConfig[] = [];
@@ -111,7 +112,7 @@ export function GpioPage() {
 
     const handleToggle = async (pin: number, label: string, group: string) => {
         try {
-            const res = await fetch('/api/gpio/toggle', {
+            const res = await authenticatedFetch('/api/gpio/toggle', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ pin }),
@@ -166,7 +167,7 @@ export function GpioPage() {
                 pinMap[fullKey] = p.pin;
             });
 
-            const res = await fetch('/api/gpio', {
+            const res = await authenticatedFetch('/api/gpio', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(pinMap),

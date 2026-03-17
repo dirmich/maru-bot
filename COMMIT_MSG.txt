@@ -1,1 +1,0 @@
-트레이 메뉴 About 추가 및 Uninstall 로직 강화 (v0.4.74)

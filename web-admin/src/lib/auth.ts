@@ -8,6 +8,15 @@ export const logout = () => {
     window.location.href = '/login';
 };
 
+export const authenticatedFetch = async (url: string, options?: RequestInit) => {
+    const response = await fetch(url, options);
+    if (response.status === 401) {
+        logout();
+        throw new Error('Unauthorized');
+    }
+    return response;
+};
+
 export const signIn = async (password: string) => {
     const response = await fetch('/api/login', {
         method: 'POST',

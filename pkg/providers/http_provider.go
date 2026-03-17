@@ -186,6 +186,15 @@ func findModelConfig(providerName, modelName string, cfg *config.Config) (*confi
 		provider = cfg.Providers.VLLM
 	case "gemini":
 		provider = cfg.Providers.Gemini
+	case "ollama":
+		for _, p := range cfg.Providers.Ollama {
+			for _, m := range p.Models {
+				if strings.EqualFold(m.Model, modelName) {
+					return &m, nil
+				}
+			}
+		}
+		return nil, fmt.Errorf("model %s not found in any ollama provider", modelName)
 	default:
 		return nil, fmt.Errorf("unknown provider: %s", providerName)
 	}
@@ -224,6 +233,15 @@ func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error)
 
 	for _, p := range providersList {
 		for _, m := range p.cfg.Models {
+			if strings.EqualFold(m.Model, model) {
+				return NewHTTPProvider(m.APIKey, m.APIBase), nil
+			}
+		}
+	}
+
+	// Search in Ollama list
+	for _, p := range cfg.Providers.Ollama {
+		for _, m := range p.Models {
 			if strings.EqualFold(m.Model, model) {
 				return NewHTTPProvider(m.APIKey, m.APIBase), nil
 			}

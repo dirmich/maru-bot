@@ -31,10 +31,11 @@ type Server struct {
 	skillMgr   *skills.SkillInstaller
 	skillLoad  *skills.SkillsLoader
 	version    string
+	onRestart  func()
 }
 
 // NewServer creates a new dashboard server instance
-func NewServer(addr string, agent *agent.AgentLoop, cfg *config.Config, configPath string, version string) *Server {
+func NewServer(addr string, agent *agent.AgentLoop, cfg *config.Config, configPath string, version string, onRestart func()) *Server {
 	return &Server{
 		addr:       addr,
 		agent:      agent,
@@ -43,6 +44,7 @@ func NewServer(addr string, agent *agent.AgentLoop, cfg *config.Config, configPa
 		skillMgr:   skills.NewSkillInstaller(cfg.WorkspacePath()),
 		skillLoad:  skills.NewSkillsLoader(cfg.WorkspacePath(), ""),
 		version:    version,
+		onRestart:  onRestart,
 	}
 }
 
@@ -287,6 +289,13 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		}
 
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+
+		if s.onRestart != nil {
+			go func() {
+				time.Sleep(500 * time.Millisecond)
+				s.onRestart()
+			}()
+		}
 	}
 }
 
@@ -442,7 +451,8 @@ func (s *Server) handleFetchModels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.APIKey == "" {
+	provider := strings.ToLower(req.Provider)
+	if req.APIKey == "" && provider != "ollama" {
 		http.Error(w, "API Key is required", http.StatusBadRequest)
 		return
 	}
@@ -453,7 +463,7 @@ func (s *Server) handleFetchModels(w http.ResponseWriter, r *http.Request) {
 	var models []string
 	var err error
 
-	provider := strings.ToLower(req.Provider)
+
 	switch provider {
 	case "openai", "groq", "openrouter", "vllm":
 		models, err = s.fetchOpenAIModels(ctx, req.APIKey, req.APIBase, provider)
@@ -461,6 +471,8 @@ func (s *Server) handleFetchModels(w http.ResponseWriter, r *http.Request) {
 		models, err = s.fetchGeminiModels(ctx, req.APIKey)
 	case "anthropic":
 		models, err = s.fetchAnthropicModels(ctx, req.APIKey)
+	case "ollama":
+		models, err = s.fetchOllamaModels(ctx, req.APIBase)
 	default:
 		err = fmt.Errorf("provider %s not supported for model fetching", req.Provider)
 	}
@@ -550,10 +562,7 @@ func (s *Server) fetchGeminiModels(ctx context.Context, apiKey string) ([]string
 	var models []string
 	for _, m := range data.Models {
 		// Name usually starts with "models/", strip it
-		name := m.Name
-		if strings.HasPrefix(name, "models/") {
-			name = name[7:]
-		}
+		name := strings.TrimPrefix(m.Name, "models/")
 		// Only include generative models
 		if strings.Contains(name, "gemini") {
 			models = append(models, name)
@@ -594,6 +603,44 @@ func (s *Server) fetchAnthropicModels(ctx context.Context, apiKey string) ([]str
 	var models []string
 	for _, m := range data.Data {
 		models = append(models, m.ID)
+	}
+	return models, nil
+}
+
+func (s *Server) fetchOllamaModels(ctx context.Context, apiBase string) ([]string, error) {
+	if apiBase == "" {
+		apiBase = "http://localhost:11434"
+	}
+	apiBase = strings.TrimSuffix(apiBase, "/")
+
+	req, err := http.NewRequestWithContext(ctx, "GET", apiBase+"/api/tags", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("Ollama error (%d): %s", resp.StatusCode, string(body))
+	}
+
+	var data struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+
+	var models []string
+	for _, m := range data.Models {
+		models = append(models, m.Name)
 	}
 	return models, nil
 }

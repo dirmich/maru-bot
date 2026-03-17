@@ -10,6 +10,7 @@ import { useTranslation } from "@/lib/i18n";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
+import { authenticatedFetch } from "@/lib/auth";
 
 // Simple ID generator
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -61,7 +62,7 @@ export function ChatPage() {
         scrollToBottom();
 
         try {
-            const res = await fetch('/api/chat', {
+            const res = await authenticatedFetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: userMsg.content }),
