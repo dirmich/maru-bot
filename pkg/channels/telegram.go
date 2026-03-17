@@ -158,7 +158,7 @@ func (c *TelegramChannel) handleMessage(update tgbotapi.Update) {
 		content += message.Caption
 	}
 
-	if message.Photo != nil && len(message.Photo) > 0 {
+	if len(message.Photo) > 0 {
 		photo := message.Photo[len(message.Photo)-1]
 		photoPath := c.downloadPhoto(photo.FileID)
 		if photoPath != "" {
@@ -304,6 +304,9 @@ func markdownToTelegramHTML(text string) string {
 	if text == "" {
 		return ""
 	}
+
+	// Strip any HTML <br> tags the LLM may have output and replace with newline
+	text = regexp.MustCompile(`(?i)<br\s*/?>`).ReplaceAllString(text, "\n")
 
 	codeBlocks := extractCodeBlocks(text)
 	text = codeBlocks.text

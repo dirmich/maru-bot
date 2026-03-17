@@ -19,6 +19,7 @@ import (
 
 	"github.com/dirmich/marubot/pkg/bus"
 	"github.com/dirmich/marubot/pkg/config"
+	"github.com/dirmich/marubot/pkg/logger" // Added logger
 	"github.com/dirmich/marubot/pkg/providers"
 	"github.com/dirmich/marubot/pkg/session"
 	"github.com/dirmich/marubot/pkg/tools"
@@ -298,7 +299,13 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 		})
 
 		if err != nil {
+			logger.ErrorC("agent", fmt.Sprintf("LLM call failed: %v", err))
 			return "", fmt.Errorf("LLM call failed: %w", err)
+		}
+
+		logger.InfoC("agent", fmt.Sprintf("Iteration %d: LLM response content length: %d, tool calls: %d", iteration, len(response.Content), len(response.ToolCalls)))
+		if len(response.Content) > 0 {
+			logger.InfoC("agent", fmt.Sprintf("LLM Content: %s", response.Content))
 		}
 
 		if len(response.ToolCalls) == 0 {
@@ -345,7 +352,19 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 	}
 
 	if finalContent == "" {
-		finalContent = "I've completed processing but have no response to give."
+		// Fallback: Try to find the last meaningful assistant message.
+		// Exclude messages that look like raw tool call JSON (start with '{')
+		for i := len(messages) - 1; i >= 0; i-- {
+			c := strings.TrimSpace(messages[i].Content)
+			if messages[i].Role == "assistant" && c != "" && !strings.HasPrefix(c, "{") {
+				finalContent = c
+				break
+			}
+		}
+
+		if finalContent == "" {
+			finalContent = "I've completed processing but have no response to give."
+		}
 	}
 
 	al.sessions.AddMessage(msg.SessionKey, "user", msg.Content)
@@ -445,6 +464,15 @@ func (al *AgentLoop) parseJSONToolCall(content string) *providers.ToolCall {
 		return &providers.ToolCall{
 			ID:        fmt.Sprintf("call_%d", time.Now().UnixNano()),
 			Name:      "shell",
+			Arguments: data,
+		}
+	}
+
+	// Case 1.1: Direct config action style {"action": "get", "key": "..."} -> config
+	if action, ok := data["action"].(string); ok && (action == "get" || action == "set") {
+		return &providers.ToolCall{
+			ID:        fmt.Sprintf("call_%d", time.Now().UnixNano()),
+			Name:      "config",
 			Arguments: data,
 		}
 	}

@@ -5,6 +5,7 @@ package dashboard
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,6 +18,8 @@ import (
 // isRPi returns true on Linux ARM platforms (Raspberry Pi)
 func isRPi() bool { return true }
 
+func (s *Server) isRPi() bool { return true }
+
 func (s *Server) registerGPIORoutes(mux *http.ServeMux) {
 	mux.Handle("/api/gpio", s.authMiddleware(http.HandlerFunc(s.handleGpio)))
 	mux.Handle("/api/gpio/toggle", s.authMiddleware(http.HandlerFunc(s.handleGpioToggle)))
@@ -26,8 +29,10 @@ func (s *Server) handleGpio(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method == "GET" {
-		flat := config.FlattenPins(s.config.Hardware.GPIO.Pins)
-		json.NewEncoder(w).Encode(flat)
+		s.config.Mu.RLock()
+		pins := s.config.Hardware.GPIO.Pins
+		s.config.Mu.RUnlock()
+		json.NewEncoder(w).Encode(pins)
 		return
 	}
 
@@ -41,30 +46,15 @@ func (s *Server) handleGpio(w http.ResponseWriter, r *http.Request) {
 		pins := config.UnflattenPins(flatPins)
 		s.config.Hardware.GPIO.Pins = pins
 
+		// Save directly to main config.json
 		home, _ := os.UserHomeDir()
-		userSettingsPath := filepath.Join(home, ".marubot", "usersetting.json")
-
-		var settings map[string]interface{}
-		data, err := os.ReadFile(userSettingsPath)
-		if err == nil {
-			json.Unmarshal(data, &settings)
-		} else {
-			settings = make(map[string]interface{})
+		configPath := filepath.Join(home, ".marubot", "config.json")
+		if err := config.SaveConfig(configPath, s.config); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to save config: %v", err), http.StatusInternalServerError)
+			return
 		}
 
-		if settings["hardware"] == nil {
-			settings["hardware"] = make(map[string]interface{})
-		}
-		hw := settings["hardware"].(map[string]interface{})
-		if hw["gpio"] == nil {
-			hw["gpio"] = make(map[string]interface{})
-		}
-		gp := hw["gpio"].(map[string]interface{})
-		gp["pins"] = pins
-
-		newData, _ := json.MarshalIndent(settings, "", "  ")
-		os.WriteFile(userSettingsPath, newData, 0644)
-
+		log.Printf("[GPIO] [Action: SaveConfig] Pins updated: %v", pins)
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	}
 }
@@ -76,28 +66,57 @@ func (s *Server) handleGpioToggle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Pin int `json:"pin"`
+		Pin interface{} `json:"pin"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
 
-	p := gpioreg.ByName(fmt.Sprintf("%d", req.Pin))
+	var pin int
+	switch v := req.Pin.(type) {
+	case float64:
+		pin = int(v)
+	case int:
+		pin = v
+	case string:
+		fmt.Sscanf(v, "%d", &pin)
+	default:
+		http.Error(w, "Invalid pin format", http.StatusBadRequest)
+		return
+	}
+
+	// Find pin label to determine mode
+	label := ""
+	flatPins := config.FlattenPins(s.config.Hardware.GPIO.Pins)
+	for l, p := range flatPins {
+		if p == pin {
+			label = l
+			break
+		}
+	}
+
+	p := gpioreg.ByName(fmt.Sprintf("%d", pin))
 	if p == nil {
 		http.Error(w, "Pin not found", http.StatusNotFound)
 		return
 	}
 
+	isInput := config.IsInputPin(label)
 	level := p.Read()
-	newLevel := gpio.High
-	if level == gpio.High {
-		newLevel = gpio.Low
-	}
+	newLevel := level
 
-	if err := p.Out(newLevel); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to toggle pin: %v", err), http.StatusInternalServerError)
-		return
+	if !isInput {
+		// Only toggle for output pins
+		newLevel = gpio.High
+		if level == gpio.High {
+			newLevel = gpio.Low
+		}
+
+		if err := p.Out(newLevel); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to toggle pin: %v", err), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -105,8 +124,26 @@ func (s *Server) handleGpioToggle(w http.ResponseWriter, r *http.Request) {
 	if newLevel == gpio.High {
 		levelInt = 1
 	}
+
+	action := "read"
+	if !isInput {
+		action = "toggle"
+	}
+
+	if isInput {
+		if s.config.Hardware.GPIOTestMode {
+			log.Printf("[GPIO] [WebAdmin Access] Pin %d (%s) read. Level: %d", pin, label, levelInt)
+		}
+	} else {
+		if s.config.Hardware.GPIOTestMode {
+			log.Printf("[GPIO] [WebAdmin Access] Pin %d (%s) toggled. Old: %d, New: %d", pin, label, levelInt, levelInt)
+		}
+	}
+
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": "ok",
 		"level":  levelInt,
+		"action": action,
+		"mode":   map[bool]string{true: "IN", false: "OUT"}[isInput],
 	})
 }
