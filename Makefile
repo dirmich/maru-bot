@@ -16,8 +16,16 @@ LDFLAGS_BASE=$(if $(VERSION),-X main.version=$(VERSION) -X main.buildTime=$(BUIL
 LDFLAGS_CONSOLE=-ldflags "$(LDFLAGS_BASE)"
 # For Windows (GUI - to hide CMD window)
 LDFLAGS_WINDOWSGUI=-ldflags "$(LDFLAGS_BASE) -H windowsgui"
+# OS detection
+UNAME_S:=$(shell uname -s)
+UNAME_M:=$(shell uname -m)
 
-CGO_ENABLED=0
+# CGO settings
+ifeq ($(UNAME_S),Darwin)
+	CGO_ENABLED=1
+else
+	CGO_ENABLED=0
+endif
 export CGO_ENABLED
 
 # Go variables
@@ -34,8 +42,6 @@ WORKSPACE_SKILLS_DIR=$(WORKSPACE_DIR)/skills
 BUILTIN_SKILLS_DIR=$(CURDIR)/skills
 
 # OS detection
-UNAME_S:=$(shell uname -s)
-UNAME_M:=$(shell uname -m)
 
 # Platform-specific settings
 ifeq ($(UNAME_S),Linux)
@@ -79,7 +85,7 @@ sync-ui:
 build: sync-ui
 	@echo "Building $(BINARY_NAME) for $(PLATFORM)/$(ARCH)..."
 	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=0 $(GO) build $(GOFLAGS) $(LDFLAGS_CONSOLE) -o $(BINARY_PATH) ./$(CMD_DIR)
+	$(GO) build $(GOFLAGS) $(LDFLAGS_CONSOLE) -o $(BINARY_PATH) ./$(CMD_DIR)
 	@echo "Build complete: $(BINARY_PATH)"
 	@ln -sf $(BINARY_NAME)-$(PLATFORM)-$(ARCH) $(BUILD_DIR)/$(BINARY_NAME)
 

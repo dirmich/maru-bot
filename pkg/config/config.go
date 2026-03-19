@@ -475,7 +475,16 @@ func (c *Config) Update(newCfg *Config) {
 	
 	// Selective Agents update
 	if newCfg.Agents.Defaults.Model != "" {
-		c.Agents = newCfg.Agents
+		c.Agents.Defaults.Model = newCfg.Agents.Defaults.Model
+	}
+	if newCfg.Agents.Defaults.Provider != "" {
+		c.Agents.Defaults.Provider = newCfg.Agents.Defaults.Provider
+	}
+	if newCfg.Agents.Defaults.Workspace != "" {
+		c.Agents.Defaults.Workspace = newCfg.Agents.Defaults.Workspace
+	}
+	if len(newCfg.Agents.Defaults.FallbackModels) > 0 {
+		c.Agents.Defaults.FallbackModels = newCfg.Agents.Defaults.FallbackModels
 	}
 
 	// Merge Channels config

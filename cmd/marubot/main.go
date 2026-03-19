@@ -200,12 +200,20 @@ func uninstallCmd() {
 	fmt.Printf("%s MaruBot Uninstaller\n", logo)
 	fmt.Println("WARNING: This will remove MaruBot and its resources from your system.")
 
-	fmt.Print("Are you sure you want to continue? (y/N): ")
-	var confirm string
-	fmt.Scanln(&confirm)
-	if strings.ToLower(confirm) != "y" {
-		fmt.Println("Aborted.")
-		return
+	// Show native dialog if on macOS or Windows to ensure confirmation in GUI mode
+	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+		if !showNativeConfirmDialog("Are you sure you want to uninstall MaruBot?") {
+			fmt.Println("Aborted by user.")
+			return
+		}
+	} else {
+		fmt.Print("Are you sure you want to continue? (y/N): ")
+		var confirm string
+		fmt.Scanln(&confirm)
+		if strings.ToLower(confirm) != "y" {
+			fmt.Println("Aborted.")
+			return
+		}
 	}
 
 	// 0. Remove Services and Kill Processes (Cross-platform)
@@ -1576,7 +1584,6 @@ func reloadCmd() {
 			}
 			servicePath := filepath.Join(serviceDir, "marubot.service")
 			if _, err := os.Stat(servicePath); err == nil {
-				// Ensure systemd knows about potential binary or service file changes
 				daemonReload := exec.Command("systemctl", "--user", "daemon-reload")
 				restart := exec.Command("systemctl", "--user", "restart", "marubot.service")
 				
@@ -1597,15 +1604,10 @@ func reloadCmd() {
 		}
 	}
 
-	// If we are already running as a daemon/service, calling stopCmd() here 
-	// sends a signal to OURSELVES, causing premature exit before we can 
-	// successfully spawn the new process.
-	// Instead, we just spawn 'marubot start', which will call stopCmd() 
-	// for us and handle the cleanup and restart cycle.
-	if os.Getenv("MARUBOT_DAEMON") != "1" && os.Getenv("MARUBOT_SERVICE") != "1" {
-		stopCmd()
-		time.Sleep(1 * time.Second)
-	}
+	// For macOS/Windows or if systemd failed:
+	// We always call stopCmd() to kill the existing PID before spawning a new one.
+	// But first, we need to clear the MARUBOT_DAEMON env var to ensure startCmd() calls stopCmd().
+	os.Unsetenv("MARUBOT_DAEMON")
 
 	exe, err := os.Executable()
 	if err != nil {
@@ -1613,7 +1615,8 @@ func reloadCmd() {
 		return
 	}
 
-	// Spawn the trigger process that will restart us
+	// Spawn 'marubot start' without the DAEMON env var.
+	// This process will then stop the old one and daemonize itself.
 	cmd := exec.Command(exe, "start")
 	if err := cmd.Start(); err != nil {
 		fmt.Printf("✗ Failed to start during reload: %v\n", err)
@@ -1636,7 +1639,7 @@ func startCmd() {
 	if !runForeground && os.Getenv("MARUBOT_DAEMON") != "1" {
 		// Clean up existing instance before starting a new one in background
 		stopCmd()
-		time.Sleep(1 * time.Second)
+		time.Sleep(500 * time.Millisecond)
 
 		exe, err := os.Executable()
 		if err != nil {
@@ -1648,18 +1651,21 @@ func startCmd() {
 			err = installAndRunSystemdService(exe)
 			if err == nil {
 				fmt.Println("✨ MaruBot started as a systemd service.")
-				fmt.Println("   It will auto-restart on reboot and continue working.")
 				fmt.Println("   URL: http://localhost:8080")
-				fmt.Println("   To stop: use 'marubot stop'")
-				fmt.Println("   To reload config: use 'marubot reload'")
 				return
 			}
-			fmt.Printf("Systemd service setup failed: %v. Falling back to simple daemon...\n", err)
 		}
 
 		// Re-run with special env var
 		cmd := exec.Command(exe, "start")
-		cmd.Env = append(os.Environ(), "MARUBOT_DAEMON=1")
+		// Clean up inherited DAEMON env var if any
+		newEnv := make([]string, 0)
+		for _, e := range os.Environ() {
+			if !strings.HasPrefix(e, "MARUBOT_DAEMON=") {
+				newEnv = append(newEnv, e)
+			}
+		}
+		cmd.Env = append(newEnv, "MARUBOT_DAEMON=1")
 		// Detach process
 		cmd.Stdin = nil
 		cmd.Stdout = nil
@@ -1669,7 +1675,6 @@ func startCmd() {
 			fmt.Printf("Failed to start background process: %v\n", err)
 			os.Exit(1)
 		}
-
 		pidFile := getPidFilePath()
 		os.WriteFile(pidFile, []byte(fmt.Sprintf("%d", cmd.Process.Pid)), 0644)
 
@@ -1699,6 +1704,10 @@ func startCmd() {
 	if runForeground {
 		fmt.Printf("%s Starting MaruBot Dashboard & API Server...\n", logo)
 	}
+
+	// Always write PID file so stopCmd/reloadCmd can find us
+	pidFile := getPidFilePath()
+	os.WriteFile(pidFile, []byte(fmt.Sprintf("%d", os.Getpid())), 0644)
 
 	cfg, err := loadConfig()
 	if err != nil {
@@ -2422,4 +2431,24 @@ if ($result -eq "Yes") { exit 0 } else { exit 1 }
 	cmd := exec.Command("powershell", "-Command", script)
 	err := cmd.Run()
 	return err == nil
+}
+
+func showNativeConfirmDialog(message string) bool {
+	if runtime.GOOS == "darwin" {
+		// Escape double quotes in message
+		msg := strings.ReplaceAll(message, `"`, `\"`)
+		script := fmt.Sprintf(`display dialog "%s" buttons {"Cancel", "OK"} default button "OK" with icon caution`, msg)
+		cmd := exec.Command("osascript", "-e", script)
+		err := cmd.Run()
+		return err == nil
+	} else if runtime.GOOS == "windows" {
+		// Use PowerShell to show a message box
+		// Escape single quotes for PowerShell
+		msg := strings.ReplaceAll(message, `'`, `''`)
+		script := fmt.Sprintf(`Add-Type -AssemblyName System.Windows.Forms; $result = [System.Windows.Forms.MessageBox]::Show('%s', 'MaruBot Uninstall', 'YesNo', 'Warning'); if ($result -eq 'Yes') { exit 0 } else { exit 1 }`, msg)
+		cmd := exec.Command("powershell", "-Command", script)
+		err := cmd.Run()
+		return err == nil
+	}
+	return true
 }

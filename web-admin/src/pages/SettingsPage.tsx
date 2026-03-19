@@ -1,14 +1,15 @@
-import { useState, useEffect, useMemo } from 'react';
+import { ConfirmDialog } from "@/components/ui-custom-dialog";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
-import { toast } from 'sonner';
-import { Settings, Cpu, Wrench, ShieldCheck, Languages, CheckCircle2, RefreshCw, Send, MessageSquare, Bell, ExternalLink, Globe, Trash2, Plus } from 'lucide-react';
-import { ConfirmDialog } from "@/components/ui-custom-dialog";
-import { useTranslation, useLanguageStore, Language } from "@/lib/i18n";
 import { authenticatedFetch } from "@/lib/auth";
+import { Language, useLanguageStore, useTranslation } from "@/lib/i18n";
+import { Bell, CheckCircle2, Cpu, ExternalLink, Globe, HelpCircle, Languages, MessageSquare, Monitor, Moon, Plus, RefreshCw, Send, Settings, ShieldCheck, Sun, Trash2, Wrench } from 'lucide-react';
+import { useTheme } from "next-themes";
+import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 export function SettingsPage() {
     const t = useTranslation();
@@ -26,6 +27,14 @@ export function SettingsPage() {
     const [isAddProviderOpen, setIsAddProviderOpen] = useState(false);
     const [addingProvider, setAddingProvider] = useState<{name: string, index?: number} | null>(null);
     const [tempProvider, setTempProvider] = useState<any>({ api_key: '', api_base: '', models: [] });
+
+    // For Theme
+    const { theme, setTheme } = useTheme();
+
+    // For "How to Get" Dialog
+    const [showHowToGet, setShowHowToGet] = useState(false);
+    const [helpChannel, setHelpChannel] = useState<string | null>(null);
+
 
     useEffect(() => {
         fetchConfig();
@@ -258,6 +267,31 @@ export function SettingsPage() {
                                     value={config.agents?.defaults?.workspace || ''}
                                     onChange={(e) => updateConfig(['agents', 'defaults', 'workspace'], e.target.value)}
                                 />
+                            </div>
+                        </div>
+
+                        {/* Theme Selection */}
+                        <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                            <label className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">{t.settings_theme_title}</label>
+                            <div className="grid grid-cols-3 gap-3">
+                                {[
+                                    { id: 'light', icon: <Sun className="w-4 h-4" />, label: t.settings_theme_light },
+                                    { id: 'dark', icon: <Moon className="w-4 h-4" />, label: t.settings_theme_dark },
+                                    { id: 'system', icon: <Monitor className="w-4 h-4" />, label: t.settings_theme_system }
+                                ].map((item) => (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => setTheme(item.id)}
+                                        className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all gap-2 ${
+                                            theme === item.id 
+                                            ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold' 
+                                            : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 text-slate-500'
+                                        }`}
+                                    >
+                                        {item.icon}
+                                        <span className="text-[10px] uppercase tracking-wider">{item.label}</span>
+                                    </button>
+                                ))}
                             </div>
                         </div>
                     </CardContent>
@@ -573,7 +607,17 @@ export function SettingsPage() {
                             {activeChannel === 'telegram' && (
                                 <div className="space-y-4 animate-in slide-in-from-top-2">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_channel_token}</label>
+                                        <div className="flex justify-between items-end px-1">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{t.settings_channel_token}</label>
+                                            <Button 
+                                                variant="link" 
+                                                size="sm" 
+                                                className="h-auto p-0 text-[10px] font-bold text-blue-500 hover:text-blue-600 flex items-center gap-1"
+                                                onClick={() => { setHelpChannel(activeChannel); setShowHowToGet(true); }}
+                                            >
+                                                <HelpCircle className="w-3 h-3" /> {t.settings_how_to_get}
+                                            </Button>
+                                        </div>
                                         <Input 
                                             className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
                                             value={config.channels[activeChannel].token || ''} 
@@ -634,6 +678,55 @@ export function SettingsPage() {
                 description="모든 설정을 서버의 현재 값으로 되돌리시겠습니까?"
                 onConfirm={fetchConfig}
             />
+
+            {/* How to get Token Help Dialog */}
+            <Dialog open={showHowToGet} onOpenChange={setShowHowToGet}>
+                <DialogContent className="sm:max-w-[450px] border-none shadow-2xl p-0 overflow-hidden rounded-3xl">
+                    <div className="p-8 bg-blue-600 text-white space-y-2">
+                        <DialogTitle className="text-2xl font-black uppercase tracking-tight flex items-center gap-2">
+                            <HelpCircle className="w-6 h-6" /> {helpChannel} Token Guide
+                        </DialogTitle>
+                        <DialogDescription className="text-blue-100">
+                             Follow these steps to generate your bot token.
+                        </DialogDescription>
+                    </div>
+                    <div className="p-8 space-y-6 bg-white dark:bg-slate-900">
+                        <div className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 italic">
+                             {helpChannel === 'telegram' && t.settings_how_to_get_telegram}
+                             {helpChannel === 'discord' && t.settings_how_to_get_discord}
+                             {helpChannel === 'slack' && t.settings_how_to_get_slack}
+                             {helpChannel === 'feishu' && t.settings_how_to_get_feishu}
+                        </div>
+                        
+                        <div className="flex gap-2">
+                            {helpChannel === 'telegram' && (
+                                <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold h-12 rounded-xl" asChild>
+                                    <a href="https://t.me/botfather" target="_blank" rel="noopener noreferrer">
+                                        Open @BotFather <ExternalLink className="w-4 h-4 ml-2" />
+                                    </a>
+                                </Button>
+                            )}
+                            {helpChannel === 'discord' && (
+                                <Button className="w-full bg-[#5865F2] hover:bg-[#4752c4] text-white font-bold h-12 rounded-xl" asChild>
+                                    <a href="https://discord.com/developers/applications" target="_blank" rel="noopener noreferrer">
+                                        Open Developer Portal <ExternalLink className="w-4 h-4 ml-2" />
+                                    </a>
+                                </Button>
+                            )}
+                            {helpChannel === 'feishu' && (
+                                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 rounded-xl" asChild>
+                                    <a href="https://open.feishu.cn/app" target="_blank" rel="noopener noreferrer">
+                                        Open Developer Console <ExternalLink className="w-4 h-4 ml-2" />
+                                    </a>
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                    <DialogFooter className="p-6 bg-slate-50 dark:bg-slate-800/50 border-t">
+                        <Button variant="outline" onClick={() => setShowHowToGet(false)} className="w-full rounded-xl font-bold">Got it!</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

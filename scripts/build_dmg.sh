@@ -66,8 +66,9 @@ EOF
 ENTITLEMENTS="scripts/entitlements.plist"
 if [ -n "$SIGNING_IDENTITY" ]; then
     echo "Signing binary and app bundle with identity: $SIGNING_IDENTITY"
-    codesign --deep --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$SIGNING_IDENTITY" --timestamp "$MACOS_DIR/$BINARY_NAME"
-    codesign --force --sign "$SIGNING_IDENTITY" --timestamp "$APP_BUNDLE"
+    # Note: --options runtime is REQUIRED for notarization
+    codesign --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$SIGNING_IDENTITY" --timestamp "$MACOS_DIR/$BINARY_NAME"
+    codesign --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$SIGNING_IDENTITY" --timestamp "$APP_BUNDLE"
 else
     echo "⚠️ SIGNING_IDENTITY not set. Skipping code signing. App will likely be blocked by Gatekeeper."
 fi

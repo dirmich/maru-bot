@@ -16,6 +16,7 @@ import (
 
 	"github.com/dirmich/marubot/pkg/agent"
 	"github.com/dirmich/marubot/pkg/config"
+	"github.com/dirmich/marubot/pkg/providers"
 	"github.com/dirmich/marubot/pkg/skills"
 	"github.com/dirmich/marubot/pkg/utils"
 )
@@ -294,6 +295,14 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		// Update In-memory config fields selectively to avoid copying mutex
 		s.config.Update(newCfg)
 
+		// Proactively update AgentLoop provider if it's already running
+		// This provides immediate "hot-reload" effect even before the full process restart
+		if s.agent != nil {
+			if p, err := providers.CreateProvider(s.config); err == nil {
+				s.agent.SetProvider(p)
+			}
+		}
+
 		// Save to config.json for persistence
 		if err := config.SaveConfig(s.configPath, s.config); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save config: %v", err), http.StatusInternalServerError)
@@ -304,7 +313,7 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 
 		if s.onRestart != nil {
 			go func() {
-				time.Sleep(500 * time.Millisecond)
+				time.Sleep(800 * time.Millisecond) // Slightly longer sleep to ensure Save is flushed
 				s.onRestart()
 			}()
 		}

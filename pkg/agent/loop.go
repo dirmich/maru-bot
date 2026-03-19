@@ -14,7 +14,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strings" // Added strings import
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/dirmich/marubot/pkg/bus"
@@ -29,7 +30,6 @@ type AgentLoop struct {
 	bus            *bus.MessageBus
 	provider       providers.LLMProvider
 	workspace      string
-	model          string
 	maxIterations  int
 	sessions       *session.SessionManager
 	contextBuilder *ContextBuilder
@@ -37,6 +37,7 @@ type AgentLoop struct {
 	version        string
 	config         *config.Config
 	running        bool
+	mu             sync.RWMutex
 }
 
 func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LLMProvider, version string) *AgentLoop {
@@ -114,7 +115,6 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 		bus:            bus,
 		provider:       provider,
 		workspace:      workspace,
-		model:          cfg.Agents.Defaults.Model,
 		maxIterations:  20,
 		sessions:       sessionsManager,
 		contextBuilder: NewContextBuilder(workspace, version, cfg),
@@ -131,6 +131,12 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 		}
 	}
 	return al
+}
+
+func (al *AgentLoop) SetProvider(p providers.LLMProvider) {
+	al.mu.Lock()
+	defer al.mu.Unlock()
+	al.provider = p
 }
 
 func (al *AgentLoop) Run(ctx context.Context) error {
@@ -293,7 +299,16 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 			}
 		}
 
-		response, err := al.provider.Chat(ctx, messages, providerToolDefs, al.model, map[string]interface{}{
+		al.mu.RLock()
+		currentProvider := al.provider
+		currentModel := al.config.Agents.Defaults.Model
+		al.mu.RUnlock()
+
+		if currentModel == "" {
+			currentModel = currentProvider.GetDefaultModel()
+		}
+
+		response, err := currentProvider.Chat(ctx, messages, providerToolDefs, currentModel, map[string]interface{}{
 			"max_tokens":  maxTokens,
 			"temperature": temperature,
 		})
@@ -374,8 +389,10 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 }
 
 func (al *AgentLoop) findCurrentModelConfig() *config.ModelConfig {
+	al.mu.RLock()
 	providerName := al.config.Agents.Defaults.Provider
-	modelName := al.model
+	modelName := al.config.Agents.Defaults.Model
+	al.mu.RUnlock()
 
 	// Helper to search in a provider
 	getInProvider := func(p config.ProviderConfig) *config.ModelConfig {
