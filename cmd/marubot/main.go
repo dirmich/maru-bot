@@ -1597,20 +1597,29 @@ func reloadCmd() {
 		}
 	}
 
-	stopCmd()
-	time.Sleep(1 * time.Second)
+	// If we are already running as a daemon/service, calling stopCmd() here 
+	// sends a signal to OURSELVES, causing premature exit before we can 
+	// successfully spawn the new process.
+	// Instead, we just spawn 'marubot start', which will call stopCmd() 
+	// for us and handle the cleanup and restart cycle.
+	if os.Getenv("MARUBOT_DAEMON") != "1" && os.Getenv("MARUBOT_SERVICE") != "1" {
+		stopCmd()
+		time.Sleep(1 * time.Second)
+	}
 
 	exe, err := os.Executable()
 	if err != nil {
 		fmt.Printf("✗ Executable path error: %v\n", err)
 		return
 	}
+
+	// Spawn the trigger process that will restart us
 	cmd := exec.Command(exe, "start")
 	if err := cmd.Start(); err != nil {
 		fmt.Printf("✗ Failed to start during reload: %v\n", err)
 		return
 	}
-	fmt.Println("✓ Reload complete.")
+	fmt.Println("✓ Reload trigger sent.")
 }
 
 func startCmd() {
