@@ -94,7 +94,9 @@ build-all: sync-ui
 	@echo "Building for macOS (CGO required for Tray Icon)..."
 	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 ./$(CMD_DIR)
 	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 ./$(CMD_DIR)
-	@echo "All targeted builds complete"
+	@echo "Packaging DMGs..."
+	@$(MAKE) package-dmg
+	@echo "All targeted builds and packages complete"
 
 ## package-win: Package Windows binaries into ZIP files (Single + Installable)
 package-win: build-all
@@ -115,7 +117,7 @@ package-win: build-all
 	@echo "✓ Windows packages created."
 
 ## package-dmg: Package macOS binaries into DMG files
-package-dmg: build-all
+package-dmg:
 	@echo "📦 Packaging macOS DMGs..."
 	@chmod +x scripts/build_dmg.sh
 	@./scripts/build_dmg.sh amd64
