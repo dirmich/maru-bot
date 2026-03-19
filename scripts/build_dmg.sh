@@ -62,24 +62,41 @@ cat > "$CONTENTS_DIR/Info.plist" <<EOF
 </plist>
 EOF
 
-# 6. Sign Code (REQUIRED for macOS security)
+# 6. Sign and Notarize App Bundle (REQUIRED for macOS security)
 ENTITLEMENTS="scripts/entitlements.plist"
 if [ -n "$SIGNING_IDENTITY" ]; then
     echo "Signing binary and app bundle with identity: $SIGNING_IDENTITY"
     # Note: --options runtime is REQUIRED for notarization
     codesign --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$SIGNING_IDENTITY" --timestamp "$MACOS_DIR/$BINARY_NAME"
     codesign --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$SIGNING_IDENTITY" --timestamp "$APP_BUNDLE"
+
+    if [ -n "$AC_APPLE_ID" ] && [ -n "$AC_PASSWORD" ] && [ -n "$AC_TEAM_ID" ]; then
+        echo "Notarizing App Bundle..."
+        ZIP_NAME="$BUILD_DIR/$APP_NAME-$ARCH.zip"
+        rm -f "$ZIP_NAME"
+        # Create a zip of the app bundle for notarization
+        ditto -c -k --keepParent "$APP_BUNDLE" "$ZIP_NAME"
+        
+        xcrun notarytool submit "$ZIP_NAME" --apple-id "$AC_APPLE_ID" --password "$AC_PASSWORD" --team-id "$AC_TEAM_ID" --wait
+        
+        echo "Stapling App Bundle..."
+        xcrun stapler staple "$APP_BUNDLE"
+        rm -f "$ZIP_NAME"
+        echo "✓ App Bundle notarization and stapling complete."
+    else
+        echo "⚠️ Notarization credentials missing. Skipping App notarization."
+    fi
 else
     echo "⚠️ SIGNING_IDENTITY not set. Skipping code signing. App will likely be blocked by Gatekeeper."
 fi
 
-# 7. Prepare DMG Root (THIS IS THE FIX)
+# 7. Prepare DMG Root
 # We need a folder that contains the .app AND a symlink to Applications
 DMG_ROOT="$BUILD_DIR/dmg-root-$ARCH"
 rm -rf "$DMG_ROOT"
 mkdir -p "$DMG_ROOT"
 
-# Copy the .app bundle into the DMG root
+# Copy the notarized .app bundle into the DMG root
 cp -R "$APP_BUNDLE" "$DMG_ROOT/"
 
 # Create symlink to Applications
@@ -92,7 +109,7 @@ rm -f "$DMG_NAME"
 echo "Creating DMG package..."
 hdiutil create -volname "$APP_NAME v$VERSION" -srcfolder "$DMG_ROOT" -ov -format UDZO "$DMG_NAME"
 
-# 8. Sign and Notarize DMG
+# 9. Sign and Notarize DMG
 if [ -n "$SIGNING_IDENTITY" ]; then
     echo "Signing DMG..."
     codesign --force --sign "$SIGNING_IDENTITY" --timestamp "$DMG_NAME"
@@ -101,11 +118,11 @@ if [ -n "$SIGNING_IDENTITY" ]; then
         echo "Submitting DMG for notarization..."
         xcrun notarytool submit "$DMG_NAME" --apple-id "$AC_APPLE_ID" --password "$AC_PASSWORD" --team-id "$AC_TEAM_ID" --wait
         
-        echo "Stapling notarization ticket..."
+        echo "Stapling DMG..."
         xcrun stapler staple "$DMG_NAME"
-        echo "✓ Notarization and stapling complete."
+        echo "✓ DMG notarization and stapling complete."
     else
-        echo "⚠️ Notarization credentials (AC_APPLE_ID, AC_PASSWORD, AC_TEAM_ID) missing. Skipping notarization."
+        echo "⚠️ Notarization credentials missing. Skipping DMG notarization."
     fi
 fi
 
