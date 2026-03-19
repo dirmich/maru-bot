@@ -9,8 +9,18 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${BLUE}🤖 Starting MaruBot One-Click Installer...${NC}"
+# 0. Parse Arguments
+FORCE_RPI=false
+for arg in "$@"; do
+    if [ "$arg" == "--rpi" ]; then
+        FORCE_RPI=true
+    fi
+done
 
+echo -e "${BLUE}🤖 Starting MaruBot One-Click Installer...${NC}"
+if [ "$FORCE_RPI" = true ]; then
+    echo -e "${BLUE}ℹ️ Raspberry Pi mode forced via parameter.${NC}"
+fi
 # 0. Language Selection
 # 0. Language Selection
 echo "Language / 언어 / 言語:"
@@ -43,8 +53,8 @@ esac
 # Check for existing password in config.json
 EXISTING_PWD=""
 if [ -f "$HOME/.marubot/config.json" ]; then
-    # Try to extract existing password using sed and grep
-    EXISTING_PWD=$(grep -oP '"admin_password":\s*"\K[^"]+' "$HOME/.marubot/config.json" || true)
+    # Try to extract existing password using more compatible sed/grep
+    EXISTING_PWD=$(grep "\"admin_password\":" "$HOME/.marubot/config.json" | sed -E 's/.*"admin_password":\s*"([^"]+)".*/\1/' || true)
 fi
 
 PROMPT_PWD_SUFFIX=" [Default: admin]"
@@ -90,6 +100,7 @@ if [ "$MARUBOT_LANG" = "ko" ]; then
     MSG_GO_BUILD="🛠️ MaruBot 엔진 빌드 중..."
     MSG_SUCCESS="🎉 MaruBot 설치가 완료되었습니다!"
     MSG_DASHBOARD="대시보드 실행: marubot start"
+    MSG_UPGRADE="🚀 MaruBot 업그레이드 시도 중..."
 elif [ "$MARUBOT_LANG" = "ja" ]; then
     MSG_ARCH_ERR="❌ このスクリプトはRaspberry Pi(ARM)環境専用です。"
     MSG_PKG_INST="📦 必須パッケージをインストール中..."
@@ -99,6 +110,7 @@ elif [ "$MARUBOT_LANG" = "ja" ]; then
     MSG_GO_BUILD="🛠️ MaruBotエンジンをビルド中..."
     MSG_SUCCESS="🎉 MaruBotのインストールが完了しました！"
     MSG_DASHBOARD="ダッシュボードの実行: marubot start"
+    MSG_UPGRADE="🚀 MaruBotアップグレードを試行中..."
 else
     MSG_ARCH_ERR="❌ This script is only for Raspberry Pi (ARM) environments."
     MSG_PKG_INST="📦 Installing required packages..."
@@ -108,6 +120,7 @@ else
     MSG_GO_BUILD="🛠️ Building MaruBot engine..."
     MSG_SUCCESS="🎉 MaruBot installation complete!"
     MSG_DASHBOARD="Run dashboard: marubot start"
+    MSG_UPGRADE="🚀 Attempting MaruBot upgrade..."
 fi
 
 # 1. Check Architecture and OS
@@ -144,13 +157,19 @@ elif [ -f "/usr/local/go/bin/go" ]; then
 fi
 
 if [ ! -z "$DETECTED_GO" ]; then
-    EXISTING_VERSION=$($DETECTED_GO version | awk '{print $3}' | sed 's/go//')
-    if [[ "$EXISTING_VERSION" == "$GO_REQUIRED"* ]] || [[ "$EXISTING_VERSION" > "$GO_REQUIRED" ]]; then
-        echo -e "${GREEN}✓ Go $EXISTING_VERSION is already installed at $DETECTED_GO.${NC}"
-        INSTALL_GO=false
-    else
-        echo -e "${BLUE}ℹ️ Upgrading Go from $EXISTING_VERSION to $GO_REQUIRED+...${NC}"
+    if ! "$DETECTED_GO" version >/dev/null 2>&1; then
+        echo -e "${YELLOW}⚠️ Existing Go installation is broken (e.g., Exec format error). Forcing reinstall...${NC}"
         INSTALL_GO=true
+    else
+        EXISTING_VERSION=$("$DETECTED_GO" version | awk '{print $3}' | sed 's/go//')
+        # More robust version comparison
+        if [[ "$EXISTING_VERSION" == "$GO_REQUIRED"* ]] || [ "$(printf '%s\n%s' "$GO_REQUIRED" "$EXISTING_VERSION" | sort -V | head -n1)" = "$GO_REQUIRED" ]; then
+            echo -e "${GREEN}✓ Go $EXISTING_VERSION is already installed at $DETECTED_GO.${NC}"
+            INSTALL_GO=false
+        else
+            echo -e "${BLUE}ℹ️ Upgrading Go from $EXISTING_VERSION to $GO_REQUIRED+...${NC}"
+            INSTALL_GO=true
+        fi
     fi
 else
     INSTALL_GO=true
@@ -160,8 +179,24 @@ if [ "$INSTALL_GO" = true ]; then
     echo -e "${BLUE}🐹 Installing latest Go $GO_REQUIRED+ ...${NC}"
     ARCH=$(uname -m)
     BITS=$(getconf LONG_BIT)
-    if [ "$ARCH" = "aarch64" ] && [ "$BITS" = "64" ]; then GO_ARCH="arm64"; else GO_ARCH="armv6l"; fi
+    if [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]]; then 
+        if [ "$BITS" = "64" ]; then
+            GO_ARCH="arm64"
+        else
+            GO_ARCH="armv6l"
+        fi
+    elif [[ "$ARCH" == *"arm"* || "$ARCH" == *"aarch32"* ]]; then
+        GO_ARCH="armv6l"
+    elif [[ "$ARCH" == "x86_64" || "$ARCH" == "amd64" ]]; then
+        GO_ARCH="amd64"
+    elif [[ "$ARCH" == "i686" || "$ARCH" == "i386" ]]; then
+        GO_ARCH="386"
+    else
+        GO_ARCH="armv6l" # Default to armv6l on unknown for RPi safety, or we could leave as amd64 but print a warning
+        echo -e "${YELLOW}⚠️ Unknown architecture ($ARCH). Defaulting to armv6l for Raspberry Pi.${NC}"
+    fi
     WGET_URL="https://go.dev/dl/go1.24.0.linux-$GO_ARCH.tar.gz"
+    echo "Downloading from $WGET_URL ..."
     wget -O go_dist.tar.gz "$WGET_URL"
     sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go_dist.tar.gz
     rm go_dist.tar.gz
@@ -292,14 +327,33 @@ make GO="$GO_CMD" clean build
 echo -e "${BLUE}🏗️ Installing system and deploying resources...${NC}"
 
 if [ -f "build/marubot" ]; then
-    echo "  📦 Installing executable to /usr/local/bin/marubot..."
-    # Using 'install' is more reliable for replacing busy binaries
-    sudo install -m 755 build/marubot /usr/local/bin/marubot
+    INSTALL_BIN_DIR="$HOME/.marubot/bin"
+    mkdir -p "$INSTALL_BIN_DIR"
+    echo "  📦 Installing executable to $INSTALL_BIN_DIR/marubot..."
     
-    # 6-1. Clean up potential duplicate binaries to prevent PATH confusion
-    if [ -f "$HOME/go/bin/marubot" ]; then
-        echo "  ⚠️  Detected old binary at ~/go/bin/marubot. Removing to prevent path confusion..."
-        rm -f "$HOME/go/bin/marubot"
+    # Avoid 'Text file busy' by removing the existing binary first
+    rm -f "$INSTALL_BIN_DIR/marubot"
+    cp build/marubot "$INSTALL_BIN_DIR/marubot"
+    chmod +x "$INSTALL_BIN_DIR/marubot"
+    
+    # Remove old global installation if it exists
+    if [ -f "/usr/local/bin/marubot" ]; then
+        echo "  🧹 Removing old global binary from /usr/local/bin..."
+        sudo rm -f "/usr/local/bin/marubot"
+    fi
+    
+    # Add to PATH if not already there
+    if [[ ":$PATH:" != *":$INSTALL_BIN_DIR:"* ]]; then
+        echo "  🌐 Adding $INSTALL_BIN_DIR to PATH..."
+        case "$SHELL" in
+            */zsh)
+                echo "export PATH=\"$INSTALL_BIN_DIR:\$PATH\"" >> ~/.zshrc
+                ;;
+            *)
+                echo "export PATH=\"$INSTALL_BIN_DIR:\$PATH\"" >> ~/.bashrc
+                ;;
+        esac
+        export PATH="$INSTALL_BIN_DIR:$PATH"
     fi
 else
     echo -e "${RED}❌ marubot executable not found. Build failed.${NC}"
@@ -329,6 +383,17 @@ if [ -f "$RESOURCE_DIR/config.json" ]; then
     else
         # Add after opening brace
         sed -i "0,/{/s/{/{\n  \"admin_password\": \"$MARUBOT_PWD\",/" "$RESOURCE_DIR/config.json"
+    fi
+
+    # Set is_raspberry_pi field if forced
+    if [ "$FORCE_RPI" = true ]; then
+        if grep -q "\"is_raspberry_pi\":" "$RESOURCE_DIR/config.json"; then
+            sed -i "s/\"is_raspberry_pi\": .*/\"is_raspberry_pi\": true,/" "$RESOURCE_DIR/config.json"
+        else
+            # Add after opening brace (under hardware section if possible, but simple add for now)
+            # Find hardware section and add or just add at start
+            sed -i "0,/{/s/{/{\n  \"hardware\": {\n    \"is_raspberry_pi\": true\n  },/" "$RESOURCE_DIR/config.json"
+        fi
     fi
 fi
 

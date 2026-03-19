@@ -17,8 +17,7 @@ import (
 	"github.com/dirmich/marubot/pkg/agent"
 	"github.com/dirmich/marubot/pkg/config"
 	"github.com/dirmich/marubot/pkg/skills"
-	"periph.io/x/conn/v3/gpio"
-	"periph.io/x/conn/v3/gpio/gpioreg"
+	"github.com/dirmich/marubot/pkg/utils"
 )
 
 //go:embed dist
@@ -26,23 +25,27 @@ var webAdminAssets embed.FS
 
 // Server handles the MaruBot dashboard web interface and API
 type Server struct {
-	addr      string
-	agent     *agent.AgentLoop
-	config    *config.Config
-	skillMgr  *skills.SkillInstaller
-	skillLoad *skills.SkillsLoader
-	version   string
+	addr       string
+	agent      *agent.AgentLoop
+	config     *config.Config
+	configPath string
+	skillMgr   *skills.SkillInstaller
+	skillLoad  *skills.SkillsLoader
+	version    string
+	onRestart  func()
 }
 
 // NewServer creates a new dashboard server instance
-func NewServer(addr string, agent *agent.AgentLoop, cfg *config.Config, version string) *Server {
+func NewServer(addr string, agent *agent.AgentLoop, cfg *config.Config, configPath string, version string, onRestart func()) *Server {
 	return &Server{
-		addr:      addr,
-		agent:     agent,
-		config:    cfg,
-		skillMgr:  skills.NewSkillInstaller(cfg.WorkspacePath()),
-		skillLoad: skills.NewSkillsLoader(cfg.WorkspacePath(), ""),
-		version:   version,
+		addr:       addr,
+		agent:      agent,
+		config:     cfg,
+		configPath: configPath,
+		skillMgr:   skills.NewSkillInstaller(cfg.WorkspacePath()),
+		skillLoad:  skills.NewSkillsLoader(cfg.WorkspacePath(), ""),
+		version:    version,
+		onRestart:  onRestart,
 	}
 }
 
@@ -63,16 +66,16 @@ func (s *Server) Start() error {
 	// Protected API Routes
 	mux.Handle("/api/chat", s.authMiddleware(http.HandlerFunc(s.handleChat)))
 	mux.Handle("/api/config", s.authMiddleware(http.HandlerFunc(s.handleConfig)))
+	mux.Handle("/api/config/fetch-models", s.authMiddleware(http.HandlerFunc(s.handleFetchModels)))
 	mux.Handle("/api/skills", s.authMiddleware(http.HandlerFunc(s.handleSkills)))
-	mux.Handle("/api/gpio", s.authMiddleware(http.HandlerFunc(s.handleGpio)))
-	mux.Handle("/api/gpio/toggle", s.authMiddleware(http.HandlerFunc(s.handleGpioToggle)))
+	s.registerGPIORoutes(mux)
 	mux.Handle("/api/logs", s.authMiddleware(http.HandlerFunc(s.handleLogs)))
 	mux.Handle("/api/system/stats", s.authMiddleware(http.HandlerFunc(s.handleSystemStats)))
 	mux.Handle("/api/upgrade", s.authMiddleware(http.HandlerFunc(s.handleUpgrade)))
 
 	// Static File Serving (SPA Fallback)
 	fileServer := http.FileServer(http.FS(distFS))
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	staticHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 
 		if strings.HasPrefix(path, "/api/") {
@@ -105,9 +108,21 @@ func (s *Server) Start() error {
 			http.Error(w, "Failed to serve index", http.StatusInternalServerError)
 		}
 	})
+	mux.Handle("/", staticHandler)
+
+	// Wrap everything in recovery middleware
+	recoveryHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				fmt.Printf("CRITICAL: Server Panic recovered: %v\n", err)
+				http.Error(w, "Internal Server Error (Panic)", http.StatusInternalServerError)
+			}
+		}()
+		mux.ServeHTTP(w, r)
+	})
 
 	fmt.Printf("Dashboard server listening on http://%s\n", s.addr)
-	return http.ListenAndServe(s.addr, mux)
+	return http.ListenAndServe(s.addr, recoveryHandler)
 }
 
 func (s *Server) getFileModTime(f fs.File) time.Time {
@@ -131,9 +146,17 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 		}
 
 		cookie, err := r.Cookie("marubot_session")
-		if err != nil || cookie.Value != s.config.AdminPassword {
+		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
+		}
+		if cookie.Value != s.config.AdminPassword {
+			// Compare with hashed password for extra safety if cookie value is plaintext (legacy)
+			if utils.HashPassword(cookie.Value) != s.config.AdminPassword {
+				fmt.Printf("Auth failed: session cookie mismatch.\n")
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
 		}
 		next.ServeHTTP(w, r)
 	})
@@ -165,24 +188,13 @@ func (s *Server) handleSetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.config.AdminPassword = req.Password
+	s.config.AdminPassword = utils.HashPassword(req.Password)
 
-	// Save to usersetting.json
-	home, _ := os.UserHomeDir()
-	userSettingsPath := filepath.Join(home, ".marubot", "usersetting.json")
-	
-	// Try to read existing setting if any to merge
-	var settings map[string]interface{}
-	data, err := os.ReadFile(userSettingsPath)
-	if err == nil {
-		json.Unmarshal(data, &settings)
-	} else {
-		settings = make(map[string]interface{})
+	// Save updated config to config.json
+	if err := config.SaveConfig(s.configPath, s.config); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to save config: %v", err), http.StatusInternalServerError)
+		return
 	}
-	settings["admin_password"] = req.Password
-
-	newData, _ := json.MarshalIndent(settings, "", "  ")
-	os.WriteFile(userSettingsPath, newData, 0644)
 
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok", "message": "Password set successfully"})
 }
@@ -201,10 +213,18 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Password == s.config.AdminPassword {
+	hashedInput := utils.HashPassword(req.Password)
+	if hashedInput == s.config.AdminPassword || req.Password == s.config.AdminPassword {
+		// Use hash for cookie value
+		cookieValue := hashedInput
+		if hashedInput != s.config.AdminPassword {
+			// If it matched plaintext, use the hashed version for future
+			cookieValue = s.config.AdminPassword
+		}
+
 		http.SetCookie(w, &http.Cookie{
 			Name:     "marubot_session",
-			Value:    s.config.AdminPassword,
+			Value:    cookieValue,
 			Path:     "/",
 			HttpOnly: true,
 			MaxAge:   86400 * 30, // 30 days
@@ -212,6 +232,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]bool{"success": true})
 	} else {
+		fmt.Printf("Login failed: password mismatch.\n")
 		http.Error(w, "Invalid password", http.StatusUnauthorized)
 	}
 }
@@ -234,12 +255,23 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		fmt.Printf("[Debug] Received chat request: %s\n", req.Message)
+
+		if s.agent == nil {
+			fmt.Println("[Error] Agent is nil in Server")
+			http.Error(w, "Agent not initialized", http.StatusInternalServerError)
+			return
+		}
+
+		fmt.Println("[Debug] Calling agent.ProcessDirect...")
 		resp, err := s.agent.ProcessDirect(r.Context(), req.Message, "web-admin")
 		if err != nil {
+			fmt.Printf("[Error] Agent processing failed: %v\n", err)
 			http.Error(w, fmt.Sprintf("AI processing error: %v", err), http.StatusInternalServerError)
 			return
 		}
 
+		fmt.Println("[Debug] Chat successful, sending response.")
 		json.NewEncoder(w).Encode(map[string]string{"response": resp})
 	}
 }
@@ -262,18 +294,20 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		// Update In-memory config fields selectively to avoid copying mutex
 		s.config.Update(newCfg)
 
-		// Save to usersetting.json for persistence
-		home, _ := os.UserHomeDir()
-		userSettingsPath := filepath.Join(home, ".marubot", "usersetting.json")
-
-		// Use a temporary copy for marshaling to avoid lock contention during I/O
-		data, _ := json.MarshalIndent(newCfg, "", "  ")
-		if err := os.WriteFile(userSettingsPath, data, 0644); err != nil {
+		// Save to config.json for persistence
+		if err := config.SaveConfig(s.configPath, s.config); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save config: %v", err), http.StatusInternalServerError)
 			return
 		}
 
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+
+		if s.onRestart != nil {
+			go func() {
+				time.Sleep(500 * time.Millisecond)
+				s.onRestart()
+			}()
+		}
 	}
 }
 
@@ -329,100 +363,7 @@ func (s *Server) handleSkills(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) handleGpio(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 
-	if r.Method == "GET" {
-		// Return flattened pins for easy UI consumption
-		flat := config.FlattenPins(s.config.Hardware.GPIO.Pins)
-		json.NewEncoder(w).Encode(flat)
-		return
-	}
-
-	if r.Method == "POST" {
-		var flatPins map[string]int
-		if err := json.NewDecoder(r.Body).Decode(&flatPins); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		// Unflatten before saving to maintain nested structure in config
-		pins := config.UnflattenPins(flatPins)
-		s.config.Hardware.GPIO.Pins = pins
-
-		// Save config
-		home, _ := os.UserHomeDir()
-		userSettingsPath := filepath.Join(home, ".marubot", "usersetting.json")
-
-		// Re-load settings to merge properly
-		var settings map[string]interface{}
-		data, err := os.ReadFile(userSettingsPath)
-		if err == nil {
-			json.Unmarshal(data, &settings)
-		} else {
-			settings = make(map[string]interface{})
-		}
-
-		if settings["hardware"] == nil {
-			settings["hardware"] = make(map[string]interface{})
-		}
-		hw := settings["hardware"].(map[string]interface{})
-		if hw["gpio"] == nil {
-			hw["gpio"] = make(map[string]interface{})
-		}
-		gp := hw["gpio"].(map[string]interface{})
-		gp["pins"] = pins
-
-		newData, _ := json.MarshalIndent(settings, "", "  ")
-		os.WriteFile(userSettingsPath, newData, 0644)
-
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-	}
-}
-
-func (s *Server) handleGpioToggle(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req struct {
-		Pin int `json:"pin"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
-		return
-	}
-
-	// use periph.io to toggle the pin
-	p := gpioreg.ByName(fmt.Sprintf("%d", req.Pin))
-	if p == nil {
-		http.Error(w, "Pin not found", http.StatusNotFound)
-		return
-	}
-
-	// If not already output, change to output
-	level := p.Read()
-	newLevel := gpio.High
-	if level == gpio.High {
-		newLevel = gpio.Low
-	}
-
-	if err := p.Out(newLevel); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to toggle pin: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	levelInt := 0
-	if newLevel == gpio.High {
-		levelInt = 1
-	}
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status": "ok",
-		"level":  levelInt,
-	})
-}
 func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -465,6 +406,14 @@ func (s *Server) handleSystemStats(w http.ResponseWriter, r *http.Request) {
 
 	stats["is_ai_configured"] = s.config.IsAIConfigured()
 	stats["is_channel_configured"] = s.config.IsChannelEnabled()
+	
+	// User config override takes precedence, otherwise use platform detection (considering test mode)
+	if s.config.Hardware.IsRaspberryPi != nil {
+		stats["is_raspberry_pi"] = *s.config.Hardware.IsRaspberryPi
+	} else {
+		stats["is_raspberry_pi"] = s.isRPi()
+	}
+	stats["is_rpi"] = stats["is_raspberry_pi"] // Maintain both for compatibility
 
 	json.NewEncoder(w).Encode(stats)
 }
@@ -497,4 +446,213 @@ func (s *Server) handleUpgrade(w http.ResponseWriter, r *http.Request) {
 		"status":  "ok",
 		"message": "Upgrade started. The system will restart automatically.",
 	})
+}
+func (s *Server) handleFetchModels(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Provider string `json:"provider"`
+		APIKey   string `json:"api_key"`
+		APIBase  string `json:"api_base"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	provider := strings.ToLower(req.Provider)
+	if req.APIKey == "" && provider != "ollama" {
+		http.Error(w, "API Key is required", http.StatusBadRequest)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	var models []string
+	var err error
+
+
+	switch provider {
+	case "openai", "groq", "openrouter", "vllm":
+		models, err = s.fetchOpenAIModels(ctx, req.APIKey, req.APIBase, provider)
+	case "gemini":
+		models, err = s.fetchGeminiModels(ctx, req.APIKey)
+	case "anthropic":
+		models, err = s.fetchAnthropicModels(ctx, req.APIKey)
+	case "ollama":
+		models, err = s.fetchOllamaModels(ctx, req.APIBase)
+	default:
+		err = fmt.Errorf("provider %s not supported for model fetching", req.Provider)
+	}
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to fetch models: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "ok",
+		"models": models,
+	})
+}
+
+func (s *Server) fetchOpenAIModels(ctx context.Context, apiKey, apiBase, provider string) ([]string, error) {
+	baseUrl := apiBase
+	if baseUrl == "" {
+		switch provider {
+		case "openai": baseUrl = "https://api.openai.com/v1"
+		case "groq": baseUrl = "https://api.groq.com/openai/v1"
+		case "openrouter": baseUrl = "https://openrouter.ai/api/v1"
+		}
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", baseUrl+"/models", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error (%d): %s", resp.StatusCode, string(body))
+	}
+
+	var data struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+
+	var models []string
+	for _, m := range data.Data {
+		models = append(models, m.ID)
+	}
+	return models, nil
+}
+
+func (s *Server) fetchGeminiModels(ctx context.Context, apiKey string) ([]string, error) {
+	url := "https://generativelanguage.googleapis.com/v1beta/models?key=" + apiKey
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error (%d): %s", resp.StatusCode, string(body))
+	}
+
+	var data struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+
+	var models []string
+	for _, m := range data.Models {
+		// Name usually starts with "models/", strip it
+		name := strings.TrimPrefix(m.Name, "models/")
+		// Only include generative models
+		if strings.Contains(name, "gemini") {
+			models = append(models, name)
+		}
+	}
+	return models, nil
+}
+
+func (s *Server) fetchAnthropicModels(ctx context.Context, apiKey string) ([]string, error) {
+	// Anthropic's models list API
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.anthropic.com/v1/models", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("x-api-key", apiKey)
+	req.Header.Set("anthropic-version", "2023-06-01")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error (%d): %s", resp.StatusCode, string(body))
+	}
+
+	var data struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+
+	var models []string
+	for _, m := range data.Data {
+		models = append(models, m.ID)
+	}
+	return models, nil
+}
+
+func (s *Server) fetchOllamaModels(ctx context.Context, apiBase string) ([]string, error) {
+	if apiBase == "" {
+		apiBase = "http://localhost:11434"
+	}
+	apiBase = strings.TrimSuffix(apiBase, "/")
+
+	req, err := http.NewRequestWithContext(ctx, "GET", apiBase+"/api/tags", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("Ollama error (%d): %s", resp.StatusCode, string(body))
+	}
+
+	var data struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+
+	var models []string
+	for _, m := range data.Models {
+		models = append(models, m.Name)
+	}
+	return models, nil
 }

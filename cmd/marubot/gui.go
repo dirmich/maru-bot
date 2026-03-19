@@ -51,6 +51,8 @@ func onTrayReady(targetExe string) {
 		systray.SetIcon(trayIconPng)
 	}
 
+	systray.AddMenuItem("MaruBot v"+Version, "Version information").Disable()
+	systray.AddSeparator()
 	mDashboard := systray.AddMenuItem("Dashboard", "Open Web-Admin")
 	systray.AddSeparator()
 	mStart := systray.AddMenuItem("Start MaruBot", "Start the service")

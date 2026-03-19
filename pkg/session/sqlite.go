@@ -170,10 +170,14 @@ func (s *SQLiteStore) SearchRelevant(query string, limit int) ([]providers.Messa
 		FROM memory_fts f
 		LEFT JOIN messages m ON f.source_id = m.id AND f.source_type = 'message'
 		WHERE memory_fts MATCH ? 
+		  AND (m.session_key IS NULL OR m.session_key LIKE ?)
 		ORDER BY rank 
 		LIMIT ?`
 	
-	rows, err := s.db.Query(sqlQuery, cleanQuery, limit)
+	// Default to wildcard for now, but the structure is there for channel/session isolation
+	sessionFilter := "%"
+	
+	rows, err := s.db.Query(sqlQuery, cleanQuery, sessionFilter, limit)
 	if err != nil {
 		return nil, err
 	}

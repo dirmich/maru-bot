@@ -56,7 +56,7 @@ func (s *GPIOService) Start(ctx context.Context) error {
 			}
 		}
 
-		if pinName != "" && (strings.ToUpper(mode) == "IN" || IsInputPin(name)) {
+		if pinName != "" && (strings.ToUpper(mode) == "IN" || config.IsInputPin(name)) {
 			go s.monitorPin(ctx, name, pinName)
 		}
 	}
@@ -64,14 +64,7 @@ func (s *GPIOService) Start(ctx context.Context) error {
 	return nil
 }
 
-func IsInputPin(name string) bool {
-	n := name
-	return (n == "button" || n == "sensor" ||
-		(len(n) > 6 && n[:6] == "button") ||
-		(len(n) > 6 && n[:6] == "sensor") ||
-		(len(n) > 7 && n[len(n)-7:] == "_button") ||
-		(len(n) > 7 && n[len(n)-7:] == "_sensor"))
-}
+// IsInputPin is now moved to config package
 
 func (s *GPIOService) monitorPin(ctx context.Context, label, pinName string) {
 	p := gpioreg.ByName(pinName)

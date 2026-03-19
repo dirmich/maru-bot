@@ -36,6 +36,7 @@ import (
 	"github.com/dirmich/marubot/pkg/logger"
 	"github.com/dirmich/marubot/pkg/providers"
 	"github.com/dirmich/marubot/pkg/skills"
+	"github.com/dirmich/marubot/pkg/utils"
 	"github.com/dirmich/marubot/pkg/voice"
 
 	"github.com/chzyer/readline"
@@ -207,28 +208,47 @@ func uninstallCmd() {
 		return
 	}
 
-	// 0. Remove Windows Service (if applicable)
+	// 0. Remove Services and Kill Processes (Cross-platform)
 	if runtime.GOOS == "windows" {
-		svcConfig := &service.Config{
-			Name: "MaruBot",
-		}
-		s, err := service.New(nil, svcConfig)
-		if err == nil {
-			fmt.Println("Removing Windows service...")
-			s.Stop()
-			if err := s.Uninstall(); err == nil {
-				fmt.Println("✓ Windows service removed.")
-			} else {
-				// Fallback to sc delete
-				fmt.Printf("Standard uninstall failed (%v), trying sc delete...\n", err)
-				exec.Command("sc", "stop", "MaruBot").Run()
-				if err := exec.Command("sc", "delete", "MaruBot").Run(); err == nil {
-					fmt.Println("✓ Windows service removed via sc delete.")
-				} else {
-					fmt.Println("✗ Failed to remove Windows service. You may need to run 'sc delete MaruBot' manually.")
-				}
+		svcNames := []string{"MaruBot", "marubot"}
+		// Try to kill the process first to unlock files (using //F and //IM for bash compatibility in Windows)
+		exec.Command("taskkill", "/F", "/IM", "marubot.exe /T").Run()
+		exec.Command("taskkill", "//F", "//IM", "marubot.exe", "//T").Run()
+		time.Sleep(500 * time.Millisecond)
+
+		for _, svcName := range svcNames {
+			svcConfig := &service.Config{
+				Name: svcName,
+			}
+			s, err := service.New(nil, svcConfig)
+			if err == nil {
+				fmt.Printf("Attempting to remove Windows service '%s'...\n", svcName)
+				s.Stop()
+				s.Uninstall()
+				// Robust fallback via sc.exe
+				exec.Command("sc", "stop", svcName).Run()
+				exec.Command("sc", "delete", svcName).Run()
 			}
 		}
+	} else if runtime.GOOS == "linux" {
+		// Stop and disable systemd service if exists
+		u, _ := user.Current()
+		if u != nil {
+			serviceDir := filepath.Join(u.HomeDir, ".config", "systemd", "user")
+			servicePath := filepath.Join(serviceDir, "marubot.service")
+			if _, err := os.Stat(servicePath); err == nil {
+				fmt.Println("Removing Linux systemd user service...")
+				exec.Command("systemctl", "--user", "stop", "marubot.service").Run()
+				exec.Command("systemctl", "--user", "disable", "marubot.service").Run()
+				os.Remove(servicePath)
+				exec.Command("systemctl", "--user", "daemon-reload").Run()
+			}
+		}
+		// Kill any remaining marubot processes
+		exec.Command("pkill", "-9", "marubot").Run()
+	} else if runtime.GOOS == "darwin" {
+		// For macOS, just pkill for now (can expand to launchctl if needed)
+		exec.Command("pkill", "-9", "marubot").Run()
 	}
 
 	fmt.Print("Do you want to keep your user data (config, memory, workspace)? (Y/n): ")
@@ -373,6 +393,24 @@ func onboard() {
 	fmt.Println("  2. Chat: marubot agent -m \"Hello!\"")
 }
 
+func ensureAdminPassword(cfg *config.Config) {
+	fmt.Printf("Set Admin Password for Web Dashboard: ")
+	var password string
+	fmt.Scanln(&password)
+
+	if password == "" {
+		fmt.Println("Password cannot be empty. Defaulting to 'admin'.")
+		password = "admin"
+	}
+
+	cfg.AdminPassword = utils.HashPassword(password)
+	if err := config.SaveConfig(getConfigPath(), cfg); err != nil {
+		fmt.Printf("Error saving config: %v\n", err)
+	} else {
+		fmt.Println("Password saved successfully.")
+	}
+}
+
 func createWorkspaceTemplates(workspace string) {
 	templates := map[string]string{
 		"AGENTS.md": `# Agent Instructions
@@ -502,7 +540,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-" + config.Version + "
+` + config.Version + `
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
@@ -1335,13 +1373,12 @@ func configCmd() {
 
 	subcommand := os.Args[2]
 	configPath := getConfigPath()
-	userSettingsPath := filepath.Join(filepath.Dir(configPath), "usersetting.json")
 
 	switch subcommand {
 	case "show":
 		cfg, _ := loadConfig()
 		data, _ := json.MarshalIndent(cfg, "", "  ")
-		fmt.Printf("Current Configuration (including usersetting.json):\n%s\n", string(data))
+		fmt.Printf("Current Configuration (%s):\n%s\n", configPath, string(data))
 	case "set":
 		if len(os.Args) < 5 {
 			fmt.Println("Usage: marubot config set <key> <value>")
@@ -1350,27 +1387,41 @@ func configCmd() {
 		key := os.Args[3]
 		value := os.Args[4]
 
-		var settings map[string]interface{}
-		data, err := os.ReadFile(userSettingsPath)
-		if err == nil {
-			json.Unmarshal(data, &settings)
+		cfg, err := loadConfig()
+		if err != nil {
+			fmt.Printf("Error loading config: %v\n", err)
+			return
+		}
+
+		// Update the key in config
+		// For simple implementation of CLI 'set', we can either use a generic updater
+		// or focus on common fields. Since we want to unify, we update the Config object.
+		// Note: Detailed nested key update usually requires reflection or a dedicated updater.
+		// For the CLI, we'll provide a simple message that we're updating the main config.
+		
+		// Map simple keys for CLI convenience
+		if key == "admin_password" {
+			cfg.AdminPassword = value
+		} else if key == "language" {
+			cfg.Language = value
 		} else {
-			settings = make(map[string]interface{})
+			fmt.Printf("⚠️  Key '%s' update via CLI is limited. Please use Web Admin for advanced settings.\n", key)
+			return
 		}
 
-		// Try to parse as JSON if it looks like one, otherwise keep as string
-		var val interface{}
-		if err := json.Unmarshal([]byte(value), &val); err != nil {
-			val = value // stay as string
+		if err := config.SaveConfig(configPath, cfg); err != nil {
+			fmt.Printf("Error saving config: %v\n", err)
+			return
 		}
-		settings[key] = val
-
-		newData, _ := json.MarshalIndent(settings, "", "  ")
-		os.WriteFile(userSettingsPath, newData, 0644)
-		fmt.Printf("✓ Saved '%s' = %s to %s\n", key, value, userSettingsPath)
+		fmt.Printf("✓ Saved '%s' = %s directly to %s\n", key, value, configPath)
 	case "reset":
-		os.Remove(userSettingsPath)
-		fmt.Println("✓ User settings reset to defaults.")
+		fmt.Println("Resetting to default config...")
+		defaultCfg := config.DefaultConfig()
+		if err := config.SaveConfig(configPath, defaultCfg); err != nil {
+			fmt.Printf("Error resetting config: %v\n", err)
+		} else {
+			fmt.Println("✓ Configuration reset to defaults.")
+		}
 	default:
 		configHelp()
 	}
@@ -1378,9 +1429,9 @@ func configCmd() {
 
 func configHelp() {
 	fmt.Println("\nConfig commands:")
-	fmt.Println("  reset             Remove all user overrides")
-	fmt.Println("  set <key> <val>   Set an override in usersetting.json")
-	fmt.Println("  show              Show merged configuration")
+	fmt.Println("  reset             Reset config.json to defaults")
+	fmt.Println("  set <key> <val>   Set a value in config.json (e.g. admin_password, language)")
+	fmt.Println("  show              Show current configuration")
 }
 
 func statusCmd() {
@@ -1398,11 +1449,6 @@ func statusCmd() {
 	fmt.Printf("Config: %s\n", configPath)
 	fmt.Printf("Workspace: %s\n", workspace)
 	fmt.Printf("Model: %s\n", cfg.Agents.Defaults.Model)
-
-	userSettingsPath := filepath.Join(filepath.Dir(configPath), "usersetting.json")
-	if _, err := os.Stat(userSettingsPath); err == nil {
-		fmt.Printf("User Settings: %s (OK)\n", userSettingsPath)
-	}
 
 	hasOpenRouter := len(cfg.Providers.OpenRouter.Models) > 0
 	hasAnthropic := len(cfg.Providers.Anthropic.Models) > 0
@@ -1579,6 +1625,10 @@ func startCmd() {
 
 	// Double-fork / Detach logic
 	if !runForeground && os.Getenv("MARUBOT_DAEMON") != "1" {
+		// Clean up existing instance before starting a new one in background
+		stopCmd()
+		time.Sleep(1 * time.Second)
+
 		exe, err := os.Executable()
 		if err != nil {
 			fmt.Printf("Error getting executable path: %v\n", err)
@@ -1630,14 +1680,11 @@ func startCmd() {
 		f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err == nil {
 			// Redirect stdout/stderr to log file
-			// Note: This only redirects Go's fmt.Print output if we assign it,
-			// but for true redirection we'd need syscalls which are OS specific.
-			// Ideally just use a logger.
-			// For simplicity in this cross-platform Go app without syscalls:
-			// We will just let it run. Stdout/Stderr are discarded by the parent anyway.
-			// But creating a log file is good practice.
+			os.Stdout = f
+			os.Stderr = f
+			fmt.Printf("\n--- MaruBot Log Started at %v ---\n", time.Now().Format(time.RFC3339))
 		}
-		defer f.Close()
+		// Note: we don't defer f.Close() here because it should stay open for the life of the process
 	}
 
 	if runForeground {
@@ -1652,9 +1699,15 @@ func startCmd() {
 		return
 	}
 
-	// Validate configuration: At least one AI provider and one channel must be enabled
+	if cfg.AdminPassword == "" {
+		ensureAdminPassword(cfg)
+	}
+
+	// Validate configuration: At least one AI provider must be enabled
 	// If password is also missing, we prioritize security setup.
-	if cfg.AdminPassword == "" || !cfg.IsAIConfigured() || !cfg.IsChannelEnabled() {
+	// We no longer require a channel to be enabled to leave setup mode, 
+	// because web-admin chat is always available.
+	if !cfg.IsAIConfigured() {
 		showGuideMessage(cfg)
 		
 		// In GUI/Desktop environments, we might want to keep the process alive
@@ -1667,10 +1720,11 @@ func startCmd() {
 			if port == 0 { port = 8080 }
 			dashAddr := fmt.Sprintf("0.0.0.0:%d", port)
 			
-			// We need a dummy agent for the dashboard to start, but it won't be able to do much
-			// until providers are configured.
-			dummyAgent := &agent.AgentLoop{} 
-			dashServer := dashboard.NewServer(dashAddr, dummyAgent, cfg, Version)
+			// 💡 Fix: Properly initialize dummyAgent components to prevent Nil Pointer Panic 
+			// even in Setup Mode.
+			bus := bus.NewMessageBus()
+			dummyAgent := agent.NewAgentLoop(cfg, bus, nil, Version)
+			dashServer := dashboard.NewServer(dashAddr, dummyAgent, cfg, getConfigPath(), Version, reloadCmd)
 			
 			go func() {
 				if err := dashServer.Start(); err != nil {
@@ -1760,7 +1814,7 @@ func startCmd() {
 
 	// Initialize Dashboard Server
 	port := "8080"
-	server := dashboard.NewServer(":"+port, agentLoop, cfg, Version)
+	server := dashboard.NewServer(":"+port, agentLoop, cfg, getConfigPath(), Version, reloadCmd)
 
 	if runForeground {
 		go func() {
@@ -2196,18 +2250,10 @@ if ($result -eq "Yes") {
 		fmt.Sscanf(strings.TrimSpace(string(out)), "%d", &newPort)
 		if newPort > 0 {
 			cfg.Gateway.Port = newPort
-			// Save to usersetting.json for persistence
-			userSettingsPath := filepath.Join(filepath.Dir(getConfigPath()), "usersetting.json")
-			var settings map[string]interface{}
-			data, err := os.ReadFile(userSettingsPath)
-			if err == nil {
-				json.Unmarshal(data, &settings)
-			} else {
-				settings = make(map[string]interface{})
+			// Save directly to config.json
+			if err := config.SaveConfig(getConfigPath(), cfg); err != nil {
+				fmt.Printf("Error saving config: %v\n", err)
 			}
-			settings["gateway.port"] = newPort
-			newData, _ := json.MarshalIndent(settings, "", "  ")
-			os.WriteFile(userSettingsPath, newData, 0644)
 			return true
 		}
 	} else {

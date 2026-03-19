@@ -12,12 +12,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings" // Added strings import
 	"time"
 
 	"github.com/dirmich/marubot/pkg/bus"
 	"github.com/dirmich/marubot/pkg/config"
+	"github.com/dirmich/marubot/pkg/logger" // Added logger
 	"github.com/dirmich/marubot/pkg/providers"
 	"github.com/dirmich/marubot/pkg/session"
 	"github.com/dirmich/marubot/pkg/tools"
@@ -297,7 +299,13 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 		})
 
 		if err != nil {
+			logger.ErrorC("agent", fmt.Sprintf("LLM call failed: %v", err))
 			return "", fmt.Errorf("LLM call failed: %w", err)
+		}
+
+		logger.InfoC("agent", fmt.Sprintf("Iteration %d: LLM response content length: %d, tool calls: %d", iteration, len(response.Content), len(response.ToolCalls)))
+		if len(response.Content) > 0 {
+			logger.InfoC("agent", fmt.Sprintf("LLM Content: %s", response.Content))
 		}
 
 		if len(response.ToolCalls) == 0 {
@@ -344,7 +352,19 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 	}
 
 	if finalContent == "" {
-		finalContent = "I've completed processing but have no response to give."
+		// Fallback: Try to find the last meaningful assistant message.
+		// Exclude messages that look like raw tool call JSON (start with '{')
+		for i := len(messages) - 1; i >= 0; i-- {
+			c := strings.TrimSpace(messages[i].Content)
+			if messages[i].Role == "assistant" && c != "" && !strings.HasPrefix(c, "{") {
+				finalContent = c
+				break
+			}
+		}
+
+		if finalContent == "" {
+			finalContent = "I've completed processing but have no response to give."
+		}
 	}
 
 	al.sessions.AddMessage(msg.SessionKey, "user", msg.Content)
@@ -404,35 +424,36 @@ func (al *AgentLoop) findCurrentModelConfig() *config.ModelConfig {
 
 func (al *AgentLoop) tryParseToolCallFromContent(content string) *providers.ToolCall {
 	content = strings.TrimSpace(content)
+	
+	// Fast path for pure JSON
+	if strings.HasPrefix(content, "{") && strings.HasSuffix(content, "}") {
+		return al.parseJSONToolCall(content)
+	}
+
 	// Remove markdown code blocks if present
 	if strings.Contains(content, "```") {
-		lines := strings.Split(content, "\n")
-		var jsonLines []string
-		inBlock := false
-		for _, line := range lines {
-			if strings.HasPrefix(line, "```") {
-				inBlock = !inBlock
-				continue
-			}
-			if inBlock {
-				jsonLines = append(jsonLines, line)
+		re := regexp.MustCompile("(?s)```(?:json)?\n?(.*?)\n?```")
+		match := re.FindStringSubmatch(content)
+		if len(match) > 1 {
+			if tc := al.parseJSONToolCall(strings.TrimSpace(match[1])); tc != nil {
+				return tc
 			}
 		}
-		if len(jsonLines) > 0 {
-			content = strings.Join(jsonLines, "\n")
-		} else {
-			// Fallback: strip starts/ends
-			content = strings.TrimPrefix(content, "```json")
-			content = strings.TrimPrefix(content, "```")
-			content = strings.TrimSuffix(content, "```")
+	}
+
+	// Try extracting the first valid JSON object from the text
+	start := strings.Index(content, "{")
+	end := strings.LastIndex(content, "}")
+	if start != -1 && end != -1 && end > start {
+		if tc := al.parseJSONToolCall(content[start : end+1]); tc != nil {
+			return tc
 		}
-		content = strings.TrimSpace(content)
 	}
 
-	if !strings.HasPrefix(content, "{") || !strings.HasSuffix(content, "}") {
-		return nil
-	}
+	return nil
+}
 
+func (al *AgentLoop) parseJSONToolCall(content string) *providers.ToolCall {
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(content), &data); err != nil {
 		return nil
@@ -443,6 +464,15 @@ func (al *AgentLoop) tryParseToolCallFromContent(content string) *providers.Tool
 		return &providers.ToolCall{
 			ID:        fmt.Sprintf("call_%d", time.Now().UnixNano()),
 			Name:      "shell",
+			Arguments: data,
+		}
+	}
+
+	// Case 1.1: Direct config action style {"action": "get", "key": "..."} -> config
+	if action, ok := data["action"].(string); ok && (action == "get" || action == "set") {
+		return &providers.ToolCall{
+			ID:        fmt.Sprintf("call_%d", time.Now().UnixNano()),
+			Name:      "config",
 			Arguments: data,
 		}
 	}

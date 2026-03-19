@@ -39,9 +39,8 @@ func (p *HTTPProvider) Chat(ctx context.Context, messages []Message, tools []Too
 		return nil, fmt.Errorf("API base not configured")
 	}
 
-	// Use the model name exactly as configured
 	effectiveModel := model
-	fmt.Printf("[Debug] Sending request with model: %s to %s\n", effectiveModel, p.apiBase)
+	fmt.Printf("[Debug] Sending request with model: %s (original: %s) to %s\n", effectiveModel, model, p.apiBase)
 
 	requestBody := map[string]interface{}{
 		"model":    effectiveModel,
@@ -66,7 +65,18 @@ func (p *HTTPProvider) Chat(ctx context.Context, messages []Message, tools []Too
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", p.apiBase+"/chat/completions", bytes.NewReader(jsonData))
+	url := p.apiBase
+	if !strings.HasSuffix(url, "/chat/completions") && !strings.HasSuffix(url, "/completions") {
+		// If base ends in /v1, just append /chat/completions
+		// If it's an Ollama URL without /v1, append /v1/chat/completions
+		url = strings.TrimSuffix(url, "/")
+		if strings.Contains(url, "ollama") && !strings.HasSuffix(url, "/v1") && !strings.HasSuffix(url, "/api") {
+			url += "/v1"
+		}
+		url += "/chat/completions"
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -186,6 +196,15 @@ func findModelConfig(providerName, modelName string, cfg *config.Config) (*confi
 		provider = cfg.Providers.VLLM
 	case "gemini":
 		provider = cfg.Providers.Gemini
+	case "ollama":
+		for _, p := range cfg.Providers.Ollama {
+			for _, m := range p.Models {
+				if strings.EqualFold(m.Model, modelName) {
+					return &m, nil
+				}
+			}
+		}
+		return nil, fmt.Errorf("model %s not found in any ollama provider", modelName)
 	default:
 		return nil, fmt.Errorf("unknown provider: %s", providerName)
 	}
@@ -225,6 +244,20 @@ func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error)
 	for _, p := range providersList {
 		for _, m := range p.cfg.Models {
 			if strings.EqualFold(m.Model, model) {
+				apiKey := m.APIKey
+				apiBase := m.APIBase
+				if apiBase == "" {
+					apiBase = config.GetDefaultBase(p.name)
+				}
+				return NewHTTPProvider(apiKey, apiBase), nil
+			}
+		}
+	}
+
+	// Search in Ollama list
+	for _, p := range cfg.Providers.Ollama {
+		for _, m := range p.Models {
+			if strings.EqualFold(m.Model, model) {
 				return NewHTTPProvider(m.APIKey, m.APIBase), nil
 			}
 		}
@@ -232,12 +265,16 @@ func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error)
 
 	// Legacy/Prefix-based fallback for direct model strings
 	lowerModel := strings.ToLower(model)
-	if strings.HasPrefix(lowerModel, "vllm/") || strings.HasPrefix(lowerModel, "ollama/") || strings.HasPrefix(lowerModel, "local/") {
-		// Use first VLLM model if available
-		if len(cfg.Providers.VLLM.Models) > 0 {
-			m := cfg.Providers.VLLM.Models[0]
-			return NewHTTPProvider(m.APIKey, m.APIBase), nil
+	if strings.Contains(lowerModel, "gpt-") || strings.Contains(lowerModel, "dall-e") {
+		return NewHTTPProvider(cfg.Providers.OpenAI.Models[0].APIKey, config.GetDefaultBase("openai")), nil
+	} else if strings.Contains(lowerModel, "claude-") {
+		return NewHTTPProvider(cfg.Providers.Anthropic.Models[0].APIKey, config.GetDefaultBase("anthropic")), nil
+	} else if strings.Contains(lowerModel, "gemini-") {
+		apiKey := ""
+		if len(cfg.Providers.Gemini.Models) > 0 {
+			apiKey = cfg.Providers.Gemini.Models[0].APIKey
 		}
+		return NewHTTPProvider(apiKey, config.GetDefaultBase("gemini")), nil
 	}
 
 	return nil, fmt.Errorf("no configuration found for model: %s", model)
@@ -291,7 +328,11 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 	if primaryProviderName != "" {
 		mCfg, err := findModelConfig(primaryProviderName, primaryModel, cfg)
 		if err == nil {
-			primaryProvider = NewHTTPProvider(mCfg.APIKey, mCfg.APIBase)
+			apiBase := mCfg.APIBase
+			if apiBase == "" {
+				apiBase = config.GetDefaultBase(primaryProviderName)
+			}
+			primaryProvider = NewHTTPProvider(mCfg.APIKey, apiBase)
 		}
 	}
 
