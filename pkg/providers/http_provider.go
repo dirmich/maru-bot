@@ -266,9 +266,17 @@ func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error)
 	// Legacy/Prefix-based fallback for direct model strings
 	lowerModel := strings.ToLower(model)
 	if strings.Contains(lowerModel, "gpt-") || strings.Contains(lowerModel, "dall-e") {
-		return NewHTTPProvider(cfg.Providers.OpenAI.Models[0].APIKey, config.GetDefaultBase("openai")), nil
+		apiKey := ""
+		if len(cfg.Providers.OpenAI.Models) > 0 {
+			apiKey = cfg.Providers.OpenAI.Models[0].APIKey
+		}
+		return NewHTTPProvider(apiKey, config.GetDefaultBase("openai")), nil
 	} else if strings.Contains(lowerModel, "claude-") {
-		return NewHTTPProvider(cfg.Providers.Anthropic.Models[0].APIKey, config.GetDefaultBase("anthropic")), nil
+		apiKey := ""
+		if len(cfg.Providers.Anthropic.Models) > 0 {
+			apiKey = cfg.Providers.Anthropic.Models[0].APIKey
+		}
+		return NewHTTPProvider(apiKey, config.GetDefaultBase("anthropic")), nil
 	} else if strings.Contains(lowerModel, "gemini-") {
 		apiKey := ""
 		if len(cfg.Providers.Gemini.Models) > 0 {
