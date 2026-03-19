@@ -84,8 +84,8 @@ func onTrayReady(targetExe string) {
 	} else if runtime.GOOS == "darwin" {
 		// On macOS, if it's not running, start it
 		if !isMarubotProcessRunning() {
-			fmt.Println("Starting MaruBot backend...")
-			startCmd()
+			fmt.Println("Starting MaruBot backend in background...")
+			go startCmd()
 		}
 	}
 
@@ -104,7 +104,7 @@ func onTrayReady(targetExe string) {
 				if runtime.GOOS == "windows" {
 					serviceCmdInternalPath("start", targetExe)
 				} else {
-					startCmd()
+					go startCmd()
 				}
 				time.Sleep(2 * time.Second) // Give time to start
 			case <-mStop.ClickedCh:
