@@ -569,15 +569,6 @@ func (c *Config) GetAPIKey() string {
 			}
 		}
 	}
-
-	// Check Ollama list
-	for _, p := range c.Providers.Ollama {
-		for _, m := range p.Models {
-			if m.APIKey != "" {
-				return m.APIKey
-			}
-		}
-	}
 	return ""
 }
 
