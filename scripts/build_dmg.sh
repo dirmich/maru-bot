@@ -11,7 +11,7 @@ BINARY_NAME="marubot"
 BUILD_DIR="build"
 
 # 1. Version Detection
-VERSION=$(grep '^const Version =' pkg/config/version.go | cut -d '"' -f 2)
+VERSION=$(grep 'const Version =' pkg/config/version.go | head -n 1 | cut -d '"' -f 2)
 if [ -z "$VERSION" ]; then VERSION="0.0.0"; fi
 
 echo "Creating DMG for macOS $ARCH (v$VERSION)..."
