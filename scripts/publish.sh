@@ -84,7 +84,7 @@ if [ -d "$SOURCE_DIR/build" ]; then
     # Create Windows ZIP Packages using Go-Zip tool (for stability)
     echo "  🤐 Creating Windows ZIP packages using go-zip tool..."
     
-    GOOS=windows GOARCH=amd64 go build -o "$SOURCE_DIR/zip_pack.exe" "$SOURCE_DIR/scripts/zip_pack.go"
+    go build -o "$SOURCE_DIR/zip_pack" "$SOURCE_DIR/scripts/zip_pack.go"
 
     # Windows x64
     WIN64_TMP="$SOURCE_DIR/build/marubot-win-x64"
@@ -92,7 +92,7 @@ if [ -d "$SOURCE_DIR/build" ]; then
     cp "$SOURCE_DIR/build/marubot-windows-amd64.exe" "$WIN64_TMP/marubot.exe"
     cp "$SOURCE_DIR/README.md" "$WIN64_TMP/"
     cp "$SOURCE_DIR/config/maru-config.json" "$WIN64_TMP/config/maru-config.json"
-    "$SOURCE_DIR/zip_pack.exe" "$RELEASE_DIR/marubot-windows-x64.zip" "$WIN64_TMP"
+    "$SOURCE_DIR/zip_pack" "$RELEASE_DIR/marubot-windows-x64.zip" "$WIN64_TMP"
     rm -rf "$WIN64_TMP"
 
     # Windows x86
@@ -101,10 +101,10 @@ if [ -d "$SOURCE_DIR/build" ]; then
     cp "$SOURCE_DIR/build/marubot-windows-386.exe" "$WIN32_TMP/marubot.exe"
     cp "$SOURCE_DIR/README.md" "$WIN32_TMP/"
     cp "$SOURCE_DIR/config/maru-config.json" "$WIN32_TMP/config/maru-config.json"
-    "$SOURCE_DIR/zip_pack.exe" "$RELEASE_DIR/marubot-windows-x86.zip" "$WIN32_TMP"
+    "$SOURCE_DIR/zip_pack" "$RELEASE_DIR/marubot-windows-x86.zip" "$WIN32_TMP"
     rm -rf "$WIN32_TMP"
 
-    rm -f "$SOURCE_DIR/zip_pack.exe"
+    rm -f "$SOURCE_DIR/zip_pack"
 
     echo "  ✓ 빌드 자산 수집 및 패키징 완료 (Path: $RELEASE_DIR)"
 
