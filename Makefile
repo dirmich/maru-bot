@@ -69,11 +69,14 @@ endif
 
 BINARY_PATH=$(BUILD_DIR)/$(BINARY_NAME)-$(PLATFORM)-$(ARCH)
 
-# Default target
-all: build
+# internal helper to sync UI assets
+sync-ui:
+	@echo "Syncing web-admin assets..."
+	@mkdir -p cmd/marubot/dashboard/dist
+	@cp -rv web-admin/dist/* cmd/marubot/dashboard/dist/
 
 ## build: Build the marubot binary for current platform
-build:
+build: sync-ui
 	@echo "Building $(BINARY_NAME) for $(PLATFORM)/$(ARCH)..."
 	@mkdir -p $(BUILD_DIR)
 	CGO_ENABLED=0 $(GO) build $(GOFLAGS) $(LDFLAGS_CONSOLE) -o $(BINARY_PATH) ./$(CMD_DIR)
@@ -81,7 +84,7 @@ build:
 	@ln -sf $(BINARY_NAME)-$(PLATFORM)-$(ARCH) $(BUILD_DIR)/$(BINARY_NAME)
 
 ## build-all: Build marubot for all platforms
-build-all:
+build-all: sync-ui
 	@echo "Building for Windows and macOS (skipping Linux as per rules)..."
 	@mkdir -p $(BUILD_DIR)
 	@# Windows
