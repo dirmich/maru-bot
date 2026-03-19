@@ -200,12 +200,20 @@ func uninstallCmd() {
 	fmt.Printf("%s MaruBot Uninstaller\n", logo)
 	fmt.Println("WARNING: This will remove MaruBot and its resources from your system.")
 
-	fmt.Print("Are you sure you want to continue? (y/N): ")
-	var confirm string
-	fmt.Scanln(&confirm)
-	if strings.ToLower(confirm) != "y" {
-		fmt.Println("Aborted.")
-		return
+	// Show native dialog if on macOS or Windows to ensure confirmation in GUI mode
+	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+		if !showNativeConfirmDialog("Are you sure you want to uninstall MaruBot?") {
+			fmt.Println("Aborted by user.")
+			return
+		}
+	} else {
+		fmt.Print("Are you sure you want to continue? (y/N): ")
+		var confirm string
+		fmt.Scanln(&confirm)
+		if strings.ToLower(confirm) != "y" {
+			fmt.Println("Aborted.")
+			return
+		}
 	}
 
 	// 0. Remove Services and Kill Processes (Cross-platform)
@@ -1669,7 +1677,6 @@ func startCmd() {
 			fmt.Printf("Failed to start background process: %v\n", err)
 			os.Exit(1)
 		}
-
 		pidFile := getPidFilePath()
 		os.WriteFile(pidFile, []byte(fmt.Sprintf("%d", cmd.Process.Pid)), 0644)
 
@@ -2422,4 +2429,24 @@ if ($result -eq "Yes") { exit 0 } else { exit 1 }
 	cmd := exec.Command("powershell", "-Command", script)
 	err := cmd.Run()
 	return err == nil
+}
+
+func showNativeConfirmDialog(message string) bool {
+	if runtime.GOOS == "darwin" {
+		// Escape double quotes in message
+		msg := strings.ReplaceAll(message, `"`, `\"`)
+		script := fmt.Sprintf(`display dialog "%s" buttons {"Cancel", "OK"} default button "OK" with icon caution`, msg)
+		cmd := exec.Command("osascript", "-e", script)
+		err := cmd.Run()
+		return err == nil
+	} else if runtime.GOOS == "windows" {
+		// Use PowerShell to show a message box
+		// Escape single quotes for PowerShell
+		msg := strings.ReplaceAll(message, `'`, `''`)
+		script := fmt.Sprintf(`Add-Type -AssemblyName System.Windows.Forms; $result = [System.Windows.Forms.MessageBox]::Show('%s', 'MaruBot Uninstall', 'YesNo', 'Warning'); if ($result -eq 'Yes') { exit 0 } else { exit 1 }`, msg)
+		cmd := exec.Command("powershell", "-Command", script)
+		err := cmd.Run()
+		return err == nil
+	}
+	return true
 }
