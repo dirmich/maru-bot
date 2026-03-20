@@ -255,10 +255,10 @@ export default function App() {
                       </div>
                       <div className="flex flex-col sm:flex-row gap-3">
                         <Button variant="outline" className="rounded-full gap-2 flex-1">
-                          <Download className="w-4 h-4" /> Apple Silicon (.zip)
+                          <Download className="w-4 h-4" /> Apple Silicon
                         </Button>
                         <Button variant="outline" className="rounded-full gap-2 flex-1">
-                          <Download className="w-4 h-4" /> Intel Mac (.zip)
+                          <Download className="w-4 h-4" /> Intel Mac
                         </Button>
                       </div>
                     </CardContent>
@@ -279,8 +279,8 @@ export default function App() {
                             <span className="w-3 h-3 rounded-full bg-yellow-500/50" />
                             <span className="w-3 h-3 rounded-full bg-green-500/50" />
                          </div>
-                         <code>curl -fsSL https://raw.githubusercontent.com/dirmich/maruminibot/master/install.sh | bash</code>
-                         <Button size="icon" variant="ghost" className="absolute top-4 right-4 text-slate-400 hover:text-white" onClick={() => navigator.clipboard.writeText("curl -fsSL https://raw.githubusercontent.com/dirmich/maruminibot/master/install.sh | bash")}>
+                         <code>curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/master/install.sh | bash</code>
+                         <Button size="icon" variant="ghost" className="absolute top-4 right-4 text-slate-400 hover:text-white" onClick={() => navigator.clipboard.writeText("curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/master/install.sh | bash")}>
                             <Terminal className="w-4 h-4" />
                          </Button>
                       </div>
