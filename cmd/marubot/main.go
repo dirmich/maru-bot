@@ -57,6 +57,9 @@ var macMenubarPng []byte
 //go:embed assets/window_tray.png
 var windowTrayPng []byte
 
+//go:embed assets/tray_icon.ico
+var trayIconIco []byte
+
 var Version = config.Version
 
 func copyDirectory(src, dst string) error {
