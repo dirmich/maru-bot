@@ -84,16 +84,16 @@ func (m *Manager) initChannels() error {
 		}
 	}
 
-	if m.config.Channels.MaixCam.Enabled {
-		logger.DebugC("channels", "Attempting to initialize MaixCam channel")
-		maixcam, err := NewMaixCamChannel(m.config.Channels.MaixCam, m.bus)
+	if m.config.Channels.Slack.Enabled && m.config.Channels.Slack.Token != "" {
+		logger.DebugC("channels", "Attempting to initialize Slack channel")
+		slack, err := NewSlackChannel(m.config.Channels.Slack, m.bus)
 		if err != nil {
-			logger.ErrorCF("channels", "Failed to initialize MaixCam channel", map[string]interface{}{
+			logger.ErrorCF("channels", "Failed to initialize Slack channel", map[string]interface{}{
 				"error": err.Error(),
 			})
 		} else {
-			m.channels["maixcam"] = maixcam
-			logger.InfoC("channels", "MaixCam channel enabled successfully")
+			m.channels["slack"] = slack
+			logger.InfoC("channels", "Slack channel enabled successfully")
 		}
 	}
 

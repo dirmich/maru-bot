@@ -38,6 +38,7 @@ import (
 	"github.com/dirmich/marubot/pkg/skills"
 	"github.com/dirmich/marubot/pkg/utils"
 	"github.com/dirmich/marubot/pkg/voice"
+	"github.com/dirmich/marubot/pkg/admin"
 
 	"github.com/chzyer/readline"
 	"github.com/kardianos/service"
@@ -48,11 +49,14 @@ import (
 
 const logo = "[MaruBot]"
 
-//go:embed assets/tray_icon.ico
-var trayIconIco []byte
+//go:embed assets/app_icon.png
+var appIconPng []byte
 
-//go:embed assets/tray_icon.png
-var trayIconPng []byte
+//go:embed assets/mac_menubar.png
+var macMenubarPng []byte
+
+//go:embed assets/window_tray.ico
+var windowTrayIco []byte
 
 var Version = config.Version
 
@@ -587,16 +591,15 @@ Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 MIT License - Free and open source
 
 ## Repository
-https://marubot
+https://github.com/dirmich/maru-bot
 
 ## Contact
-Issues: https://marubot/issues
-Discussions: https://marubot/discussions
+Issues: https://github.com/dirmich/maru-bot/issues
+Discussions: https://github.com/dirmich/maru-bot/discussions
 
 ---
 
-"Every bit helps, every bit matters."
-- Picoclaw
+"Simple, Powerful, Personal."
 `,
 	}
 
@@ -826,6 +829,12 @@ func gatewayCmd() {
 	gpioService := gpio.NewGPIOService(cfg, bus)
 	gpioService.Start(context.Background())
 	defer gpioService.Stop()
+
+	if cfg.Admin.BackendURL != "" && cfg.Admin.UserID != "" {
+		adminClient := admin.NewAdminClient(cfg.Admin.BackendURL, cfg.Admin.UserID, Version, cfg.Language)
+		adminClient.StartReporting()
+		fmt.Println("✓ Admin reporting service started")
+	}
 
 	cronStorePath := filepath.Join(filepath.Dir(getConfigPath()), "cron", "jobs.json")
 	cronService := cron.NewCronService(cronStorePath, func(job *cron.CronJob) (string, error) {

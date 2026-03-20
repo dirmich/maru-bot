@@ -89,9 +89,9 @@ build: sync-ui
 	@echo "Build complete: $(BINARY_PATH)"
 	@ln -sf $(BINARY_NAME)-$(PLATFORM)-$(ARCH) $(BUILD_DIR)/$(BINARY_NAME)
 
-## build-all: Build marubot for all platforms
+## build-all: Build marubot for Windows and macOS
 build-all: sync-ui
-	@echo "Building for Windows and macOS (skipping Linux as per rules)..."
+	@echo "Building for Windows and macOS..."
 	@mkdir -p $(BUILD_DIR)
 	@# Windows
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build $(LDFLAGS_WINDOWSGUI) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe ./$(CMD_DIR)
@@ -104,7 +104,7 @@ build-all: sync-ui
 	@$(MAKE) package-dmg
 	@echo "All targeted builds and packages complete"
 
-## package-win: Package Windows binaries into ZIP files (Single + Installable)
+## package-win: Package Windows binaries into ZIP files
 package-win: build-all
 	@echo "📦 Packaging Windows binaries (x64 & x86) with Go-Zip tool..."
 	@mkdir -p build/marubot-win-x64/config

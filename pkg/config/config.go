@@ -23,7 +23,13 @@ type Config struct {
 	Hardware      HardwareConfig  `json:"hardware"`
 	Drone         DroneConfig     `json:"drone"`
 	GPS           GPSConfig       `json:"gps"`
+	Admin         AdminConfig     `json:"admin"`
 	Mu            sync.RWMutex    `json:"-"`
+}
+
+type AdminConfig struct {
+	BackendURL string `json:"backend_url" env:"MARUBOT_ADMIN_BACKEND_URL"`
+	UserID     string `json:"user_id" env:"MARUBOT_ADMIN_USER_ID"`
 }
 
 type AgentsConfig struct {
@@ -40,9 +46,8 @@ type AgentDefaults struct {
 type ChannelsConfig struct {
 	WhatsApp WhatsAppConfig `json:"whatsapp"`
 	Telegram TelegramConfig `json:"telegram"`
-	Feishu   FeishuConfig   `json:"feishu"`
 	Discord  DiscordConfig  `json:"discord"`
-	MaixCam  MaixCamConfig  `json:"maixcam"`
+	Slack    SlackConfig    `json:"slack"`
 	Webhook  WebhookConfig  `json:"webhook"`
 }
 
@@ -58,6 +63,7 @@ type WhatsAppConfig struct {
 	Enabled   bool     `json:"enabled" env:"MARUBOT_CHANNELS_WHATSAPP_ENABLED"`
 	BridgeURL string   `json:"bridge_url" env:"MARUBOT_CHANNELS_WHATSAPP_BRIDGE_URL"`
 	AllowFrom []string `json:"allow_from" env:"MARUBOT_CHANNELS_WHATSAPP_ALLOW_FROM"`
+	APIKey    string   `json:"api_key" env:"MARUBOT_CHANNELS_WHATSAPP_API_KEY"`
 }
 
 type TelegramConfig struct {
@@ -66,14 +72,6 @@ type TelegramConfig struct {
 	AllowFrom []string `json:"allow_from" env:"MARUBOT_CHANNELS_TELEGRAM_ALLOW_FROM"`
 }
 
-type FeishuConfig struct {
-	Enabled           bool     `json:"enabled" env:"MARUBOT_CHANNELS_FEISHU_ENABLED"`
-	AppID             string   `json:"app_id" env:"MARUBOT_CHANNELS_FEISHU_APP_ID"`
-	AppSecret         string   `json:"app_secret" env:"MARUBOT_CHANNELS_FEISHU_APP_SECRET"`
-	EncryptKey        string   `json:"encrypt_key" env:"MARUBOT_CHANNELS_FEISHU_ENCRYPT_KEY"`
-	VerificationToken string   `json:"verification_token" env:"MARUBOT_CHANNELS_FEISHU_VERIFICATION_TOKEN"`
-	AllowFrom         []string `json:"allow_from" env:"MARUBOT_CHANNELS_FEISHU_ALLOW_FROM"`
-}
 
 type DiscordConfig struct {
 	Enabled   bool     `json:"enabled" env:"MARUBOT_CHANNELS_DISCORD_ENABLED"`
@@ -81,12 +79,13 @@ type DiscordConfig struct {
 	AllowFrom []string `json:"allow_from" env:"MARUBOT_CHANNELS_DISCORD_ALLOW_FROM"`
 }
 
-type MaixCamConfig struct {
-	Enabled   bool     `json:"enabled" env:"MARUBOT_CHANNELS_MAIXCAM_ENABLED"`
-	Host      string   `json:"host" env:"MARUBOT_CHANNELS_MAIXCAM_HOST"`
-	Port      int      `json:"port" env:"MARUBOT_CHANNELS_MAIXCAM_PORT"`
-	AllowFrom []string `json:"allow_from" env:"MARUBOT_CHANNELS_MAIXCAM_ALLOW_FROM"`
+type SlackConfig struct {
+	Enabled   bool     `json:"enabled" env:"MARUBOT_CHANNELS_SLACK_ENABLED"`
+	Token     string   `json:"token" env:"MARUBOT_CHANNELS_SLACK_TOKEN"`
+	AppToken  string   `json:"app_token" env:"MARUBOT_CHANNELS_SLACK_APP_TOKEN"`
+	AllowFrom []string `json:"allow_from" env:"MARUBOT_CHANNELS_SLACK_ALLOW_FROM"`
 }
+
 
 type ProvidersConfig struct {
 	Anthropic  ProviderConfig `json:"anthropic"`
@@ -169,33 +168,20 @@ func DefaultConfig() *Config {
 			},
 		},
 		Channels: ChannelsConfig{
-			WhatsApp: WhatsAppConfig{
-				Enabled:   false,
-				BridgeURL: "ws://localhost:3001",
-				AllowFrom: []string{},
-			},
 			Telegram: TelegramConfig{
 				Enabled:   false,
 				Token:     "",
 				AllowFrom: []string{},
-			},
-			Feishu: FeishuConfig{
-				Enabled:           false,
-				AppID:             "",
-				AppSecret:         "",
-				EncryptKey:        "",
-				VerificationToken: "",
-				AllowFrom:         []string{},
 			},
 			Discord: DiscordConfig{
 				Enabled:   false,
 				Token:     "",
 				AllowFrom: []string{},
 			},
-			MaixCam: MaixCamConfig{
+			Slack: SlackConfig{
 				Enabled:   false,
-				Host:      "0.0.0.0",
-				Port:      18790,
+				Token:     "",
+				AppToken:  "",
 				AllowFrom: []string{},
 			},
 			Webhook: WebhookConfig{
@@ -272,6 +258,10 @@ func DefaultConfig() *Config {
 			Enabled: false,
 			Device:  "/dev/ttyUSB0",
 			Baud:    9600,
+		},
+		Admin: AdminConfig{
+			BackendURL: "",
+			UserID:     "",
 		},
 	}
 }
@@ -488,11 +478,10 @@ func (c *Config) Update(newCfg *Config) {
 	}
 
 	// Merge Channels config
-	c.Channels.Telegram = newCfg.Channels.Telegram
 	c.Channels.WhatsApp = newCfg.Channels.WhatsApp
+	c.Channels.Telegram = newCfg.Channels.Telegram
 	c.Channels.Discord = newCfg.Channels.Discord
-	c.Channels.Feishu = newCfg.Channels.Feishu
-	c.Channels.MaixCam = newCfg.Channels.MaixCam
+	c.Channels.Slack = newCfg.Channels.Slack
 	c.Channels.Webhook = newCfg.Channels.Webhook
 
 	// Merge Providers (assuming the UI sends the full provider model list it wants to update)
@@ -687,9 +676,8 @@ func (c *Config) IsChannelEnabled() bool {
 	defer c.Mu.RUnlock()
 	return c.Channels.WhatsApp.Enabled ||
 		c.Channels.Telegram.Enabled ||
-		c.Channels.Feishu.Enabled ||
 		c.Channels.Discord.Enabled ||
-		c.Channels.MaixCam.Enabled ||
+		c.Channels.Slack.Enabled ||
 		c.Channels.Webhook.Enabled
 }
 
