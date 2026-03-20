@@ -111,6 +111,9 @@ export const translations = {
         settings_channels_desc: "Configure bot connectivity for Discord, Telegram, etc.",
         settings_channel_enabled: "Enabled",
         settings_channel_token: "Bot Token",
+        settings_channel_app_token: "App Level Token (Socket Mode)",
+        settings_channel_bridge_url: "Bridge URL",
+        settings_channel_api_key: "API Key / Secret",
         settings_channel_allow_from: "Allowed Users/IDs (Comma separated)",
         settings_theme_title: "Appearance",
         settings_theme_light: "Light",
@@ -119,8 +122,9 @@ export const translations = {
         settings_how_to_get: "How to get?",
         settings_how_to_get_telegram: "1. Search for @BotFather in Telegram.\n2. Use /newbot command and follow instructions.\n3. Copy the generated API Token.",
         settings_how_to_get_discord: "1. Visit Discord Developer Portal.\n2. Create a 'New Application'.\n3. Go to 'Bot' section and copy the 'Token'.\n4. Enable 'Message Content Intent' under Privileged Gateway Intents.",
-        settings_how_to_get_slack: "1. Visit Slack API (api.slack.com/apps).\n2. Create a new app 'From scratch'.\n3. Go to 'OAuth & Permissions', add scopes (chat:write, etc.).\n4. Install to Workspace and copy 'Bot User OAuth Token'.",
-        settings_how_to_get_feishu: "1. Visit Feishu/Lark Open Platform.\n2. Create a new custom app.\n3. Enable Bot feature and copy App ID/Secret or Token.",
+        settings_how_to_get_slack: "1. Visit Slack API (api.slack.com/apps).\n2. Create a new app 'From scratch'.\n3. Go to 'Socket Mode' and enable it.\n4. Go to 'OAuth & Permissions', add scopes (chat:write, etc.).\n5. Install to Workspace and copy 'Bot User OAuth Token'.\n6. Go to 'Basic Information' -> 'App-level Tokens' to get the App Token (xapp-...).",
+        settings_how_to_get_whatsapp: "1. Prepare a WhatsApp HTTP Bridge (e.g. go-whatsapp-web).\n2. Enter the Bridge URL (ws://...).\n3. Use the API Key if required by your bridge.",
+        settings_how_to_get_webhook: "1. MaruBot provides an incoming webhook endpoint.\n2. Configure the port and path.\n3. Send POST requests with json payload to interact.",
 
         // Common
         loading: "Loading...",
@@ -240,8 +244,11 @@ export const translations = {
 
         settings_channels_title: "메신저 채널 연동",
         settings_channels_desc: "디스코드, 텔레그램 등 외부 메신저 연동 설정을 관리합니다.",
-        settings_channel_enabled: "활성화함",
+        settings_channel_enabled: "채널 활성화",
         settings_channel_token: "봇 토큰 (Bot Token)",
+        settings_channel_app_token: "앱 토큰 (App Token - xapp)",
+        settings_channel_bridge_url: "브릿지 주소 (Bridge URL)",
+        settings_channel_api_key: "API 키 / 보안키",
         settings_channel_allow_from: "허용할 사용자/채팅방 ID (쉼표로 구분)",
         settings_theme_title: "화면 테마",
         settings_theme_light: "라이트 모드",
@@ -250,8 +257,9 @@ export const translations = {
         settings_how_to_get: "발급 방법",
         settings_how_to_get_telegram: "1. 텔레그램에서 @BotFather를 검색하여 대화를 시작하세요.\n2. /newbot 명령어를 입력하고 안내에 따라 봇을 생성하세요.\n3. 생성된 'HTTP API Token'을 복사하여 여기에 입력하세요.",
         settings_how_to_get_discord: "1. Discord Developer Portal에 접속하세요.\n2. 'New Application'을 생성합니다.\n3. 'Bot' 메뉴에서 토큰을 확인(Reset Token)하고 복사하세요.\n4. 하단의 'Message Content Intent' 권한을 활성화해야 정상 작동합니다.",
-        settings_how_to_get_slack: "1. Slack API(api.slack.com/apps)에 접속하세요.\n2. 'Create New App' -> 'From scratch'로 앱을 생성하세요.\n3. 'OAuth & Permissions'에서 스코프(chat:write 등)를 추가하세요.\n4. 워크스페이스에 설치 후 'Bot User OAuth Token'을 복사하세요.",
-        settings_how_to_get_feishu: "1. 비수(Feishu/Lark) 개발자 콘솔에 접속하세요.\n2. 앱을 생성하고 'Bot' 기능을 활성화하세요.\n3. 앱 ID/Secret 또는 인증 토큰을 확인하여 입력하세요.",
+        settings_how_to_get_slack: "1. Slack API(api.slack.com/apps)에서 앱을 생성하세요.\n2. 'Socket Mode'를 활성화합니다.\n3. 'OAuth & Permissions'에서 필요한 권한(chat:write, channels:history 등)을 추가하세요.\n4. 워크스페이스에 설치 후 'Bot User OAuth Token'(xoxb-...)을 가져옵니다.\n5. 'Basic Information'에서 'App-level Token'(xapp-...)을 생성하여 가져오세요.",
+        settings_how_to_get_whatsapp: "1. WhatsApp 연동을 위한 브릿지 서버(go-whatsapp-web 등)가 필요합니다.\n2. 브릿지 서버의 WebSocket 주소를 입력하세요.\n3. 브릿지 설정에 따라 API Key가 필요할 수 있습니다.",
+        settings_how_to_get_webhook: "1. MaruBot은 외부에서 메시지를 보낼 수 있는 Webhook 엔드포인트를 제공합니다.\n2. 포트와 경로를 설정하세요.\n3. 지정된 경로로 JSON 데이터를 POST하여 봇과 대화할 수 있습니다.",
 
         // Common
         loading: "로딩 중...",
@@ -373,6 +381,9 @@ export const translations = {
         settings_channels_desc: "Discord、Telegramなどの外部連携を構成します。",
         settings_channel_enabled: "有効にする",
         settings_channel_token: "ボットトークン",
+        settings_channel_app_token: "アプトークン (App Token)",
+        settings_channel_bridge_url: "ブリッジURL",
+        settings_channel_api_key: "APIキー / シークレット",
         settings_channel_allow_from: "許可するユーザー/ID (カンマ区切り)",
         settings_theme_title: "テーマ設定",
         settings_theme_light: "ライトモード",
@@ -381,8 +392,9 @@ export const translations = {
         settings_how_to_get: "取得方法",
         settings_how_to_get_telegram: "1. Telegramで@BotFatherを検索して対話を開始します。\n2. /newbotコマンドを入力し、指示に従ってボットを作成します。\n3. 生成されたAPIトークンをコピーしてここに入力してください。",
         settings_how_to_get_discord: "1. Discord Developer Portalにアクセスします。\n2. 'New Application'を作成します。\n3. 'Bot'セクションでトークンをコピーします。\n4. 'Message Content Intent'を有効にする必要があります。",
-        settings_how_to_get_slack: "1. Slack APIにアクセスします。\n2. 新しいアプリを作成し、OAuthスコープを設定します。\n3. ワークスペースにインストールしてトークンをコピーします。",
-        settings_how_to_get_feishu: "1. Feishu/Larkオープンプラットフォームにアクセスします。\n2. アプリを作成してボット機能を有効にします。\n3. トークンをコピーして入力します。",
+        settings_how_to_get_slack: "1. Slack APIにアクセスします。\n2. 新しいアプリを作成し、Socket Modeを有効にします。\n3. OAuthスコープを設定し、ワークスペースにインストールしてトークンをコピーします。\n4. App-level Tokenを生成してコピーします。",
+        settings_how_to_get_whatsapp: "1. WhatsApp HTTP Bridgeが必要です。\n2. Bridge URLを入力してください。",
+        settings_how_to_get_webhook: "1. Webhookエンドポイントを提供します。\n2. ポートとパスを設定してください。",
 
         // Common
         loading: "読み込み中...",

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { authenticatedFetch } from "@/lib/auth";
 import { Language, useLanguageStore, useTranslation } from "@/lib/i18n";
-import { Bell, CheckCircle2, Cpu, ExternalLink, Globe, HelpCircle, Languages, MessageSquare, Monitor, Moon, Plus, RefreshCw, Send, Settings, ShieldCheck, Sun, Trash2, Wrench } from 'lucide-react';
+import { CheckCircle2, Cpu, ExternalLink, Globe, HelpCircle, Languages, MessageSquare, Monitor, Moon, Plus, RefreshCw, Send, Settings, ShieldCheck, Sun, Trash2, Wrench } from 'lucide-react';
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -193,9 +193,9 @@ export function SettingsPage() {
 
     const channelIcons: Record<string, any> = {
         telegram: <Send className="w-5 h-5" />,
-        discord: <MessageSquare className="w-5 h-5" />, // Discord icon as fallback
+        discord: <MessageSquare className="w-5 h-5" />, 
+        slack: <MessageSquare className="w-5 h-5" />,
         whatsapp: <MessageSquare className="w-5 h-5" />,
-        feishu: <Bell className="w-5 h-5" />,
         webhook: <Globe className="w-5 h-5" />
     };
 
@@ -627,7 +627,7 @@ export function SettingsPage() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">ALLOWED USERS (Optional)</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_channel_allow_from}</label>
                                         <Input 
                                             className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
                                             value={config.channels[activeChannel].allow_from?.join(', ') || ''} 
@@ -641,11 +641,132 @@ export function SettingsPage() {
                             {activeChannel === 'discord' && (
                                 <div className="space-y-4 animate-in slide-in-from-top-2">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">BOT TOKEN</label>
+                                        <div className="flex justify-between items-end px-1">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_channel_token}</label>
+                                            <Button 
+                                                variant="link" 
+                                                size="sm" 
+                                                className="h-auto p-0 text-[10px] font-bold text-blue-500 hover:text-blue-600 flex items-center gap-1"
+                                                onClick={() => { setHelpChannel(activeChannel); setShowHowToGet(true); }}
+                                            >
+                                                <HelpCircle className="w-3 h-3" /> {t.settings_how_to_get}
+                                            </Button>
+                                        </div>
                                         <Input 
                                             className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
                                             value={config.channels[activeChannel].token || ''} 
                                             onChange={(e) => updateConfig(['channels', activeChannel, 'token'], e.target.value)}
+                                            type="password"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_channel_allow_from}</label>
+                                        <Input 
+                                            className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
+                                            value={config.channels[activeChannel].allow_from?.join(', ') || ''} 
+                                            onChange={(e) => updateConfig(['channels', activeChannel, 'allow_from'], (e.target.value.split(',') as any).map((s: string) => s.trim()).filter((s: string) => s))}
+                                            placeholder="UserID1, UserID2"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeChannel === 'slack' && (
+                                <div className="space-y-4 animate-in slide-in-from-top-2">
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-end px-1">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_channel_token}</label>
+                                            <Button 
+                                                variant="link" 
+                                                size="sm" 
+                                                className="h-auto p-0 text-[10px] font-bold text-blue-500 hover:text-blue-600 flex items-center gap-1"
+                                                onClick={() => { setHelpChannel(activeChannel); setShowHowToGet(true); }}
+                                            >
+                                                <HelpCircle className="w-3 h-3" /> {t.settings_how_to_get}
+                                            </Button>
+                                        </div>
+                                        <Input 
+                                            className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
+                                            value={config.channels[activeChannel].token || ''} 
+                                            onChange={(e) => updateConfig(['channels', activeChannel, 'token'], e.target.value)}
+                                            placeholder="xoxb-..."
+                                            type="password"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_channel_app_token}</label>
+                                        <Input 
+                                            className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
+                                            value={config.channels[activeChannel].app_token || ''} 
+                                            onChange={(e) => updateConfig(['channels', activeChannel, 'app_token'], e.target.value)}
+                                            placeholder="xapp-..."
+                                            type="password"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeChannel === 'whatsapp' && (
+                                <div className="space-y-4 animate-in slide-in-from-top-2">
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-end px-1">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_channel_bridge_url}</label>
+                                            <Button 
+                                                variant="link" 
+                                                size="sm" 
+                                                className="h-auto p-0 text-[10px] font-bold text-blue-500 hover:text-blue-600 flex items-center gap-1"
+                                                onClick={() => { setHelpChannel(activeChannel); setShowHowToGet(true); }}
+                                            >
+                                                <HelpCircle className="w-3 h-3" /> {t.settings_how_to_get}
+                                            </Button>
+                                        </div>
+                                        <Input 
+                                            className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
+                                            value={config.channels[activeChannel].bridge_url || ''} 
+                                            onChange={(e) => updateConfig(['channels', activeChannel, 'bridge_url'], e.target.value)}
+                                            placeholder="ws://localhost:3001"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_channel_api_key}</label>
+                                        <Input 
+                                            className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
+                                            value={config.channels[activeChannel].api_key || ''} 
+                                            onChange={(e) => updateConfig(['channels', activeChannel, 'api_key'], e.target.value)}
+                                            type="password"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeChannel === 'webhook' && (
+                                <div className="space-y-4 animate-in slide-in-from-top-2">
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-end px-1">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Webhook Path</label>
+                                            <Button 
+                                                variant="link" 
+                                                size="sm" 
+                                                className="h-auto p-0 text-[10px] font-bold text-blue-500 hover:text-blue-600 flex items-center gap-1"
+                                                onClick={() => { setHelpChannel(activeChannel); setShowHowToGet(true); }}
+                                            >
+                                                <HelpCircle className="w-3 h-3" /> {t.settings_how_to_get}
+                                            </Button>
+                                        </div>
+                                        <Input 
+                                            className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
+                                            value={config.channels[activeChannel].path || ''} 
+                                            onChange={(e) => updateConfig(['channels', activeChannel, 'path'], e.target.value)}
+                                            placeholder="/api/channels/webhook"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Secret Key / Token</label>
+                                        <Input 
+                                            className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
+                                            value={config.channels[activeChannel].secret || ''} 
+                                            onChange={(e) => updateConfig(['channels', activeChannel, 'secret'], e.target.value)}
+                                            placeholder={t.settings_api_key}
                                             type="password"
                                         />
                                     </div>
@@ -695,7 +816,8 @@ export function SettingsPage() {
                              {helpChannel === 'telegram' && t.settings_how_to_get_telegram}
                              {helpChannel === 'discord' && t.settings_how_to_get_discord}
                              {helpChannel === 'slack' && t.settings_how_to_get_slack}
-                             {helpChannel === 'feishu' && t.settings_how_to_get_feishu}
+                             {helpChannel === 'whatsapp' && t.settings_how_to_get_whatsapp}
+                             {helpChannel === 'webhook' && t.settings_how_to_get_webhook}
                         </div>
                         
                         <div className="flex gap-2">
