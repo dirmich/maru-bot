@@ -24,7 +24,7 @@ mkdir -p "$TARGET_DIR"
 # 2. 대상 디렉토리 정리 ( .git 보존 )
 echo "🧹 대상 폴더를 정리 중..."
 if [ -d "$TARGET_DIR" ]; then
-    find "$TARGET_DIR" -mindepth 1 -maxdepth 1 -not -name ".git" -exec rm -rf {} +
+    find "$TARGET_DIR" -mindepth 1 -maxdepth 1 -not -name ".git" -not -name "admin" -not -name "homepage" -exec rm -rf {} +
 else
     mkdir -p "$TARGET_DIR"
 fi

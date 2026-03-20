@@ -1,5 +1,30 @@
 # 🦞 MaruBot (마루 미니봇) 프로젝트 이력 (History)
 
+## 2026-03-20
+### v0.4.85
+- **Admin System**: Bun.sh + PostgreSQL 기반 중앙 관리 서비스 구축 (Backend/Frontend).
+- **Google SSO**: 서비스 다운로드 및 인스턴스 관리를 위한 Google 로그인 연동.
+- **통계 대시보드**: 전체 사용자 및 플랫폼별 설치 현황을 위한 슈퍼유저 전용 UI 구현.
+- **Client Integration**: Marubot 인스턴스 자동 상태 보고(30분 주기) 기능 탑재.
+- **글로벌 문서**: 모든 README(KO, EN, JA, CN) 및 RULES.md 버전 동기화 및 최신화.
+- **브랜딩 정제**: 모든 문서 및 소스 코드에서 외부 프로젝트(PicoClaw/nanobot) 의존적 설명 제거 및 독자 브랜드 강화.
+- **링크 수정**: IDENTITY 및 소스 코드 내의 플레이스홀더 링크를 공식 공개 저장소(`maru-bot`) 링크로 전면 수정.
+
+### v0.4.84
+- **공식 홈페이지(Landing Page)**: React + Tailwind CSS + shadcn/ui 기반 멀티링구얼 지원 페이지 구축.
+- **다국어 지원**: 한국어, 영어, 일본어, 스페인어 4개 국어 및 라이트/다크 테마 지원.
+- **설치 가이드**: 윈도우, macOS(Intel/Silicon), Linux/RPi 전용 설치 안내 및 쉘 스크립트 제공.
+- **브랜딩**: `app_icon.png`를 로고 및 파비콘으로 적용하여 일관성 확보.
+
+### v0.4.83
+- **채널 정제**: Slack(Socket Mode), WhatsApp, Telegram, Discord, Webhook 5개 핵심 채널로 집중.
+- **설정 UI 개선**: 채널별 맞춤형 입력 필드 및 상세 토큰 발급 가이드(다국어) 팝업 추가.
+- **백엔드 최적화**: 사용하지 않는 채널(Feishu, MaixCam) 제거 및 설정 구조 간소화.
+
+### v0.4.82
+- **아이콘 최적화**: 모든 아이콘의 흰색 여백 자동 제거 및 꽉 차게 리디자인.
+- **Windows 트레이 개선**: 윈도우 환경 전용 `window_tray.ico` 적용 및 가시성 개선.
+
 ## 2026-03-17
 ### v0.4.74
 - **GPIO 테스트 플래그 도입**: `config.json`의 `hardware.gpio_test_mode` 플래그를 통해 윈도우 등 비-기기 환경에서도 GPIO 기능을 강제 활성화 가능.

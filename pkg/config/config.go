@@ -23,7 +23,13 @@ type Config struct {
 	Hardware      HardwareConfig  `json:"hardware"`
 	Drone         DroneConfig     `json:"drone"`
 	GPS           GPSConfig       `json:"gps"`
+	Admin         AdminConfig     `json:"admin"`
 	Mu            sync.RWMutex    `json:"-"`
+}
+
+type AdminConfig struct {
+	BackendURL string `json:"backend_url" env:"MARUBOT_ADMIN_BACKEND_URL"`
+	UserID     string `json:"user_id" env:"MARUBOT_ADMIN_USER_ID"`
 }
 
 type AgentsConfig struct {
@@ -252,6 +258,10 @@ func DefaultConfig() *Config {
 			Enabled: false,
 			Device:  "/dev/ttyUSB0",
 			Baud:    9600,
+		},
+		Admin: AdminConfig{
+			BackendURL: "",
+			UserID:     "",
 		},
 	}
 }

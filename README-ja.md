@@ -1,31 +1,21 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.61) 🦞
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.85) 🦞
 
 **MaruBot** は、超軽量の MaruBot エンジンをベースに、Raspberry Pi などの SBC（シングルボードコンピュータ）でハードウェアを直接制御し、対話するために最適化された **"Physical AI Assistant"** です。
 
-## ✨ 0.4.0 アップデート
----
-
-## ✨ 0.4.3 アップデート
-- **アップグレードと自動再起動**: `marubot upgrade` 実行後、システムが自動的に再起動されるよう改善しました。
-- **AIによるバージョン制御と更新**: AIエージェントが自らバージョンを確認し、ユーザーの要求に応じてアップグレードを実行できるツールを追加しました。
-- **Shadcn UI ダイアログ**: Web Admin のすべてのブラウザ標準ダイアログを、洗練された Shadcn UI ダイアログに置き換え、一貫した UX を提供します。
-- **バージョン管理の中央集約化**: エンジン内部のバージョン管理ロジックを統合し、アップデートチェックと管理の正確性を向上させました。
-
----
-
-## ✨ コアコンセプト
-1. **エンジンの再利用**: 高効率な Go バイナリを使用し、RAM 占有率를 10MB 以下に維持します。
-2. **Raspberry Pi 最適化**: GPIO、カメラ、マイク、スピーカーの権限設定を自動化します。
+## ✨ 核心コンセプト
+1. **エンジンの再利用**: 高効率な Go バイナリを使用し、RAM 占有率を 10MB 以下に維持します.
+2. **Raspberry Pi 最適化**: GPIO、カメラ、マイク、スピーカーの権限設定을 自動化します。
 3. **ハイパーローカル設定**: 複雑な JSON 編集の代わりに、専用スクリプト (`maru-setup.sh`) を通じて対話形式で設定を完了します。
 4. **物理的な相互作用**: サーボモーター、LED、各種センサー（DHT、PIR など）を AI エージェントが制御できるツールが事前に含まれています。
+5. **中央管理とホームページ**: マルチリンガル対応のホームページと、Google SSO を使用した複数インスタンスの中央管理ダッシュボードを提供します。
 
 ---
 
 ## 📂 フォルダ構造
 - `/config`: MaruBot 専用のハードウェアおよびエージェント設定ファイル
-- `maru-setup.sh`: Raspberry Pi の初期化およびハードウェア連携自動化スクリプト
+- `maru-setup.sh`: Raspberry Pi の初期化 및 ハードウェア連携自動化スクリプト
 - `/tools`: AI エージェントが使用する GPIO/I2C/SPI 制御ユーティリティ
-- `/bin`: MaruBot バイナリリンクまたは実行ファイルの保管
+- `/bin`: MaruBot バイナリリンク 또는 実行ファイルの保管
 
 ---
 
@@ -43,15 +33,15 @@
 最も素早く MaruBot を開始する方法です。
 
 ### 1. 🐧 Linux / 🍎 macOS (Terminal)
-ターミナルで以下のコマンドを実行して、すぐにインストールできます (curl が必要です):
+터미널で以下のコマンドを実行して、すぐにインストールできます (curl が必要です):
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash
 ```
 
 ### 2. 🪟 Windows (GUI/Manual)
-Windows ユーザーは、ターミナルコマンドではなく **公式リリースページ** からファイルをダウンロードして実行することをお勧めします:
+Windows ユーザーは、ターミ널コマンドよりも **公式リリースページ** からファイルをダウンロードして実行することをお勧めします:
 1. [公式リリースページ (Releases)](https://github.com/dirmich/maru-bot/releases) にアクセスします。
-2. お使いの OS (64bit または 32bit) に適した `marubot-windows-xxx.zip` または `exe` ファイルをダウンロードします。
+2. お使いの OS (64bit または 32bit) に適した `marubot-windows-xxx.zip` または `exe` ファイルをダウンロードします.
 3. ダウンロードしたファイルを実行すると、自動的に `~/.marubot/bin` フォルダにインストールされ、トレイアイコンが有効になります。
 
 ### 3. 必須設定 (API キーの登録)
@@ -107,6 +97,6 @@ marubot start
 ---
 
 ## 📝 ライセンス
-MIT License。 MaruBot は [picoclaw](https://github.com/sipeed/picoclaw) をベースにしています。
+MIT License。
 
-*開発と分析: Antigravity AI (2026-03-13)*
+*開発と分析: Antigravity AI (2026-03-20)*

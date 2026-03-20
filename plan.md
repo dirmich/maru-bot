@@ -1,7 +1,7 @@
 # 🤖 MaruBot (마루 미니봇) 프로젝트 상세 기획서
 
 ## 1. 프로젝트 개요 (Project Overview)
-**MaruBot**은 PicoClaw의 초경량 AI 엔진 기술을 계승하고 소스 코드를 독립적으로 구축하여, Raspberry Pi와 같은 SBC(Single Board Computer) 환경에서 물리적 세계와 소통하도록 설계된 **"전천후 피지컬 AI 어시스턴트"**입니다. 단순한 텍스트 기반 비서를 넘어, 하드웨어 센서와 액추에이터를 직접 제어하여 현실 세계의 문제를 해결하는 것을 목표로 합니다.
+**MaruBot**은 초경량 AI 엔진 기술을 독자적으로 구축하여, Raspberry Pi와 같은 SBC(Single Board Computer) 환경에서 물리적 세계와 소통하도록 설계된 **"전천후 피지컬 AI 어시스턴트"**입니다. 단순한 텍스트 기반 비서를 넘어, 하드웨어 센서와 액추에이터를 직접 제어하여 현실 세계의 문제를 해결하는 것을 목표로 합니다.
 
 ---
 
@@ -24,7 +24,7 @@
 ## 4. 단계별 개발 로드맵 (Development Roadmap)
 
 ### **Phase 1: 기반 구축 및 기본 인터랙션 (현재 단계)**
-- [x] PicoClaw 소스 기반 독립 엔진(`marubot`) 구축 및 모듈 리팩토링.
+- [x] 독자적인 독립 엔진(`marubot`) 구축 및 모듈 리팩토링.
 - [x] Raspberry Pi 전용 하드웨어 설정 자동화 스크립트(`setup-rpi.sh`) 개발.
 - [x] 복합 카메라 지원 툴(`camera_capture`) 통합 (CSI & USB).
 - [x] GPIO 제어를 위한 기본 도구 및 설정 템플릿 제공.

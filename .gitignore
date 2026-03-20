@@ -15,14 +15,18 @@ coverage.txt
 coverage.html
 .DS_Store
 
-# Web Admin
-node_modules/
+# Web Admin & Homepage
+**/node_modules/
 .next/
 out/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.env*.local
+.env
+.env.*
+! .env.example
+dist/
+build-admin/
 
 # Public Distribution folder
 maru-bot/

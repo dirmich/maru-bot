@@ -7,7 +7,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-0.4.79
+0.4.85
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
@@ -46,13 +46,12 @@ Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 MIT License - Free and open source
 
 ## Repository
-https://marubot
+https://github.com/dirmich/maru-bot
 
 ## Contact
-Issues: https://marubot/issues
-Discussions: https://marubot/discussions
+Issues: https://github.com/dirmich/maru-bot/issues
+Discussions: https://github.com/dirmich/maru-bot/discussions
 
 ---
 
-"Every bit helps, every bit matters."
-- Picoclaw
+"Simple, Powerful, Personal."

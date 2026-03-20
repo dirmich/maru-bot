@@ -39,12 +39,32 @@ export default function App() {
   const { theme, toggleTheme } = useTheme()
   const { language, setLanguage, t } = useTranslation()
   const [scrolled, setScrolled] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener("scroll", handleScroll)
+    
+    // Check login status (simplified)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('login') === 'success') {
+      setIsLoggedIn(true);
+      localStorage.setItem('isLoggedIn', 'true');
+    } else {
+      setIsLoggedIn(localStorage.getItem('isLoggedIn') === 'true');
+    }
+
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  const handleDownload = (platform?: string) => {
+    if (!isLoggedIn) {
+       window.location.href = `${import.meta.env.VITE_ADMIN_URL || 'http://localhost:4000'}/auth/google`;
+       return;
+    }
+    // Logic to actually trigger download
+    alert(`${platform || 'Marubot'} download starting...`);
+  }
 
   const languages: { code: Language; label: string }[] = [
     { code: "en", label: "English" },
@@ -136,7 +156,7 @@ export default function App() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" className="rounded-full px-8 gap-2 shadow-xl shadow-primary/20">
+                <Button size="lg" className="rounded-full px-8 gap-2 shadow-xl shadow-primary/20" onClick={() => handleDownload()}>
                   <Download className="w-5 h-5" /> {t.download}
                 </Button>
                 <Button variant="outline" size="lg" className="rounded-full px-8 gap-2">
@@ -234,7 +254,7 @@ export default function App() {
                         <p className="text-sm font-medium">{t.win_step_2}</p>
                         <p className="text-sm font-medium">{t.win_step_3}</p>
                       </div>
-                      <Button className="w-full sm:w-auto rounded-full gap-2">
+                      <Button className="w-full sm:w-auto rounded-full gap-2" onClick={() => handleDownload('Windows')}>
                         <Download className="w-4 h-4" /> marubot-windows-amd64.exe
                       </Button>
                     </CardContent>
@@ -254,10 +274,10 @@ export default function App() {
                         <p className="text-sm font-medium">{t.mac_step_3}</p>
                       </div>
                       <div className="flex flex-col sm:flex-row gap-3">
-                        <Button variant="outline" className="rounded-full gap-2 flex-1">
+                        <Button variant="outline" className="rounded-full gap-2 flex-1" onClick={() => handleDownload('macOS-Silicon')}>
                           <Download className="w-4 h-4" /> Apple Silicon
                         </Button>
-                        <Button variant="outline" className="rounded-full gap-2 flex-1">
+                        <Button variant="outline" className="rounded-full gap-2 flex-1" onClick={() => handleDownload('macOS-Intel')}>
                           <Download className="w-4 h-4" /> Intel Mac
                         </Button>
                       </div>
