@@ -2283,8 +2283,40 @@ if ($result -eq "Yes") {
 			}
 			return true
 		}
+	} else if runtime.GOOS == "darwin" {
+		// Ask for a new port via AppleScript (osascript)
+		title := "MaruBot Port Conflict"
+		msg := fmt.Sprintf("Port %d is already in use. Would you like to use a different port?", port)
+		script := fmt.Sprintf(`display dialog "%s" with title "%s" buttons {"Cancel", "Yes"} default button "Yes" with icon caution`, msg, title)
+		cmd := exec.Command("osascript", "-e", script)
+		if err := cmd.Run(); err != nil {
+			return false // User cancelled
+		}
+
+		// Show input dialog
+		inputScript := fmt.Sprintf(`display dialog "Enter a new port number:" with title "%s" default answer "8081" buttons {"Cancel", "OK"} default button "OK"`, title)
+		out, err := exec.Command("osascript", "-e", inputScript).Output()
+		if err != nil {
+			return false // User cancelled
+		}
+
+		// osascript returns: button returned:OK, text returned:8081
+		outStr := string(out)
+		if strings.Contains(outStr, "text returned:") {
+			parts := strings.Split(outStr, "text returned:")
+			newPortStr := strings.TrimSpace(parts[len(parts)-1])
+			var newPort int
+			fmt.Sscanf(newPortStr, "%d", &newPort)
+			if newPort > 0 {
+				cfg.Gateway.Port = newPort
+				if err := config.SaveConfig(getConfigPath(), cfg); err != nil {
+					fmt.Printf("Error saving config: %v\n", err)
+				}
+				return true
+			}
+		}
 	} else {
-		fmt.Printf("Warning: Port 8080 is in use. Please check your configuration.\n")
+		fmt.Printf("Warning: Port %d is in use. Please check your configuration.\n", port)
 	}
 	return false
 }
