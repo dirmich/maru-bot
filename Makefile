@@ -16,8 +16,16 @@ LDFLAGS_BASE=$(if $(VERSION),-X main.version=$(VERSION) -X main.buildTime=$(BUIL
 LDFLAGS_CONSOLE=-ldflags "$(LDFLAGS_BASE)"
 # For Windows (GUI - to hide CMD window)
 LDFLAGS_WINDOWSGUI=-ldflags "$(LDFLAGS_BASE) -H windowsgui"
+# OS detection
+UNAME_S:=$(shell uname -s)
+UNAME_M:=$(shell uname -m)
 
-CGO_ENABLED=0
+# CGO settings
+ifeq ($(UNAME_S),Darwin)
+	CGO_ENABLED=1
+else
+	CGO_ENABLED=0
+endif
 export CGO_ENABLED
 
 # Go variables
@@ -34,8 +42,6 @@ WORKSPACE_SKILLS_DIR=$(WORKSPACE_DIR)/skills
 BUILTIN_SKILLS_DIR=$(CURDIR)/skills
 
 # OS detection
-UNAME_S:=$(shell uname -s)
-UNAME_M:=$(shell uname -m)
 
 # Platform-specific settings
 ifeq ($(UNAME_S),Linux)
@@ -69,26 +75,24 @@ endif
 
 BINARY_PATH=$(BUILD_DIR)/$(BINARY_NAME)-$(PLATFORM)-$(ARCH)
 
-# Default target
-all: build
+# internal helper to sync UI assets
+sync-ui:
+	@echo "Syncing web-admin assets..."
+	@mkdir -p cmd/marubot/dashboard/dist
+	@cp -rv web-admin/dist/* cmd/marubot/dashboard/dist/
 
 ## build: Build the marubot binary for current platform
-build:
+build: sync-ui
 	@echo "Building $(BINARY_NAME) for $(PLATFORM)/$(ARCH)..."
 	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=0 $(GO) build $(GOFLAGS) $(LDFLAGS_CONSOLE) -o $(BINARY_PATH) ./$(CMD_DIR)
+	$(GO) build $(GOFLAGS) $(LDFLAGS_CONSOLE) -o $(BINARY_PATH) ./$(CMD_DIR)
 	@echo "Build complete: $(BINARY_PATH)"
 	@ln -sf $(BINARY_NAME)-$(PLATFORM)-$(ARCH) $(BUILD_DIR)/$(BINARY_NAME)
 
 ## build-all: Build marubot for all platforms
-build-all:
-	@echo "Building for multiple platforms..."
+build-all: sync-ui
+	@echo "Building for Windows and macOS (skipping Linux as per rules)..."
 	@mkdir -p $(BUILD_DIR)
-	@# Linux
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 ./$(CMD_DIR)
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64 ./$(CMD_DIR)
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm ./$(CMD_DIR)
-	CGO_ENABLED=0 GOOS=linux GOARCH=riscv64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-riscv64 ./$(CMD_DIR)
 	@# Windows
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build $(LDFLAGS_WINDOWSGUI) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe ./$(CMD_DIR)
 	CGO_ENABLED=0 GOOS=windows GOARCH=386 $(GO) build $(LDFLAGS_WINDOWSGUI) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-386.exe ./$(CMD_DIR)
@@ -96,7 +100,9 @@ build-all:
 	@echo "Building for macOS (CGO required for Tray Icon)..."
 	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 ./$(CMD_DIR)
 	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 ./$(CMD_DIR)
-	@echo "All builds complete"
+	@echo "Packaging DMGs..."
+	@$(MAKE) package-dmg
+	@echo "All targeted builds and packages complete"
 
 ## package-win: Package Windows binaries into ZIP files (Single + Installable)
 package-win: build-all
@@ -117,7 +123,7 @@ package-win: build-all
 	@echo "✓ Windows packages created."
 
 ## package-dmg: Package macOS binaries into DMG files
-package-dmg: build-all
+package-dmg:
 	@echo "📦 Packaging macOS DMGs..."
 	@chmod +x scripts/build_dmg.sh
 	@./scripts/build_dmg.sh amd64

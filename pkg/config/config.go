@@ -475,7 +475,16 @@ func (c *Config) Update(newCfg *Config) {
 	
 	// Selective Agents update
 	if newCfg.Agents.Defaults.Model != "" {
-		c.Agents = newCfg.Agents
+		c.Agents.Defaults.Model = newCfg.Agents.Defaults.Model
+	}
+	if newCfg.Agents.Defaults.Provider != "" {
+		c.Agents.Defaults.Provider = newCfg.Agents.Defaults.Provider
+	}
+	if newCfg.Agents.Defaults.Workspace != "" {
+		c.Agents.Defaults.Workspace = newCfg.Agents.Defaults.Workspace
+	}
+	if len(newCfg.Agents.Defaults.FallbackModels) > 0 {
+		c.Agents.Defaults.FallbackModels = newCfg.Agents.Defaults.FallbackModels
 	}
 
 	// Merge Channels config
@@ -542,18 +551,19 @@ func (c *Config) GetAPIKey() string {
 		}
 	}
 	
-	// Fallback global search
-	providers := []ProviderConfig{
-		c.Providers.OpenRouter,
-		c.Providers.Anthropic,
-		c.Providers.OpenAI,
-		c.Providers.Gemini,
-		c.Providers.Zhipu,
-		c.Providers.Groq,
-		c.Providers.VLLM,
-	}
-	for _, p := range providers {
-		for _, m := range p.Models {
+	for _, p := range []struct {
+		name string
+		cfg  ProviderConfig
+	}{
+		{"openai", c.Providers.OpenAI},
+		{"anthropic", c.Providers.Anthropic},
+		{"gemini", c.Providers.Gemini},
+		{"groq", c.Providers.Groq},
+		{"zhipu", c.Providers.Zhipu},
+		{"vllm", c.Providers.VLLM},
+		{"openrouter", c.Providers.OpenRouter},
+	} {
+		for _, m := range p.cfg.Models {
 			if m.APIKey != "" {
 				return m.APIKey
 			}
@@ -611,10 +621,36 @@ func (c *Config) GetAPIBase() string {
 	
 	if provider != "" {
 		mCfg := c.findModelConfig(provider, model)
-		if mCfg != nil {
+		if mCfg != nil && mCfg.APIBase != "" {
 			return mCfg.APIBase
 		}
+		// Fallback to default base for the provider if found
+		return GetDefaultBase(provider)
 	}
+
+	// If provider not specified, try to find the model and its base
+	for _, p := range []struct {
+		name string
+		cfg  ProviderConfig
+	}{
+		{"openai", c.Providers.OpenAI},
+		{"anthropic", c.Providers.Anthropic},
+		{"gemini", c.Providers.Gemini},
+		{"groq", c.Providers.Groq},
+		{"zhipu", c.Providers.Zhipu},
+		{"vllm", c.Providers.VLLM},
+		{"openrouter", c.Providers.OpenRouter},
+	} {
+		for _, m := range p.cfg.Models {
+			if strings.EqualFold(m.Model, model) {
+				if m.APIBase != "" {
+					return m.APIBase
+				}
+				return GetDefaultBase(p.name)
+			}
+		}
+	}
+
 	return ""
 }
 
@@ -669,6 +705,27 @@ func expandHome(path string) string {
 		return home
 	}
 	return path
+}
+
+func GetDefaultBase(provider string) string {
+	switch strings.ToLower(provider) {
+	case "openai":
+		return "https://api.openai.com/v1"
+	case "anthropic":
+		return "https://api.anthropic.com/v1"
+	case "gemini":
+		return "https://generativelanguage.googleapis.com/v1beta/openai"
+	case "groq":
+		return "https://api.groq.com/openai/v1"
+	case "zhipu":
+		return "https://open.bigmodel.cn/api/paas/v4"
+	case "openrouter":
+		return "https://openrouter.ai/api/v1"
+	case "vllm", "ollama":
+		return "http://localhost:11434/v1"
+	default:
+		return ""
+	}
 }
 
 func IsInputPin(name string) bool {

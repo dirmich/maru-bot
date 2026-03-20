@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const Version = "0.4.76"
+const Version = "0.4.80"
 
 // CheckLatestVersion fetches the latest version from the remote repository
 func CheckLatestVersion() (string, error) {
@@ -52,7 +52,32 @@ func fetchFromUrl(url string) (string, error) {
 	return "", fmt.Errorf("version string not found in remote file at %s", url)
 }
 
-// IsNewVersionAvailable compares the current version with the latest version
+// IsNewVersionAvailable compares the current version with the latest version.
+// It returns true only if the latest version is greater than the current version.
 func IsNewVersionAvailable(latest string) bool {
-	return strings.TrimPrefix(latest, "v") != strings.TrimPrefix(Version, "v")
+	l := strings.TrimPrefix(latest, "v")
+	v := strings.TrimPrefix(Version, "v")
+
+	if l == v {
+		return false
+	}
+
+	// Simple semver comparison
+	lParts := strings.Split(l, ".")
+	vParts := strings.Split(v, ".")
+
+	for i := 0; i < len(lParts) && i < len(vParts); i++ {
+		var lNum, vNum int
+		fmt.Sscanf(lParts[i], "%d", &lNum)
+		fmt.Sscanf(vParts[i], "%d", &vNum)
+
+		if lNum > vNum {
+			return true
+		}
+		if lNum < vNum {
+			return false
+		}
+	}
+
+	return len(lParts) > len(vParts)
 }
