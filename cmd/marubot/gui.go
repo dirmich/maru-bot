@@ -46,9 +46,9 @@ func onTrayReady(targetExe string) {
 	systray.SetTitle("MaruBot")
 	systray.SetTooltip("MaruBot - AI Agent Service")
 	if runtime.GOOS == "windows" {
-		systray.SetIcon(trayIconIco)
+		systray.SetIcon(windowTrayPng)
 	} else {
-		systray.SetIcon(trayIconPng)
+		systray.SetIcon(macMenubarPng)
 	}
 
 	systray.AddMenuItem("MaruBot v"+Version, "Version information").Disable()

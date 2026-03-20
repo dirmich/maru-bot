@@ -48,11 +48,14 @@ import (
 
 const logo = "[MaruBot]"
 
-//go:embed assets/tray_icon.ico
-var trayIconIco []byte
+//go:embed assets/app_icon.png
+var appIconPng []byte
 
-//go:embed assets/tray_icon.png
-var trayIconPng []byte
+//go:embed assets/mac_menubar.png
+var macMenubarPng []byte
+
+//go:embed assets/window_tray.png
+var windowTrayPng []byte
 
 var Version = config.Version
 

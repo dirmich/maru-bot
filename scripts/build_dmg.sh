@@ -31,9 +31,9 @@ mkdir -p "$RESOURCES_DIR"
 cp "$BUILD_DIR/$BINARY_NAME-darwin-$ARCH" "$MACOS_DIR/$BINARY_NAME"
 chmod +x "$MACOS_DIR/$BINARY_NAME"
 
-# 4. Copy Icon (Try to use PNG if available, macOS prefers .icns but PNG works in some contexts or we can just leave it)
-if [ -f "cmd/marubot/assets/tray_icon.png" ]; then
-    cp "cmd/marubot/assets/tray_icon.png" "$RESOURCES_DIR/AppIcon.png"
+# 4. Copy Icon
+if [ -f "cmd/marubot/assets/app_icon.png" ]; then
+    cp "cmd/marubot/assets/app_icon.png" "$RESOURCES_DIR/AppIcon.png"
 fi
 
 # 5. Create PList
