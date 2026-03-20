@@ -97,21 +97,38 @@ build-all: sync-ui
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build $(LDFLAGS_WINDOWSGUI) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe ./$(CMD_DIR)
 	CGO_ENABLED=0 GOOS=windows GOARCH=386 $(GO) build $(LDFLAGS_WINDOWSGUI) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-386.exe ./$(CMD_DIR)
 	@# Darwin
-	@echo "Building for macOS (Binary only, DMG/Notarization requires macOS)..."
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 ./$(CMD_DIR)
-	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 ./$(CMD_DIR)
-	@echo "All targeted builds complete"
+	@echo "Building for macOS (CGO required for Tray Icon)..."
+	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 ./$(CMD_DIR)
+	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 ./$(CMD_DIR)
+	@echo "Packaging DMGs..."
+	@$(MAKE) package-dmg
+	@echo "All targeted builds and packages complete"
 
-## package-win: Copy Windows binaries to build folder
+## package-win: Package Windows binaries into ZIP files
 package-win: build-all
-	@echo "Copying Windows binaries..."
-	@cp build/marubot-windows-amd64.exe build/marubot.exe
-	@echo "✓ Windows binaries ready."
+	@echo "📦 Packaging Windows binaries (x64 & x86) with Go-Zip tool..."
+	@mkdir -p build/marubot-win-x64/config
+	@cp build/marubot-windows-amd64.exe build/marubot-win-x64/marubot.exe
+	@cp README.md build/marubot-win-x64/
+	@cp config/maru-config.json build/marubot-win-x64/config/maru-config.json
+	@go run scripts/zip_pack.go build/marubot-windows-x64.zip build/marubot-win-x64
+	@rm -rf build/marubot-win-x64
 
-## package-dmg-info: Reminder for macOS packaging
-package-dmg-info:
-	@echo "⚠️ macOS DMG packaging (hdiutil/codesign) must be performed on a macOS machine."
-	@echo "Run 'make package-dmg' on a Mac after copying the Darwin binaries."
+	@mkdir -p build/marubot-win-x86/config
+	@cp build/marubot-windows-386.exe build/marubot-win-x86/marubot.exe
+	@cp README.md build/marubot-win-x86/
+	@cp config/maru-config.json build/marubot-win-x86/config/maru-config.json
+	@go run scripts/zip_pack.go build/marubot-windows-x86.zip build/marubot-win-x86
+	@rm -rf build/marubot-win-x86
+	@echo "✓ Windows packages created."
+
+## package-dmg: Package macOS binaries into DMG files
+package-dmg:
+	@echo "📦 Packaging macOS DMGs..."
+	@chmod +x scripts/build_dmg.sh
+	@./scripts/build_dmg.sh amd64
+	@./scripts/build_dmg.sh arm64
+	@echo "✓ macOS DMGs created."
 
 ## install: Install marubot to system and copy builtin skills
 install: build
