@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { authenticatedFetch } from "@/lib/auth";
 import { Language, useLanguageStore, useTranslation } from "@/lib/i18n";
-import { CheckCircle2, Cpu, ExternalLink, Globe, HelpCircle, Languages, MessageSquare, Monitor, Moon, Plus, RefreshCw, Send, Settings, ShieldCheck, Sun, Trash2, Wrench } from 'lucide-react';
+import { Cpu, ExternalLink, Globe, HelpCircle, Languages, MessageSquare, Monitor, Moon, Plus, RefreshCw, Send, Settings, ShieldCheck, Sun, Trash2, Wrench } from 'lucide-react';
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -221,110 +221,6 @@ export function SettingsPage() {
                 </div>
             </header>
 
-            {/* 에이전트 및 기본 설정 */}
-            <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <Card className="lg:col-span-2 border-none shadow-xl bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-800/50 overflow-hidden">
-                    <CardHeader className="border-b bg-white/50 dark:bg-black/20 backdrop-blur-sm">
-                        <CardTitle className="flex items-center gap-2 text-blue-600">
-                            <Cpu className="w-5 h-5" /> {t.settings_agent_title}
-                        </CardTitle>
-                        <CardDescription>{t.settings_agent_desc}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-8 space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-3">
-                                <label className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">{t.settings_model}</label>
-                                <Select 
-                                    value={config.agents?.defaults?.model || ''} 
-                                    onValueChange={(v) => {
-                                        // Find provider for this model
-                                        const group = groupedModels.find(g => g.models.includes(v));
-                                        if (group) {
-                                            updateConfig(['agents', 'defaults', 'provider'], group.provider);
-                                        }
-                                        updateConfig(['agents', 'defaults', 'model'], v);
-                                    }}
-                                >
-                                    <SelectTrigger className="h-11 shadow-inner bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                                        <SelectValue placeholder="Select a model" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {groupedModels.map((group) => (
-                                            <SelectGroup key={group.provider}>
-                                                <SelectLabel className="uppercase text-[10px] font-black text-slate-400 tracking-widest px-2 py-1.5">{group.provider}</SelectLabel>
-                                                {group.models.map((m: string) => (
-                                                    <SelectItem key={m} value={m} className="font-medium">{m}</SelectItem>
-                                                ))}
-                                            </SelectGroup>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">{t.settings_workspace}</label>
-                                <Input
-                                    className="h-11 bg-white dark:bg-slate-800 shadow-inner"
-                                    value={config.agents?.defaults?.workspace || ''}
-                                    onChange={(e) => updateConfig(['agents', 'defaults', 'workspace'], e.target.value)}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Theme Selection */}
-                        <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
-                            <label className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">{t.settings_theme_title}</label>
-                            <div className="grid grid-cols-3 gap-3">
-                                {[
-                                    { id: 'light', icon: <Sun className="w-4 h-4" />, label: t.settings_theme_light },
-                                    { id: 'dark', icon: <Moon className="w-4 h-4" />, label: t.settings_theme_dark },
-                                    { id: 'system', icon: <Monitor className="w-4 h-4" />, label: t.settings_theme_system }
-                                ].map((item) => (
-                                    <button
-                                        key={item.id}
-                                        onClick={() => setTheme(item.id)}
-                                        className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all gap-2 ${
-                                            theme === item.id 
-                                            ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold' 
-                                            : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 text-slate-500'
-                                        }`}
-                                    >
-                                        {item.icon}
-                                        <span className="text-[10px] uppercase tracking-wider">{item.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="border-none shadow-xl bg-indigo-600 text-white overflow-hidden">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Languages className="w-5 h-5" /> System Language
-                        </CardTitle>
-                        <CardDescription className="text-indigo-100/70">UI 및 응답 언어를 선택하세요.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-6">
-                        <div className="grid grid-cols-1 gap-4">
-                        {['en', 'ko', 'ja'].map((lang) => (
-                            <button
-                                key={lang}
-                                onClick={() => setLanguage(lang as Language)}
-                                className={`p-4 rounded-xl flex items-center justify-between transition-all font-bold ${
-                                    language === lang 
-                                    ? 'bg-white text-indigo-700 shadow-lg scale-105' 
-                                    : 'bg-indigo-500/30 hover:bg-indigo-500/50 text-white'
-                                }`}
-                            >
-                                {lang === 'en' ? 'English' : lang === 'ko' ? '한국어' : '日本語'}
-                                {language === lang && <CheckCircle2 className="w-5 h-5" />}
-                            </button>
-                        ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            </section>
-
             {/* AI 프로바이더 설정 */}
             <Card className="border-none shadow-2xl overflow-hidden bg-slate-900 text-slate-100">
                 <CardHeader className="border-b border-slate-800 bg-slate-900/50 flex flex-row items-center justify-between">
@@ -430,6 +326,116 @@ export function SettingsPage() {
                 </CardContent>
             </Card>
 
+            {/* 에이전트 및 기본 설정 */}
+            <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <Card className="lg:col-span-2 border-none shadow-xl bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-800/50 overflow-hidden">
+                    <CardHeader className="border-b bg-white/50 dark:bg-black/20 backdrop-blur-sm">
+                        <CardTitle className="flex items-center gap-2 text-blue-600">
+                            <Cpu className="w-5 h-5" /> {t.settings_agent_title}
+                        </CardTitle>
+                        <CardDescription>{t.settings_agent_desc}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-8 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-3">
+                                <label className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">{t.settings_model}</label>
+                                <Select 
+                                    value={config.agents?.defaults?.model || ''} 
+                                    onValueChange={(v) => {
+                                        // Find provider for this model
+                                        const group = groupedModels.find(g => g.models.includes(v));
+                                        if (group) {
+                                            updateConfig(['agents', 'defaults', 'provider'], group.provider);
+                                        }
+                                        updateConfig(['agents', 'defaults', 'model'], v);
+                                    }}
+                                >
+                                    <SelectTrigger className="h-11 shadow-inner bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                                        <SelectValue placeholder="Select a model" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {groupedModels.map((group) => (
+                                            <SelectGroup key={group.provider}>
+                                                <SelectLabel className="uppercase text-[10px] font-black text-slate-400 tracking-widest px-2 py-1.5">{group.provider}</SelectLabel>
+                                                {group.models.map((m: string) => (
+                                                    <SelectItem key={m} value={m} className="font-medium">{m}</SelectItem>
+                                                ))}
+                                            </SelectGroup>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-3">
+                                <label className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">{t.settings_workspace}</label>
+                                <Input
+                                    className="h-11 bg-white dark:bg-slate-800 shadow-inner"
+                                    value={config.agents?.defaults?.workspace || ''}
+                                    onChange={(e) => updateConfig(['agents', 'defaults', 'workspace'], e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Theme Selection */}
+                        <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                            <label className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">{t.settings_theme_title}</label>
+                            <div className="grid grid-cols-3 gap-3">
+                                {[
+                                    { id: 'light', icon: <Sun className="w-4 h-4" />, label: t.settings_theme_light },
+                                    { id: 'dark', icon: <Moon className="w-4 h-4" />, label: t.settings_theme_dark },
+                                    { id: 'system', icon: <Monitor className="w-4 h-4" />, label: t.settings_theme_system }
+                                ].map((item) => (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => setTheme(item.id)}
+                                        className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all gap-2 ${
+                                            theme === item.id 
+                                            ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold' 
+                                            : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 text-slate-500'
+                                        }`}
+                                    >
+                                        {item.icon}
+                                        <span className="text-[10px] uppercase tracking-wider">{item.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="border-none shadow-xl bg-indigo-600 text-white overflow-hidden">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Languages className="w-5 h-5" /> System Language
+                        </CardTitle>
+                        <CardDescription className="text-indigo-100/70">UI 및 응답 언어를 선택하세요.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        <div className="space-y-4">
+                            <Select 
+                                value={language} 
+                                onValueChange={(v) => setLanguage(v as Language)}
+                            >
+                                <SelectTrigger className="h-14 bg-white/20 border-white/20 text-white font-bold text-lg rounded-2xl">
+                                    <SelectValue placeholder="Select Language" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="en">English</SelectItem>
+                                    <SelectItem value="ko">한국어</SelectItem>
+                                    <SelectItem value="ja">日本語</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            
+                            <div className="p-4 bg-white/10 rounded-2xl border border-white/10 text-sm">
+                                <p className="opacity-80">현재 설정 언어:</p>
+                                <p className="text-xl font-black mt-1">
+                                    {language === 'en' ? 'English' : language === 'ko' ? '한국어' : '日本語'}
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            </section>
+
             {/* 채널 설정 - 카드 그리드 형태 */}
             <section className="space-y-6">
                 <div className="flex items-center gap-3">
@@ -501,6 +507,33 @@ export function SettingsPage() {
                         {t.settings_security_desc}
                     </div>
                 </CardFooter>
+            </Card>
+
+            {/* Bottom Save Action */}
+            <Card className="border-none shadow-2xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white overflow-hidden">
+                <CardContent className="p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="text-center md:text-left space-y-1">
+                        <h3 className="text-2xl font-black tracking-tight">{t.settings_save_confirm_title}</h3>
+                        <p className="text-blue-100/70 font-medium">모든 변경 사항을 서버에 적용하려면 아래 버튼을 누르세요.</p>
+                    </div>
+                    <div className="flex gap-3">
+                        <Button 
+                            variant="outline" 
+                            size="lg" 
+                            onClick={() => setShowResetConfirm(true)}
+                            className="bg-white/10 border-white/20 hover:bg-white/20 text-white font-bold h-14 px-8 rounded-2xl"
+                        >
+                            {t.refresh}
+                        </Button>
+                        <Button 
+                            size="lg" 
+                            onClick={() => setShowSaveConfirm(true)}
+                            className="bg-white text-blue-600 hover:bg-blue-50 font-black h-14 px-12 rounded-2xl shadow-xl shadow-blue-900/20"
+                        >
+                            {t.settings_save_btn}
+                        </Button>
+                    </div>
+                </CardContent>
             </Card>
 
             {/* Dialogs */}
@@ -703,6 +736,15 @@ export function SettingsPage() {
                                             type="password"
                                         />
                                     </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_channel_allow_from}</label>
+                                        <Input 
+                                            className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
+                                            value={config.channels[activeChannel].allow_from?.join(', ') || ''} 
+                                            onChange={(e) => updateConfig(['channels', activeChannel, 'allow_from'], (e.target.value.split(',') as any).map((s: string) => s.trim()).filter((s: string) => s))}
+                                            placeholder="UserID1, UserID2"
+                                        />
+                                    </div>
                                 </div>
                             )}
 
@@ -736,38 +778,67 @@ export function SettingsPage() {
                                             type="password"
                                         />
                                     </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_channel_allow_from}</label>
+                                        <Input 
+                                            className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
+                                            value={config.channels[activeChannel].allow_from?.join(', ') || ''} 
+                                            onChange={(e) => updateConfig(['channels', activeChannel, 'allow_from'], (e.target.value.split(',') as any).map((s: string) => s.trim()).filter((s: string) => s))}
+                                            placeholder="UserID1, UserID2"
+                                        />
+                                    </div>
                                 </div>
                             )}
 
                             {activeChannel === 'webhook' && (
                                 <div className="space-y-4 animate-in slide-in-from-top-2">
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between items-end px-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Webhook Path</label>
-                                            <Button 
-                                                variant="link" 
-                                                size="sm" 
-                                                className="h-auto p-0 text-[10px] font-bold text-blue-500 hover:text-blue-600 flex items-center gap-1"
-                                                onClick={() => { setHelpChannel(activeChannel); setShowHowToGet(true); }}
-                                            >
-                                                <HelpCircle className="w-3 h-3" /> {t.settings_how_to_get}
-                                            </Button>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_channel_port}</label>
+                                            <Input 
+                                                type="number"
+                                                className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
+                                                value={config.channels[activeChannel].port || 18791} 
+                                                onChange={(e) => updateConfig(['channels', activeChannel, 'port'], parseInt(e.target.value))}
+                                            />
                                         </div>
-                                        <Input 
-                                            className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
-                                            value={config.channels[activeChannel].path || ''} 
-                                            onChange={(e) => updateConfig(['channels', activeChannel, 'path'], e.target.value)}
-                                            placeholder="/api/channels/webhook"
-                                        />
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-end px-1">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_channel_path}</label>
+                                                <Button 
+                                                    variant="link" 
+                                                    size="sm" 
+                                                    className="h-auto p-0 text-[10px] font-bold text-blue-500 hover:text-blue-600 flex items-center gap-1"
+                                                    onClick={() => { setHelpChannel(activeChannel); setShowHowToGet(true); }}
+                                                >
+                                                    <HelpCircle className="w-3 h-3" /> {t.settings_how_to_get}
+                                                </Button>
+                                            </div>
+                                            <Input 
+                                                className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
+                                                value={config.channels[activeChannel].path || ''} 
+                                                onChange={(e) => updateConfig(['channels', activeChannel, 'path'], e.target.value)}
+                                                placeholder="/api/channels/webhook"
+                                            />
+                                        </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Secret Key / Token</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_channel_secret}</label>
                                         <Input 
                                             className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
                                             value={config.channels[activeChannel].secret || ''} 
                                             onChange={(e) => updateConfig(['channels', activeChannel, 'secret'], e.target.value)}
                                             placeholder={t.settings_api_key}
                                             type="password"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_channel_allow_from}</label>
+                                        <Input 
+                                            className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
+                                            value={config.channels[activeChannel].allow_from?.join(', ') || ''} 
+                                            onChange={(e) => updateConfig(['channels', activeChannel, 'allow_from'], (e.target.value.split(',') as any).map((s: string) => s.trim()).filter((s: string) => s))}
+                                            placeholder="IP Address or UserID"
                                         />
                                     </div>
                                 </div>
