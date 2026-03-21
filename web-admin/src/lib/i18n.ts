@@ -11,7 +11,7 @@ interface TranslationStore {
 export const useLanguageStore = create<TranslationStore>()(
     persist(
         (set) => ({
-            language: 'ko', // Default to Korean
+            language: 'en', // Default to English
             setLanguage: (lang) => set({ language: lang }),
         }),
         {

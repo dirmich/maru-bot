@@ -108,7 +108,7 @@ build-all: sync-ui
 package-win: build-all
 	@echo "📦 Collecting Windows binaries (x64 & x86)..."
 	@mkdir -p build/
-	@# No ZIP creation as per new rules. Binaries are already in build/
+	@rm -f build/*.zip
 	@echo "✓ Windows binaries ready in build/."
 
 ## package-dmg: Package macOS binaries into DMG files
@@ -117,6 +117,7 @@ package-dmg:
 	@chmod +x scripts/build_dmg.sh
 	@./scripts/build_dmg.sh amd64
 	@./scripts/build_dmg.sh arm64
+	@rm -f build/*.zip
 	@echo "✓ macOS DMGs created."
 
 ## install: Install marubot to system and copy builtin skills
@@ -180,6 +181,7 @@ uninstall-all:
 clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf $(BUILD_DIR)
+	@rm -f *.zip
 	@echo "Clean complete"
 
 ## fmt: Format Go code
