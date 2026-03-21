@@ -223,12 +223,22 @@ func uninstallCmd() {
 	// 0. Remove Services and Kill Processes (Cross-platform)
 	if runtime.GOOS == "windows" {
 		svcNames := []string{"MaruBot", "marubot"}
-		// Try to kill the process first to unlock files (using //F and //IM for bash compatibility in Windows)
-		exec.Command("taskkill", "/F", "/IM", "marubot.exe /T").Run()
-		exec.Command("taskkill", "//F", "//IM", "marubot.exe", "//T").Run()
-		time.Sleep(500 * time.Millisecond)
+		// Try to kill any marubot processes first to unlock files.
+		// Use /T to kill child processes as well.
+		exec.Command("taskkill", "/F", "/T", "/IM", "marubot.exe").Run()
+		exec.Command("taskkill", "/F", "/T", "/IM", "marubot-*.exe").Run()
+		
+		// Bash-compatible versions for those running in git bash/msys2
+		exec.Command("taskkill", "//F", "//T", "//IM", "marubot.exe").Run()
+		
+		time.Sleep(1 * time.Second)
 
 		for _, svcName := range svcNames {
+			// Robust fallback via sc.exe first to ensure it's stopped
+			exec.Command("sc", "stop", svcName).Run()
+			time.Sleep(500 * time.Millisecond)
+			exec.Command("sc", "delete", svcName).Run()
+
 			svcConfig := &service.Config{
 				Name: svcName,
 			}
@@ -237,9 +247,6 @@ func uninstallCmd() {
 				fmt.Printf("Attempting to remove Windows service '%s'...\n", svcName)
 				s.Stop()
 				s.Uninstall()
-				// Robust fallback via sc.exe
-				exec.Command("sc", "stop", svcName).Run()
-				exec.Command("sc", "delete", svcName).Run()
 			}
 		}
 	} else if runtime.GOOS == "linux" {

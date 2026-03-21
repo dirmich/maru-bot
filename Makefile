@@ -104,23 +104,12 @@ build-all: sync-ui
 	@$(MAKE) package-dmg
 	@echo "All targeted builds and packages complete"
 
-## package-win: Package Windows binaries into ZIP files
+## package-win: Collect Windows binaries (No ZIP)
 package-win: build-all
-	@echo "📦 Packaging Windows binaries (x64 & x86) with Go-Zip tool..."
-	@mkdir -p build/marubot-win-x64/config
-	@cp build/marubot-windows-amd64.exe build/marubot-win-x64/marubot.exe
-	@cp README.md build/marubot-win-x64/
-	@cp config/maru-config.json build/marubot-win-x64/config/maru-config.json
-	@go run scripts/zip_pack.go build/marubot-windows-x64.zip build/marubot-win-x64
-	@rm -rf build/marubot-win-x64
-
-	@mkdir -p build/marubot-win-x86/config
-	@cp build/marubot-windows-386.exe build/marubot-win-x86/marubot.exe
-	@cp README.md build/marubot-win-x86/
-	@cp config/maru-config.json build/marubot-win-x86/config/maru-config.json
-	@go run scripts/zip_pack.go build/marubot-windows-x86.zip build/marubot-win-x86
-	@rm -rf build/marubot-win-x86
-	@echo "✓ Windows packages created."
+	@echo "📦 Collecting Windows binaries (x64 & x86)..."
+	@mkdir -p build/
+	@rm -f build/*.zip
+	@echo "✓ Windows binaries ready in build/."
 
 ## package-dmg: Package macOS binaries into DMG files
 package-dmg:
@@ -128,6 +117,7 @@ package-dmg:
 	@chmod +x scripts/build_dmg.sh
 	@./scripts/build_dmg.sh amd64
 	@./scripts/build_dmg.sh arm64
+	@rm -f build/*.zip
 	@echo "✓ macOS DMGs created."
 
 ## install: Install marubot to system and copy builtin skills
@@ -168,6 +158,7 @@ install-skills:
 
 ## public: Sync public files to ../marubot (for public repo maintenance)
 public: package-win package-dmg
+	@echo "🚀 Syncing to public repository (Windows: EXE only, macOS: DMG only)..."
 	@chmod +x scripts/publish.sh
 	@./scripts/publish.sh
 
@@ -190,6 +181,7 @@ uninstall-all:
 clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf $(BUILD_DIR)
+	@rm -f *.zip
 	@echo "Clean complete"
 
 ## fmt: Format Go code
