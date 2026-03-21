@@ -128,6 +128,13 @@ export const translations = {
         settings_how_to_get_slack: "1. Visit Slack API (api.slack.com/apps).\n2. Create a new app 'From scratch'.\n3. Go to 'Socket Mode' and enable it.\n4. Go to 'OAuth & Permissions', add scopes (chat:write, etc.).\n5. Install to Workspace and copy 'Bot User OAuth Token'.\n6. Go to 'Basic Information' -> 'App-level Tokens' to get the App Token (xapp-...).",
         settings_how_to_get_whatsapp: "1. Prepare a WhatsApp HTTP Bridge (e.g. go-whatsapp-web).\n2. Enter the Bridge URL (ws://...).\n3. Use the API Key if required by your bridge.",
         settings_how_to_get_webhook: "1. MaruBot provides an incoming webhook endpoint.\n2. Configure the port and path.\n3. Send POST requests with json payload to interact.",
+        settings_system_language: "System Language",
+        settings_system_language_desc: "Choose your preferred UI and response language.",
+        settings_current_language: "Current Language",
+        settings_save_success_title: "Save Complete",
+        settings_save_success_desc: "The configuration has been saved successfully. Some changes might require a core restart.",
+        settings_save_error_title: "Save Failed",
+        settings_channel_port_desc: "(0 for default gateway port)",
 
         // Common
         loading: "Loading...",
@@ -266,6 +273,13 @@ export const translations = {
         settings_how_to_get_slack: "1. Slack API(api.slack.com/apps)에서 앱을 생성하세요.\n2. 'Socket Mode'를 활성화합니다.\n3. 'OAuth & Permissions'에서 필요한 권한(chat:write, channels:history 등)을 추가하세요.\n4. 워크스페이스에 설치 후 'Bot User OAuth Token'(xoxb-...)을 가져옵니다.\n5. 'Basic Information'에서 'App-level Token'(xapp-...)을 생성하여 가져오세요.",
         settings_how_to_get_whatsapp: "1. WhatsApp 연동을 위한 브릿지 서버(go-whatsapp-web 등)가 필요합니다.\n2. 브릿지 서버의 WebSocket 주소를 입력하세요.\n3. 브릿지 설정에 따라 API Key가 필요할 수 있습니다.",
         settings_how_to_get_webhook: "1. MaruBot은 외부에서 메시지를 보낼 수 있는 Webhook 엔드포인트를 제공합니다.\n2. 포트와 경로를 설정하세요.\n3. 지정된 경로로 JSON 데이터를 POST하여 봇과 대화할 수 있습니다.",
+        settings_system_language: "시스템 언어 설정",
+        settings_system_language_desc: "UI 및 AI 응답에 사용할 기본 언어를 선택하세요.",
+        settings_current_language: "현재 설정된 언어",
+        settings_save_success_title: "저장 완료",
+        settings_save_success_desc: "설정이 성공적으로 저장되었습니다. 일부 변경 사항은 재시작 후 적용될 수 있습니다.",
+        settings_save_error_title: "저장 실패",
+        settings_channel_port_desc: "(0 입력 시 기본 게이트웨이 포트 사용)",
 
         // Common
         loading: "로딩 중...",
@@ -404,6 +418,13 @@ export const translations = {
         settings_how_to_get_slack: "1. Slack APIにアクセスします。\n2. 新しいアプリを作成し、Socket Modeを有効にします。\n3. OAuthスコープを設定し、ワークスペースにインストールしてトークンをコピーします。\n4. App-level Tokenを生成してコピーします。",
         settings_how_to_get_whatsapp: "1. WhatsApp HTTP Bridgeが必要です。\n2. Bridge URLを入力してください。",
         settings_how_to_get_webhook: "1. Webhookエンドポイントを提供します。\n2. ポートとパスを設定してください。",
+        settings_system_language: "システム言語設定",
+        settings_system_language_desc: "UIおよびAI応答に使用する言語を選択してください。",
+        settings_current_language: "現在の設定言語",
+        settings_save_success_title: "保存完了",
+        settings_save_success_desc: "設定が正常に保存されました。一部の変更は再起動後に適用される場合があります。",
+        settings_save_error_title: "保存失敗",
+        settings_channel_port_desc: "(0はデフォルトポートを使用)",
 
         // Common
         loading: "読み込み中...",

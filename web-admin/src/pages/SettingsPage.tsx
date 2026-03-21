@@ -8,6 +8,7 @@ import { authenticatedFetch } from "@/lib/auth";
 import { Language, useLanguageStore, useTranslation } from "@/lib/i18n";
 import { Cpu, ExternalLink, Globe, HelpCircle, Languages, MessageSquare, Monitor, Moon, Plus, RefreshCw, Send, Settings, ShieldCheck, Sun, Trash2, Wrench } from 'lucide-react';
 import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -22,6 +23,8 @@ export function SettingsPage() {
     const [activeChannel, setActiveChannel] = useState<string | null>(null);
     const [showSaveConfirm, setShowSaveConfirm] = useState(false);
     const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const [showResultDialog, setShowResultDialog] = useState(false);
+    const [saveResult, setSaveResult] = useState<{success: boolean, message?: string} | null>(null);
 
     // Provider Management
     const [isAddProviderOpen, setIsAddProviderOpen] = useState(false);
@@ -61,10 +64,21 @@ export function SettingsPage() {
                 body: JSON.stringify(updatedConfig),
             });
             if (res.ok && !silent) {
+                setSaveResult({ success: true });
+                setShowResultDialog(true);
                 toast.success(t.settings_save_success);
+            } else if (!silent) {
+                const errText = await res.text();
+                setSaveResult({ success: false, message: errText || 'Unknown error' });
+                setShowResultDialog(true);
+                toast.error(`Save status: ${res.status}`);
             }
         } catch (error) {
-            if (!silent) toast.error('Save failed');
+            if (!silent) {
+                setSaveResult({ success: false, message: 'Network or internal error' });
+                setShowResultDialog(true);
+                toast.error('Save failed');
+            }
         } finally {
             setShowSaveConfirm(false);
         }
@@ -405,9 +419,9 @@ export function SettingsPage() {
                 <Card className="border-none shadow-xl bg-indigo-600 text-white overflow-hidden">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Languages className="w-5 h-5" /> System Language
+                            <Languages className="w-5 h-5" /> {t.settings_system_language}
                         </CardTitle>
-                        <CardDescription className="text-indigo-100/70">UI 및 응답 언어를 선택하세요.</CardDescription>
+                        <CardDescription className="text-indigo-100/70">{t.settings_system_language_desc}</CardDescription>
                     </CardHeader>
                     <CardContent className="p-6">
                         <div className="space-y-4">
@@ -426,7 +440,7 @@ export function SettingsPage() {
                             </Select>
                             
                             <div className="p-4 bg-white/10 rounded-2xl border border-white/10 text-sm">
-                                <p className="opacity-80">현재 설정 언어:</p>
+                                <p className="opacity-80">{t.settings_current_language}:</p>
                                 <p className="text-xl font-black mt-1">
                                     {language === 'en' ? 'English' : language === 'ko' ? '한국어' : '日本語'}
                                 </p>
@@ -794,12 +808,16 @@ export function SettingsPage() {
                                 <div className="space-y-4 animate-in slide-in-from-top-2">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t.settings_channel_port}</label>
-                                            <Input 
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-sm font-bold">{t.settings_channel_port}</label>
+                                                <span className="text-[10px] text-slate-400 font-medium italic">{t.settings_channel_port_desc}</span>
+                                            </div>
+                                            <Input
                                                 type="number"
-                                                className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none" 
-                                                value={config.channels[activeChannel].port || 18791} 
-                                                onChange={(e) => updateConfig(['channels', activeChannel, 'port'], parseInt(e.target.value))}
+                                                className="h-12 shadow-inner bg-slate-50 dark:bg-slate-800 border-none"
+                                                value={config.channels.webhook.port || 0}
+                                                onChange={(e) => updateConfig(['channels', 'webhook', 'port'], parseInt(e.target.value))}
+                                                placeholder="8080"
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -866,10 +884,46 @@ export function SettingsPage() {
             <ConfirmDialog 
                 open={showResetConfirm} 
                 onOpenChange={setShowResetConfirm}
-                title="설정 초기화"
-                description="모든 설정을 서버의 현재 값으로 되돌리시겠습니까?"
+                title={t.settings_reset_confirm_title}
+                description={t.settings_reset_confirm_desc}
                 onConfirm={fetchConfig}
             />
+
+            {/* Save Result Dialog */}
+            <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
+                <DialogContent className="sm:max-w-md border-none shadow-2xl rounded-3xl p-0 overflow-hidden">
+                    <div className={cn(
+                        "p-8 flex flex-col items-center text-center gap-4",
+                        saveResult?.success ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-red-50 dark:bg-red-900/20"
+                    )}>
+                        <div className={cn(
+                            "w-20 h-20 rounded-full flex items-center justify-center mb-2 animate-in zoom-in duration-500",
+                            saveResult?.success ? "bg-emerald-100 dark:bg-emerald-900 text-emerald-600 shadow-lg shadow-emerald-200" : "bg-red-100 dark:bg-red-900 text-red-600 shadow-lg shadow-red-200"
+                        )}>
+                            {saveResult?.success ? <ShieldCheck size={40} /> : <Trash2 size={40} />}
+                        </div>
+                        <div className="space-y-2">
+                            <DialogTitle className="text-3xl font-black tracking-tight">
+                                {saveResult?.success ? t.settings_save_success_title : t.settings_save_error_title}
+                            </DialogTitle>
+                            <DialogDescription className="text-slate-600 dark:text-slate-400 font-bold text-lg leading-tight uppercase tracking-tighter italic">
+                                {saveResult?.success ? t.settings_save_success_desc : saveResult?.message}
+                            </DialogDescription>
+                        </div>
+                    </div>
+                    <DialogFooter className="p-6 bg-white dark:bg-slate-900 flex justify-center sm:justify-center border-t border-slate-100 dark:border-slate-800">
+                        <Button 
+                            className={cn(
+                                "w-full sm:w-48 rounded-2xl font-black h-14 text-lg shadow-xl uppercase tracking-widest",
+                                saveResult?.success ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200" : "bg-red-600 hover:bg-red-700 shadow-red-200"
+                            )}
+                            onClick={() => setShowResultDialog(false)}
+                        >
+                            {t.confirm}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* How to get Token Help Dialog */}
             <Dialog open={showHowToGet} onOpenChange={setShowHowToGet}>

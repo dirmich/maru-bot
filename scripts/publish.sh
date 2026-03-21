@@ -78,14 +78,13 @@ RELEASE_DIR="$TARGET_DIR/releases"
 mkdir -p "$RELEASE_DIR"
 
 if [ -d "$SOURCE_DIR/build" ]; then
-    # Copy Windows binaries
-    echo "  � Copying Windows binaries (.exe)..."
+    # Copy Windows binaries (EXE only, no ZIP)
+    echo "  🪟 Copying Windows binaries (.exe)..."
     cp "$SOURCE_DIR/build/marubot-windows-"*.exe "$RELEASE_DIR/" 2>/dev/null || true
     
-    # Copy macOS binaries/DMGs
-    echo "  🍎 Copying macOS binaries/DMGs..."
-    cp "$SOURCE_DIR/build/marubot-darwin-"* "$RELEASE_DIR/" 2>/dev/null || true
-    cp "$SOURCE_DIR/build/marubot-macos-"* "$RELEASE_DIR/" 2>/dev/null || true
+    # Copy macOS packages (DMG only, no bare binaries)
+    echo "  🍎 Copying macOS DMGs..."
+    cp "$SOURCE_DIR/build/marubot-macos-"*.dmg "$RELEASE_DIR/" 2>/dev/null || true
 
     echo "  ✓ 빌드 자산 수집 완료 (Path: $RELEASE_DIR)"
 else
