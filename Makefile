@@ -78,9 +78,17 @@ BINARY_PATH=$(BUILD_DIR)/$(BINARY_NAME)-$(PLATFORM)-$(ARCH)
 # internal helper to sync UI assets
 sync-ui:
 	@echo "Checking web-admin assets..."
-	@if [ ! -d "web-admin/dist" ] || [ -z "$$(ls -A web-admin/dist)" ]; then \
-		echo "web-admin/dist is empty. Building UI..."; \
-		cd web-admin && npm install && npm run build; \
+	@if [ -f "web-admin/package.json" ]; then \
+		if [ ! -d "web-admin/dist" ] || [ -z "$$(ls -A web-admin/dist)" ]; then \
+			echo "web-admin/dist is empty. Building UI..."; \
+			cd web-admin && npm install && npm run build; \
+		fi \
+	else \
+		echo "Skipping UI build (source not found). Ensuring dist exists..."; \
+		if [ ! -d "web-admin/dist" ] || [ -z "$$(ls -A web-admin/dist)" ]; then \
+			echo "Error: web-admin/dist is missing and cannot be built in this repository!"; \
+			exit 1; \
+		fi \
 	fi
 	@echo "Syncing web-admin assets..."
 	@mkdir -p cmd/marubot/dashboard/dist

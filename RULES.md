@@ -9,10 +9,10 @@
 1. **전방위 버전업**: 아래 모든 파일의 버전을 동일하게 올립니다.
    - `pkg/config/version.go`, `README.md` (및 모든 언어별 README), `IDENTITY.md`, `Project.md`, `web-admin/package.json`
 2. **내부 저장소 동기화**: `maruminibot` 저장소에 **한글** 커밋 메시지로 `git add/commit/push`를 수행합니다.
-3. **웹 관리자 빌드**: `web-admin` 폴더에서 `npm run build`를 수행하고 `make sync-ui`로 백엔드에 반영합니다.
+3. **웹 관리자 빌드**: `maruminibot`의 `web-admin` 폴더에서 `npm run build`를 수행하고 `make sync-ui`로 백엔드에 반영합니다. (매우 중요: 공개 저장소에는 소스가 없으므로 여기서 반드시 빌드를 완료해야 함)
 4. **바이너리 빌드**: `go build`를 통해 최신 버전의 Windows 실행 파일(`.exe`)을 새로 생성합니다.
-5. **공개 저장소 동기화**: `../maru-bot` 저장소로 모든 최신 소스와 빌드 결과물을 복사(Publish)합니다.
-6. **공개 저장소 최종 배포**: `maru-bot` 저장소에 **영어** 커밋 메시지로 `git add/commit/push`를 수행하고 GitHub Release를 생성합니다.
+5. **공개 저장소 동기화**: `../maru-bot` 저장소로 모든 최신 소스와 빌드 결과물(특히 `web-admin/dist`)을 복사(Publish)합니다.
+6. **공개 저장소 최종 배포**: `../maru-bot` 저장소에 **영어** 커밋 메시지로 `git add/commit/push`를 수행하고 GitHub Release를 생성합니다.
 
 ## 2. 언어 및 커밋 메시지 규칙
 - **내부 커뮤니케이션**: 모든 문서(`task.md`, `implementation_plan.md`, `walkthrough.md`)와 사용자 알림(Notification)은 **한글**을 사용합니다.
