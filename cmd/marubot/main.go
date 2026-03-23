@@ -206,7 +206,7 @@ func uninstallCmd() {
 
 	// Show native dialog if on macOS or Windows to ensure confirmation in GUI mode
 	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
-		if !showNativeConfirmDialog("Are you sure you want to uninstall MaruBot?") {
+		if !showNativeConfirmDialog("Uninstall MaruBot", "Are you sure you want to uninstall MaruBot?") {
 			fmt.Println("Aborted by user.")
 			return
 		}
@@ -222,31 +222,56 @@ func uninstallCmd() {
 
 	// 0. Remove Services and Kill Processes (Cross-platform)
 	if runtime.GOOS == "windows" {
+		// Clean up shortcuts
+		removeWindowsShortcuts()
+
 		svcNames := []string{"MaruBot", "marubot"}
+		
+		// Get current exe name to ensure we kill it too if another instance is running
+		exeCurrent, _ := os.Executable()
+		exeName := filepath.Base(exeCurrent)
+
 		// Try to kill any marubot processes first to unlock files.
 		// Use /T to kill child processes as well.
 		exec.Command("taskkill", "/F", "/T", "/IM", "marubot.exe").Run()
 		exec.Command("taskkill", "/F", "/T", "/IM", "marubot-*.exe").Run()
+		exec.Command("taskkill", "/F", "/T", "/IM", exeName).Run()
+		exec.Command("taskkill", "/F", "/T", "/FI", "IMAGENAME eq marubot*").Run()
 		
-		// Bash-compatible versions for those running in git bash/msys2
+		// msys2/bash compatible
 		exec.Command("taskkill", "//F", "//T", "//IM", "marubot.exe").Run()
 		
-		time.Sleep(1 * time.Second)
+		fmt.Println("Waiting for processes to exit and release file locks...")
+		time.Sleep(2 * time.Second)
 
 		for _, svcName := range svcNames {
-			// Robust fallback via sc.exe first to ensure it's stopped
+			fmt.Printf("Deep cleaning service '%s'...\n", svcName)
+			// 1. Force kill processes that are hosting this service if any
+			exec.Command("taskkill", "/F", "/T", "/FI", fmt.Sprintf("SERVICES eq %s", svcName)).Run()
+			
+			// 2. Robust fallback via sc.exe stop/delete
 			exec.Command("sc", "stop", svcName).Run()
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(1 * time.Second)
 			exec.Command("sc", "delete", svcName).Run()
 
+			// 3. Backup via service library
 			svcConfig := &service.Config{
 				Name: svcName,
 			}
 			s, err := service.New(nil, svcConfig)
 			if err == nil {
-				fmt.Printf("Attempting to remove Windows service '%s'...\n", svcName)
 				s.Stop()
 				s.Uninstall()
+			}
+
+			// 4. Verify removal
+			out, _ := exec.Command("sc", "query", svcName).Output()
+			if !strings.Contains(string(out), "1060") { // 1060 means service does not exist
+				fmt.Printf("! Warning: Service '%s' might still be present or marked for deletion.\n", svcName)
+				// Try killing by name if sc failed
+				exec.Command("taskkill", "/F", "/T", "/IM", svcName+".exe").Run()
+			} else {
+				fmt.Printf("✓ Service '%s' removed successfully.\n", svcName)
 			}
 		}
 	} else if runtime.GOOS == "linux" {
@@ -301,26 +326,47 @@ func uninstallCmd() {
 	// Try to remove self using os.Executable
 	exePath, err := os.Executable()
 	if err == nil {
-		fmt.Printf("Removing executable: %s\n", exePath)
-		if runtime.GOOS == "windows" {
-			// Windows cannot delete a running executable. 
-			// Use a PowerShell trick to delete after exit.
-			destDir := filepath.Dir(exePath)
-			exeName := filepath.Base(exePath)
-			script := fmt.Sprintf("Start-Sleep -Seconds 2; Remove-Item -Path '%s' -Force", exeName)
-			cmd := exec.Command("powershell", "-Command", fmt.Sprintf("Start-Process powershell -ArgumentList \"-Command %s\" -WindowStyle Hidden -WorkingDirectory '%s'", script, destDir))
-			if err := cmd.Start(); err != nil {
-				fmt.Printf("Error scheduling self-deletion: %v\n", err)
+		home, _ := os.UserHomeDir()
+		installBinDir := filepath.Join(home, ".marubot", "bin")
+		isInstalledBin := strings.HasPrefix(filepath.Clean(exePath), filepath.Clean(installBinDir))
+		
+		shouldRemove := isInstalledBin
+		if !isInstalledBin {
+			fmt.Printf("\nExecutable is located at: %s\n", exePath)
+			if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+				shouldRemove = showNativeConfirmDialog("Remove Executable?", "This executable is not in the standard install path.\nDo you also want to remove this file?")
 			} else {
-				fmt.Println("✓ Executable scheduled for deletion after exit.")
+				fmt.Print("This executable is not in the standard install path. Remove it? (y/N): ")
+				var confirm string
+				fmt.Scanln(&confirm)
+				shouldRemove = strings.ToLower(confirm) == "y"
+			}
+		}
+
+		if shouldRemove {
+			fmt.Printf("Removing executable: %s\n", exePath)
+			if runtime.GOOS == "windows" {
+				// Windows cannot delete a running executable. 
+				// Use a PowerShell trick to delete after exit with better path handling.
+				destDir := filepath.Dir(exePath)
+				// Quote the path correctly for PowerShell
+				script := fmt.Sprintf("Start-Sleep -Seconds 2; if (Test-Path '%s') { Remove-Item -Path '%s' -Force }", exePath, exePath)
+				cmd := exec.Command("powershell", "-Command", fmt.Sprintf("Start-Process powershell -ArgumentList \"-NoProfile -WindowStyle Hidden -Command \\\"%s\\\"\" -WindowStyle Hidden -WorkingDirectory '%s'", script, destDir))
+				if err := cmd.Start(); err != nil {
+					fmt.Printf("Error scheduling self-deletion: %v\n", err)
+				} else {
+					fmt.Println("✓ Executable scheduled for deletion after exit.")
+				}
+			} else {
+				if err := os.Remove(exePath); err != nil {
+					fmt.Printf("Error removing executable: %v\n", err)
+					fmt.Println("Hint: You may need to run this command with sudo: 'sudo marubot uninstall'")
+				} else {
+					fmt.Println("✓ Executable removed")
+				}
 			}
 		} else {
-			if err := os.Remove(exePath); err != nil {
-				fmt.Printf("Error removing executable: %v\n", err)
-				fmt.Println("Hint: You may need to run this command with sudo: 'sudo marubot uninstall'")
-			} else {
-				fmt.Println("✓ Executable removed")
-			}
+			fmt.Println("✓ Executable preserved.")
 		}
 	} else {
 		fmt.Println("Could not determine executable path. Please remove it manually.")
@@ -1733,6 +1779,11 @@ func startCmd() {
 		return
 	}
 
+	// Ensure config file is in sync with latest struct (e.g. adding missing Slack fields)
+	if err := config.SaveConfig(getConfigPath(), cfg); err != nil {
+		fmt.Printf("Warning: Failed to sync config file: %v\n", err)
+	}
+
 	if cfg.AdminPassword == "" {
 		ensureAdminPassword(cfg)
 	}
@@ -1833,6 +1884,7 @@ func startCmd() {
 
 	channelManager, err := channels.NewManager(cfg, bus)
 	if err == nil {
+		agentLoop.SetChannelManager(channelManager)
 		if err := channelManager.StartAll(ctx); err != nil && runForeground {
 			fmt.Printf("Error starting channels: %v\n", err)
 		}
@@ -2481,22 +2533,47 @@ if ($result -eq "Yes") { exit 0 } else { exit 1 }
 	return err == nil
 }
 
-func showNativeConfirmDialog(message string) bool {
+func showNativeConfirmDialog(title, message string) bool {
 	if runtime.GOOS == "darwin" {
 		// Escape double quotes in message
 		msg := strings.ReplaceAll(message, `"`, `\"`)
-		script := fmt.Sprintf(`display dialog "%s" buttons {"Cancel", "OK"} default button "OK" with icon caution`, msg)
+		script := fmt.Sprintf(`display dialog "%s" with title "%s" buttons {"Cancel", "OK"} default button "OK" with icon caution`, msg, title)
 		cmd := exec.Command("osascript", "-e", script)
 		err := cmd.Run()
 		return err == nil
 	} else if runtime.GOOS == "windows" {
-		// Use PowerShell to show a message box
-		// Escape single quotes for PowerShell
+		// Create PowerShell script for MessageBox
 		msg := strings.ReplaceAll(message, `'`, `''`)
-		script := fmt.Sprintf(`Add-Type -AssemblyName System.Windows.Forms; $result = [System.Windows.Forms.MessageBox]::Show('%s', 'MaruBot Uninstall', 'YesNo', 'Warning'); if ($result -eq 'Yes') { exit 0 } else { exit 1 }`, msg)
-		cmd := exec.Command("powershell", "-Command", script)
-		err := cmd.Run()
-		return err == nil
+		psScript := fmt.Sprintf(`Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('%s', '%s', 'YesNo', 'Question')`, msg, title)
+
+		cmd := exec.Command("powershell", "-Command", psScript)
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+		out, err := cmd.Output()
+		if err != nil {
+			return false
+		}
+		return strings.TrimSpace(string(out)) == "Yes"
 	}
 	return true
+}
+
+func removeWindowsShortcuts() {
+	if runtime.GOOS != "windows" {
+		return
+	}
+	psScript := `
+$shell = New-Object -ComObject WScript.Shell
+$desktop = [System.Environment]::GetFolderPath('Desktop')
+$startMenu = [System.Environment]::GetFolderPath('StartMenu')
+$programs = Join-Path $startMenu "Programs"
+
+$targets = @(Join-Path $desktop "MaruBot.lnk", Join-Path $programs "MaruBot.lnk")
+
+foreach ($t in $targets) {
+    if (Test-Path $t) {
+        Remove-Item $t -Force
+    }
+}
+`
+	exec.Command("powershell", "-NoProfile", "-Command", psScript).Run()
 }

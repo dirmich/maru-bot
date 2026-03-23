@@ -528,7 +528,7 @@ export function SettingsPage() {
                 <CardContent className="p-8 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="text-center md:text-left space-y-1">
                         <h3 className="text-2xl font-black tracking-tight">{t.settings_save_confirm_title}</h3>
-                        <p className="text-blue-100/70 font-medium">모든 변경 사항을 서버에 적용하려면 아래 버튼을 누르세요.</p>
+                        <p className="text-blue-100/70 font-medium">{t.settings_save_bottom_desc}</p>
                     </div>
                     <div className="flex gap-3">
                         <Button 
@@ -641,7 +641,7 @@ export function SettingsPage() {
                             <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                                 <div className="space-y-0.5">
                                     <label className="font-bold text-sm tracking-tight capitalize">Enable Channel</label>
-                                    <p className="text-xs text-slate-500">봇 활성화 여부를 결정합니다.</p>
+                                    <p className="text-xs text-slate-500">{t.settings_channel_enable_desc}</p>
                                 </div>
                                 <input 
                                     type="checkbox" 
@@ -878,7 +878,7 @@ export function SettingsPage() {
                 onOpenChange={setShowSaveConfirm}
                 title={t.settings_save_confirm_title}
                 description={t.settings_save_confirm_desc}
-                onConfirm={handleSaveConfig}
+                onConfirm={() => handleSaveConfig()}
             />
 
             <ConfirmDialog 

@@ -77,6 +77,19 @@ BINARY_PATH=$(BUILD_DIR)/$(BINARY_NAME)-$(PLATFORM)-$(ARCH)
 
 # internal helper to sync UI assets
 sync-ui:
+	@echo "Checking web-admin assets..."
+	@if [ -f "web-admin/package.json" ]; then \
+		if [ ! -f "web-admin/dist/index.html" ]; then \
+			echo "web-admin/dist/index.html not found. Building UI..."; \
+			cd web-admin && npm install && npm run build; \
+		fi \
+	else \
+		echo "Skipping UI build (source not found). Ensuring dist exists..."; \
+		if [ ! -f "web-admin/dist/index.html" ]; then \
+			echo "Error: web-admin/dist/index.html is missing and cannot be built in this repository!"; \
+			exit 1; \
+		fi \
+	fi
 	@echo "Syncing web-admin assets..."
 	@mkdir -p cmd/marubot/dashboard/dist
 	@cp -rv web-admin/dist/* cmd/marubot/dashboard/dist/

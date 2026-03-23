@@ -80,10 +80,11 @@ type DiscordConfig struct {
 }
 
 type SlackConfig struct {
-	Enabled   bool     `json:"enabled" env:"MARUBOT_CHANNELS_SLACK_ENABLED"`
-	Token     string   `json:"token" env:"MARUBOT_CHANNELS_SLACK_TOKEN"`
-	AppToken  string   `json:"app_token" env:"MARUBOT_CHANNELS_SLACK_APP_TOKEN"`
-	AllowFrom []string `json:"allow_from" env:"MARUBOT_CHANNELS_SLACK_ALLOW_FROM"`
+	Enabled          bool     `json:"enabled" env:"MARUBOT_CHANNELS_SLACK_ENABLED"`
+	Token            string   `json:"token" env:"MARUBOT_CHANNELS_SLACK_TOKEN"`
+	AppToken         string   `json:"app_token" env:"MARUBOT_CHANNELS_SLACK_APP_TOKEN"`
+	DefaultChannelID string   `json:"default_channel_id" env:"MARUBOT_CHANNELS_SLACK_DEFAULT_CHANNEL_ID"`
+	AllowFrom        []string `json:"allow_from" env:"MARUBOT_CHANNELS_SLACK_ALLOW_FROM"`
 }
 
 
@@ -179,10 +180,11 @@ func DefaultConfig() *Config {
 				AllowFrom: []string{},
 			},
 			Slack: SlackConfig{
-				Enabled:   false,
-				Token:     "",
-				AppToken:  "",
-				AllowFrom: []string{},
+				Enabled:          false,
+				Token:            "",
+				AppToken:         "",
+				DefaultChannelID: "",
+				AllowFrom:        []string{},
 			},
 			Webhook: WebhookConfig{
 				Enabled:   false,

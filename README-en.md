@@ -1,4 +1,4 @@
-# MaruBot - Ultra-lightweight AI Assistant (0.4.86) 🦞
+# MaruBot - Ultra-lightweight AI Assistant (0.5.4) 🦞
 
 **MaruBot** is an ultra-efficient, physical AI assistant designed to run in extremely constrained environments, requiring as little as **10MB of RAM**. MaruBot supports Raspberry Pi, Generic Linux servers, and Windows PCs, and features a powerful 'Auto-Evolution' engine that allows it to expand its own capabilities autonomously.
 
@@ -118,4 +118,4 @@ MaruBot automatically detects your platform and enables supported tools:
 ## 📝 License
 MaruBot follows the MIT License. Feel free to modify and distribute.
 
-*Developed & Analyzed by Antigravity AI (2026-03-20)*
+*Developed & Analyzed by Antigravity AI (2026-03-23)*
