@@ -36,6 +36,7 @@ type AgentLoop struct {
 	tools          *tools.ToolRegistry
 	version        string
 	config         *config.Config
+	channelManager bus.ChannelManager // Add this interface for channel tools
 	running        bool
 	mu             sync.RWMutex
 }
@@ -51,7 +52,7 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	toolsRegistry.Register(&tools.ReadFileTool{})
 	toolsRegistry.Register(&tools.WriteFileTool{})
 	toolsRegistry.Register(&tools.ListDirTool{})
-	configPath := filepath.Join(marubotHome, "config", "config.json")
+	configPath := filepath.Join(marubotHome, "config.json")
 	toolsRegistry.Register(tools.NewConfigTool(configPath, cfg))
 	toolsRegistry.Register(tools.NewExecTool(workspace))
 
@@ -139,6 +140,17 @@ func (al *AgentLoop) SetProvider(p providers.LLMProvider) {
 	al.provider = p
 }
 
+func (al *AgentLoop) SetChannelManager(m bus.ChannelManager) {
+	al.mu.Lock()
+	defer al.mu.Unlock()
+	al.channelManager = m
+	
+	// Register channel-related tools once we have the manager
+	if al.tools != nil {
+		al.tools.Register(tools.NewChannelTool(m))
+	}
+}
+
 func (al *AgentLoop) Run(ctx context.Context) error {
 	al.running = true
 
@@ -158,11 +170,19 @@ func (al *AgentLoop) Run(ctx context.Context) error {
 			}
 
 			if response != "" {
-				al.bus.PublishOutbound(bus.OutboundMessage{
+				outMsg := bus.OutboundMessage{
 					Channel: msg.Channel,
 					ChatID:  msg.ChatID,
 					Content: response,
-				})
+				}
+				// Copy relevant metadata for threading (e.g. thread_ts for Slack)
+				if msg.Metadata != nil {
+					outMsg.Metadata = make(map[string]string)
+					for k, v := range msg.Metadata {
+						outMsg.Metadata[k] = v
+					}
+				}
+				al.bus.PublishOutbound(outMsg)
 			}
 		}
 	}

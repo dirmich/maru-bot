@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-# MaruBot - Ultra-lightweight AI Assistant (0.4.86) 🦞
-=======
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.87) 🦞
->>>>>>> 42feaf4 (슬랙 연동 로깅 개선 및 0.4.87 릴리즈)
+# MaruBot - 超轻量级 AI 助手 (0.5.1) 🦞
 **MaruBot** 是一款基于超轻量级 MaruBot 引擎，专为在树莓派 (Raspberry Pi) 等单板计算机 (SBC) 上直接控制硬件并进行交互而优化的 **"物理 AI 助手 (Physical AI Assistant)"**。
 
 ## ✨ 核心理念
@@ -82,4 +78,4 @@ Windows 用户建议从 **官方发布页面** 下载文件，而不是使用终
 ## 📝 开源协议
 遵循 MIT License。
 
-*开发与分析: Antigravity AI (2026-03-20)*
+*开发与分析: Antigravity AI (2026-03-23)*
