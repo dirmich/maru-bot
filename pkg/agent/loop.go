@@ -152,17 +152,34 @@ func (al *AgentLoop) SetChannelManager(m bus.ChannelManager) {
 }
 
 func (al *AgentLoop) Run(ctx context.Context) error {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.ErrorCF("agent", "Agent loop panicked", map[string]interface{}{"error": r})
+			// Restart loop if context is not done
+			if ctx.Err() == nil {
+				go al.Run(ctx)
+			}
+		}
+	}()
+
 	al.running = true
+	logger.InfoC("agent", "Agent loop started successfully")
 
 	for al.running {
 		select {
 		case <-ctx.Done():
+			logger.InfoC("agent", "Agent loop stopping (context done)")
 			return nil
 		default:
 			msg, ok := al.bus.ConsumeInbound(ctx)
 			if !ok {
 				continue
 			}
+			logger.InfoCF("agent", "Consuming inbound message", map[string]interface{}{
+				"channel": msg.Channel,
+				"sender":  msg.SenderID,
+				"session": msg.SessionKey,
+			})
 
 			response, err := al.processMessage(ctx, msg)
 			if err != nil {
