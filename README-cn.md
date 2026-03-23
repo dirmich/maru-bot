@@ -1,4 +1,4 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.85) 🦞
+# MaruBot - Ultra-lightweight AI Assistant (v0.4.87) 🦞
 **MaruBot** 是一款基于超轻量级 MaruBot 引擎，专为在树莓派 (Raspberry Pi) 等单板计算机 (SBC) 上直接控制硬件并进行交互而优化的 **"物理 AI 助手 (Physical AI Assistant)"**。
 
 ## ✨ 核心理念

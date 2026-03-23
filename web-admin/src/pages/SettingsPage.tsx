@@ -878,7 +878,7 @@ export function SettingsPage() {
                 onOpenChange={setShowSaveConfirm}
                 title={t.settings_save_confirm_title}
                 description={t.settings_save_confirm_desc}
-                onConfirm={handleSaveConfig}
+                onConfirm={() => handleSaveConfig()}
             />
 
             <ConfirmDialog 

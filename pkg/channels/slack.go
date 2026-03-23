@@ -3,7 +3,6 @@ package channels
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/slack-go/slack"
 	"github.com/slack-go/slack/slackevents"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/dirmich/marubot/pkg/bus"
 	"github.com/dirmich/marubot/pkg/config"
+	"github.com/dirmich/marubot/pkg/logger"
 )
 
 type SlackChannel struct {
@@ -28,7 +28,7 @@ func NewSlackChannel(cfg config.SlackConfig, bus *bus.MessageBus) (*SlackChannel
 
 	socket := socketmode.New(
 		api,
-		socketmode.OptionLog(log.Default()),
+		// socketmode.OptionLog(log.Default()), // Disable internal logging to avoid console clutter
 	)
 
 	base := NewBaseChannel("slack", cfg, bus, cfg.AllowFrom)
@@ -42,7 +42,7 @@ func NewSlackChannel(cfg config.SlackConfig, bus *bus.MessageBus) (*SlackChannel
 }
 
 func (c *SlackChannel) Start(ctx context.Context) error {
-	log.Println("Starting Slack channel (Socket Mode)...")
+	logger.InfoC("slack", "Starting Slack channel (Socket Mode)...")
 
 	go func() {
 		for {
@@ -54,6 +54,7 @@ func (c *SlackChannel) Start(ctx context.Context) error {
 				case socketmode.EventTypeEventsAPI:
 					eventsAPIEvent, ok := evt.Data.(slackevents.EventsAPIEvent)
 					if !ok {
+						logger.DebugC("slack", "Failed to cast event to EventsAPIEvent")
 						continue
 					}
 					c.socket.Ack(*evt.Request)
@@ -63,13 +64,32 @@ func (c *SlackChannel) Start(ctx context.Context) error {
 						innerEvent := eventsAPIEvent.InnerEvent
 						switch ev := innerEvent.Data.(type) {
 						case *slackevents.MessageEvent:
+							logger.DebugCF("slack", "Received message event", map[string]interface{}{
+								"user":    ev.User,
+								"channel": ev.Channel,
+								"bot_id":  ev.BotID,
+							})
 							// Ignore messages from the bot itself
 							if ev.BotID != "" || ev.User == "" {
 								continue
 							}
 							c.handleMessage(ev)
+						default:
+							logger.DebugCF("slack", "Received unhandled callback event type", map[string]interface{}{
+								"type": fmt.Sprintf("%T", innerEvent.Data),
+							})
 						}
 					}
+				case socketmode.EventTypeConnected:
+					logger.InfoC("slack", "Slack Socket Mode connected successfully")
+					c.setRunning(true)
+				case socketmode.EventTypeHello:
+					logger.DebugC("slack", "Slack hello event received")
+				case socketmode.EventTypeInvalidAuth, socketmode.EventTypeConnectionError:
+					logger.ErrorCF("slack", "Slack connection failed", map[string]interface{}{
+						"type": evt.Type,
+					})
+					c.setRunning(false)
 				}
 			}
 		}
@@ -77,7 +97,9 @@ func (c *SlackChannel) Start(ctx context.Context) error {
 
 	go func() {
 		if err := c.socket.RunContext(ctx); err != nil {
-			log.Printf("Slack socket mode error: %v", err)
+			logger.ErrorCF("slack", "Slack socket mode runtime error", map[string]interface{}{
+				"error": err.Error(),
+			})
 			c.setRunning(false)
 		}
 	}()
@@ -107,6 +129,10 @@ func (c *SlackChannel) handleMessage(ev *slackevents.MessageEvent) {
 		"channel": ev.Channel,
 	}
 
-	log.Printf("Slack message from %s in %s: %s", ev.User, ev.Channel, ev.Text)
+	logger.InfoCF("slack", "Handling Slack message", map[string]interface{}{
+		"user":    ev.User,
+		"channel": ev.Channel,
+		"text":    ev.Text,
+	})
 	c.HandleMessage(ev.User, ev.Channel, ev.Text, nil, metadata)
 }
