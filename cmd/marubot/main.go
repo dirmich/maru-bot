@@ -245,19 +245,33 @@ func uninstallCmd() {
 		time.Sleep(2 * time.Second)
 
 		for _, svcName := range svcNames {
-			// Robust fallback via sc.exe first to ensure it's stopped
+			fmt.Printf("Deep cleaning service '%s'...\n", svcName)
+			// 1. Force kill processes that are hosting this service if any
+			exec.Command("taskkill", "/F", "/T", "/FI", fmt.Sprintf("SERVICES eq %s", svcName)).Run()
+			
+			// 2. Robust fallback via sc.exe stop/delete
 			exec.Command("sc", "stop", svcName).Run()
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(1 * time.Second)
 			exec.Command("sc", "delete", svcName).Run()
 
+			// 3. Backup via service library
 			svcConfig := &service.Config{
 				Name: svcName,
 			}
 			s, err := service.New(nil, svcConfig)
 			if err == nil {
-				fmt.Printf("Attempting to remove Windows service '%s'...\n", svcName)
 				s.Stop()
 				s.Uninstall()
+			}
+
+			// 4. Verify removal
+			out, _ := exec.Command("sc", "query", svcName).Output()
+			if !strings.Contains(string(out), "1060") { // 1060 means service does not exist
+				fmt.Printf("! Warning: Service '%s' might still be present or marked for deletion.\n", svcName)
+				// Try killing by name if sc failed
+				exec.Command("taskkill", "/F", "/T", "/IM", svcName+".exe").Run()
+			} else {
+				fmt.Printf("✓ Service '%s' removed successfully.\n", svcName)
 			}
 		}
 	} else if runtime.GOOS == "linux" {
