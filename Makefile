@@ -79,14 +79,14 @@ BINARY_PATH=$(BUILD_DIR)/$(BINARY_NAME)-$(PLATFORM)-$(ARCH)
 sync-ui:
 	@echo "Checking web-admin assets..."
 	@if [ -f "web-admin/package.json" ]; then \
-		if [ ! -d "web-admin/dist" ] || [ -z "$$(ls -A web-admin/dist)" ]; then \
-			echo "web-admin/dist is empty. Building UI..."; \
+		if [ ! -f "web-admin/dist/index.html" ]; then \
+			echo "web-admin/dist/index.html not found. Building UI..."; \
 			cd web-admin && npm install && npm run build; \
 		fi \
 	else \
 		echo "Skipping UI build (source not found). Ensuring dist exists..."; \
-		if [ ! -d "web-admin/dist" ] || [ -z "$$(ls -A web-admin/dist)" ]; then \
-			echo "Error: web-admin/dist is missing and cannot be built in this repository!"; \
+		if [ ! -f "web-admin/dist/index.html" ]; then \
+			echo "Error: web-admin/dist/index.html is missing and cannot be built in this repository!"; \
 			exit 1; \
 		fi \
 	fi
