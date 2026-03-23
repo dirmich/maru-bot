@@ -1,4 +1,4 @@
-# MaruBot - 超軽量 AI アシスタント (0.5.1) 🦞
+# MaruBot - 超軽量 AI アシスタント (0.5.4) 🦞
 
 **MaruBot** は、超軽量の MaruBot エンジンをベースに、Raspberry Pi などの SBC（シングルボードコンピュータ）でハードウェアを直接制御し、対話するために最適化された **"Physical AI Assistant"** です。
 
