@@ -58,7 +58,7 @@ func (c *SlackChannel) Start(ctx context.Context) error {
 						continue
 					}
 					c.socket.Ack(*evt.Request)
-					logger.DebugCF("slack", "EventsAPI event received", map[string]interface{}{"type": eventsAPIEvent.Type})
+					logger.DebugCF("slack", "EventsAPI event received", map[string]interface{}{"type": eventsAPIEvent.Type, "inner_type": eventsAPIEvent.InnerEvent.Type})
 
 					switch eventsAPIEvent.Type {
 					case slackevents.CallbackEvent:
@@ -140,9 +140,18 @@ func (c *SlackChannel) Send(ctx context.Context, msg bus.OutboundMessage) error 
 		options = append(options, slack.MsgOptionTS(threadTS))
 	}
 
-	_, _, err := c.api.PostMessageContext(ctx, msg.ChatID, options...)
+	chatID := msg.ChatID
+	if chatID == "" || chatID == "slack" {
+		chatID = c.config.DefaultChannelID
+	}
+
+	if chatID == "" {
+		return fmt.Errorf("failed to send Slack message: no channel ID provided and no default channel configured")
+	}
+
+	_, _, err := c.api.PostMessageContext(ctx, chatID, options...)
 	if err != nil {
-		return fmt.Errorf("failed to send Slack message: %w", err)
+		return fmt.Errorf("failed to send Slack message to %s: %w", chatID, err)
 	}
 	return nil
 }
