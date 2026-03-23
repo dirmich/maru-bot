@@ -1,4 +1,8 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.85) 🦞
+<<<<<<< HEAD
+# MaruBot - Ultra-lightweight AI Assistant (0.4.86) 🦞
+=======
+# MaruBot - 超軽量 AI アシスタント (0.4.87) 🦞
+>>>>>>> 42feaf4 (슬랙 연동 로깅 개선 및 0.4.87 릴리즈)
 
 **MaruBot** は、超軽量の MaruBot エンジンをベースに、Raspberry Pi などの SBC（シングルボードコンピュータ）でハードウェアを直接制御し、対話するために最適化された **"Physical AI Assistant"** です。
 
