@@ -182,6 +182,11 @@ func (al *AgentLoop) Run(ctx context.Context) error {
 						outMsg.Metadata[k] = v
 					}
 				}
+				logger.InfoCF("agent", "Publishing outbound message", map[string]interface{}{
+					"channel": outMsg.Channel,
+					"chatID":  outMsg.ChatID,
+					"content_len": len(outMsg.Content),
+				})
 				al.bus.PublishOutbound(outMsg)
 			}
 		}
