@@ -2547,7 +2547,7 @@ func showNativeConfirmDialog(title, message string) bool {
 		psScript := fmt.Sprintf(`Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('%s', '%s', 'YesNo', 'Question')`, msg, title)
 
 		cmd := exec.Command("powershell", "-Command", psScript)
-		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+		cmd.SysProcAttr = getSysProcAttr()
 		out, err := cmd.Output()
 		if err != nil {
 			return false

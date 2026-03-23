@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"syscall"
 	"time"
 
 	"github.com/dirmich/marubot/pkg/config"
@@ -14,21 +13,7 @@ import (
 	"github.com/kardianos/service"
 )
 
-func hideConsole() {
-	if runtime.GOOS != "windows" {
-		return
-	}
-	kernel32 := syscall.NewLazyDLL("kernel32.dll")
-	user32 := syscall.NewLazyDLL("user32.dll")
-	getConsoleWindow := kernel32.NewProc("GetConsoleWindow")
-	showWindow := user32.NewProc("ShowWindow")
-	if getConsoleWindow.Find() == nil && showWindow.Find() == nil {
-		hwnd, _, _ := getConsoleWindow.Call()
-		if hwnd != 0 {
-			showWindow.Call(hwnd, 0) // SW_HIDE = 0
-		}
-	}
-}
+// hideConsole is now implemented in platform-specific sys_*.go files
 
 func handleGUIMode() {
 	hideConsole()
@@ -300,7 +285,7 @@ func onTrayReady(targetExe string) {
 								exe, _ := os.Executable()
 								cmd := exec.Command(exe, "upgrade", "--yes")
 								// Hide console window on Windows
-								cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+								cmd.SysProcAttr = getSysProcAttr()
 								
 								if err := cmd.Run(); err != nil {
 									showNativeMessageDialog("Upgrade Failed", "Error during upgrade: "+err.Error())
@@ -362,7 +347,7 @@ Add-Type -AssemblyName PresentationFramework
 `, message, title)
 
 	cmd := exec.Command("powershell", "-Command", psScript)
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	cmd.SysProcAttr = getSysProcAttr()
 	cmd.Run()
 }
 
