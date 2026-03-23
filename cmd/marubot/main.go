@@ -222,16 +222,27 @@ func uninstallCmd() {
 
 	// 0. Remove Services and Kill Processes (Cross-platform)
 	if runtime.GOOS == "windows" {
+		// Clean up shortcuts
+		removeWindowsShortcuts()
+
 		svcNames := []string{"MaruBot", "marubot"}
+		
+		// Get current exe name to ensure we kill it too if another instance is running
+		exeCurrent, _ := os.Executable()
+		exeName := filepath.Base(exeCurrent)
+
 		// Try to kill any marubot processes first to unlock files.
 		// Use /T to kill child processes as well.
 		exec.Command("taskkill", "/F", "/T", "/IM", "marubot.exe").Run()
 		exec.Command("taskkill", "/F", "/T", "/IM", "marubot-*.exe").Run()
+		exec.Command("taskkill", "/F", "/T", "/IM", exeName).Run()
+		exec.Command("taskkill", "/F", "/T", "/FI", "IMAGENAME eq marubot*").Run()
 		
-		// Bash-compatible versions for those running in git bash/msys2
+		// msys2/bash compatible
 		exec.Command("taskkill", "//F", "//T", "//IM", "marubot.exe").Run()
 		
-		time.Sleep(1 * time.Second)
+		fmt.Println("Waiting for processes to exit and release file locks...")
+		time.Sleep(2 * time.Second)
 
 		for _, svcName := range svcNames {
 			// Robust fallback via sc.exe first to ensure it's stopped
@@ -322,11 +333,11 @@ func uninstallCmd() {
 			fmt.Printf("Removing executable: %s\n", exePath)
 			if runtime.GOOS == "windows" {
 				// Windows cannot delete a running executable. 
-				// Use a PowerShell trick to delete after exit.
+				// Use a PowerShell trick to delete after exit with better path handling.
 				destDir := filepath.Dir(exePath)
-				exeName := filepath.Base(exePath)
-				script := fmt.Sprintf("Start-Sleep -Seconds 2; Remove-Item -Path '%s' -Force", exeName)
-				cmd := exec.Command("powershell", "-Command", fmt.Sprintf("Start-Process powershell -ArgumentList \"-Command %s\" -WindowStyle Hidden -WorkingDirectory '%s'", script, destDir))
+				// Quote the path correctly for PowerShell
+				script := fmt.Sprintf("Start-Sleep -Seconds 2; if (Test-Path '%s') { Remove-Item -Path '%s' -Force }", exePath, exePath)
+				cmd := exec.Command("powershell", "-Command", fmt.Sprintf("Start-Process powershell -ArgumentList \"-NoProfile -WindowStyle Hidden -Command \\\"%s\\\"\" -WindowStyle Hidden -WorkingDirectory '%s'", script, destDir))
 				if err := cmd.Start(); err != nil {
 					fmt.Printf("Error scheduling self-deletion: %v\n", err)
 				} else {
@@ -2530,4 +2541,25 @@ func showNativeConfirmDialog(title, message string) bool {
 		return strings.TrimSpace(string(out)) == "Yes"
 	}
 	return true
+}
+
+func removeWindowsShortcuts() {
+	if runtime.GOOS != "windows" {
+		return
+	}
+	psScript := `
+$shell = New-Object -ComObject WScript.Shell
+$desktop = [System.Environment]::GetFolderPath('Desktop')
+$startMenu = [System.Environment]::GetFolderPath('StartMenu')
+$programs = Join-Path $startMenu "Programs"
+
+$targets = @(Join-Path $desktop "MaruBot.lnk", Join-Path $programs "MaruBot.lnk")
+
+foreach ($t in $targets) {
+    if (Test-Path $t) {
+        Remove-Item $t -Force
+    }
+}
+`
+	exec.Command("powershell", "-NoProfile", "-Command", psScript).Run()
 }
