@@ -135,6 +135,8 @@ export const translations = {
         settings_save_success_desc: "The configuration has been saved successfully. Some changes might require a core restart.",
         settings_save_error_title: "Save Failed",
         settings_channel_port_desc: "(0 for default gateway port)",
+        settings_save_bottom_desc: "Click the button below to apply all changes to the server.",
+        settings_channel_enable_desc: "Determines whether to enable the bot.",
 
         // Common
         loading: "Loading...",
@@ -280,6 +282,8 @@ export const translations = {
         settings_save_success_desc: "설정이 성공적으로 저장되었습니다. 일부 변경 사항은 재시작 후 적용될 수 있습니다.",
         settings_save_error_title: "저장 실패",
         settings_channel_port_desc: "(0 입력 시 기본 게이트웨이 포트 사용)",
+        settings_save_bottom_desc: "모든 변경 사항을 서버에 적용하려면 아래 버튼을 누르세요.",
+        settings_channel_enable_desc: "봇 활성화 여부를 결정합니다.",
 
         // Common
         loading: "로딩 중...",
@@ -425,6 +429,8 @@ export const translations = {
         settings_save_success_desc: "設定が正常に保存されました。一部の変更は再起動後に適用される場合があります。",
         settings_save_error_title: "保存失敗",
         settings_channel_port_desc: "(0はデフォルトポートを使用)",
+        settings_save_bottom_desc: "すべての変更をサーバーに適用するには、下のボタンをクリックしてください。",
+        settings_channel_enable_desc: "ボットを有効にするかどうかを決定します。",
 
         // Common
         loading: "読み込み中...",

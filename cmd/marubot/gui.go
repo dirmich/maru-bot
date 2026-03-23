@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dirmich/marubot/pkg/config"
 	"github.com/getlantern/systray"
 	"github.com/kardianos/service"
 )
@@ -69,6 +70,7 @@ var (
 	mStop       *systray.MenuItem
 	mUninstall  *systray.MenuItem
 	mExit       *systray.MenuItem
+	mUpgrade    *systray.MenuItem
 	versionItem *systray.MenuItem
 )
 
@@ -79,6 +81,7 @@ type TrayLabels struct {
 	Stop           string
 	Uninstall      string
 	Exit           string
+	Upgrade        string
 	StatusInstall  string
 	StatusRun      string
 	ServiceStarted string
@@ -103,6 +106,7 @@ var trayLocales = map[string]TrayLabels{
 		NotifyTitle:    "MaruBot Notice",
 		NotifyBgMsg:    "Tray exited. MaruBot is still running in the background.",
 		LinkCreated:    "Shortcuts created on Desktop and Start Menu.",
+		Upgrade:        "Check for Upgrade",
 	},
 	"ko": {
 		Dashboard:      "대시보드 열기",
@@ -118,6 +122,7 @@ var trayLocales = map[string]TrayLabels{
 		NotifyTitle:    "MaruBot 안내",
 		NotifyBgMsg:    "트레이 아이콘이 종료되었습니다. 서비스는 백그라운드에서 계속 실행 중입니다.",
 		LinkCreated:    "바탕화면과 시작 메뉴에 바로가기가 생성되었습니다.",
+		Upgrade:        "업그레이드 확인",
 	},
 	"ja": {
 		Dashboard:      "ダッシュボードを開く",
@@ -156,6 +161,9 @@ func updateTrayLabels() {
 	mStop.SetTitle(l.Stop)
 	mUninstall.SetTitle(l.Uninstall)
 	mExit.SetTitle(l.Exit)
+	if mUpgrade != nil {
+		mUpgrade.SetTitle(l.Upgrade)
+	}
 }
 
 func onTrayReady(targetExe string) {
@@ -176,6 +184,7 @@ func onTrayReady(targetExe string) {
 	systray.AddSeparator()
 	mStart = systray.AddMenuItem(l.Start, "")
 	mStop = systray.AddMenuItem(l.Stop, "")
+	mUpgrade = systray.AddMenuItem(l.Upgrade, "")
 	systray.AddSeparator()
 	mUninstall = systray.AddMenuItem(l.Uninstall, "")
 	mExit = systray.AddMenuItem(l.Exit, "")
@@ -273,6 +282,37 @@ func onTrayReady(targetExe string) {
 				}
 				systray.Quit()
 				os.Exit(0)
+			case <-mUpgrade.ClickedCh:
+				l := getLabels()
+				showWindowsNotification(l.Upgrade, "Checking for latest version...")
+				
+				latest, err := config.CheckLatestVersion()
+				if err != nil {
+					showNativeMessageDialog("Error", "Failed to check for updates: "+err.Error())
+				} else {
+					if config.IsNewVersionAvailable(latest) {
+						msg := fmt.Sprintf("New version v%s is available.\n(Current: v%s)\n\nDo you want to upgrade now?", latest, config.Version)
+						if showNativeConfirmDialog("Update Available", msg) {
+							showWindowsNotification(l.Upgrade, "Upgrading to v"+latest+"... Please wait.")
+							
+							// Run upgrade in background
+							go func() {
+								exe, _ := os.Executable()
+								cmd := exec.Command(exe, "upgrade", "--yes")
+								// Hide console window on Windows
+								cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+								
+								if err := cmd.Run(); err != nil {
+									showNativeMessageDialog("Upgrade Failed", "Error during upgrade: "+err.Error())
+								} else {
+									showNativeMessageDialog("Upgrade Success", "MaruBot has been upgraded to v"+latest+".\nThe application will restart shortly.")
+								}
+							}()
+						}
+					} else {
+						showNativeMessageDialog(l.Upgrade, fmt.Sprintf("You are already using the latest version (v%s).", config.Version))
+					}
+				}
 			}
 		}
 	}()
@@ -308,6 +348,22 @@ foreach ($t in $targets) {
 		l := getLabels()
 		showWindowsNotification(l.CreateLink, l.LinkCreated)
 	}
+}
+
+func showNativeMessageDialog(title, message string) {
+	if runtime.GOOS != "windows" {
+		return
+	}
+	
+	// 64 = Information icon
+	psScript := fmt.Sprintf(`
+Add-Type -AssemblyName PresentationFramework
+[System.Windows.MessageBox]::Show('%s', '%s', 'OK', 'Information')
+`, message, title)
+
+	cmd := exec.Command("powershell", "-Command", psScript)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	cmd.Run()
 }
 
 func showWindowsNotification(title, message string) {

@@ -1,5 +1,9 @@
 package bus
 
+import (
+	"context"
+)
+
 type InboundMessage struct {
 	Channel    string            `json:"channel"`
 	SenderID   string            `json:"sender_id"`
@@ -11,10 +15,16 @@ type InboundMessage struct {
 }
 
 type OutboundMessage struct {
-	Channel string `json:"channel"`
-	ChatID  string `json:"chat_id"`
-	Content string `json:"content"`
-	Action  string `json:"action,omitempty"` // "typing", "uploading", or empty for message
+	Channel  string            `json:"channel"`
+	ChatID   string            `json:"chat_id"`
+	Content  string            `json:"content"`
+	Action   string            `json:"action,omitempty"` // "typing", "uploading", or empty for message
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 type MessageHandler func(InboundMessage) error
+
+type ChannelManager interface {
+	SendToChannel(ctx context.Context, channelName, chatID, content string) error
+	GetEnabledChannels() []string
+}
