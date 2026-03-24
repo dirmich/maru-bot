@@ -1,0 +1,21 @@
+//go:build windows
+package main
+
+import "syscall"
+
+func hideConsole() {
+	kernel32 := syscall.NewLazyDLL("kernel32.dll")
+	user32 := syscall.NewLazyDLL("user32.dll")
+	getConsoleWindow := kernel32.NewProc("GetConsoleWindow")
+	showWindow := user32.NewProc("ShowWindow")
+	if getConsoleWindow.Find() == nil && showWindow.Find() == nil {
+		hwnd, _, _ := getConsoleWindow.Call()
+		if hwnd != 0 {
+			showWindow.Call(hwnd, 0) // SW_HIDE = 0
+		}
+	}
+}
+
+func getSysProcAttr() *syscall.SysProcAttr {
+	return &syscall.SysProcAttr{HideWindow: true}
+}

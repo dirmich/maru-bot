@@ -59,6 +59,7 @@ var macMenubarPng []byte
 var windowTrayIco []byte
 
 var Version = config.Version
+var overrideResourceDir = ""
 
 func copyDirectory(src, dst string) error {
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
@@ -95,6 +96,18 @@ func copyDirectory(src, dst string) error {
 }
 
 func main() {
+	// Early flag parsing for --home to initialize paths
+	newArgs := []string{}
+	for i := 0; i < len(os.Args); i++ {
+		if os.Args[i] == "--home" && i+1 < len(os.Args) {
+			overrideResourceDir = os.Args[i+1]
+			i++
+		} else {
+			newArgs = append(newArgs, os.Args[i])
+		}
+	}
+	os.Args = newArgs
+
 	if len(os.Args) < 2 || (len(os.Args) == 2 && os.Args[1] == "--elevated") {
 		if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
 			handleGUIMode()
@@ -1564,6 +1577,12 @@ func statusCmd() {
 }
 
 func getResourceDir() string {
+	if overrideResourceDir != "" {
+		return overrideResourceDir
+	}
+	if h := os.Getenv("MARUBOT_HOME"); h != "" {
+		return h
+	}
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".marubot")
 }
@@ -2193,7 +2212,7 @@ func serviceCmd() {
 		Name:        "MaruBot",
 		DisplayName: "MaruBot Service",
 		Description: "Ultra-lightweight personal AI agent service.",
-		Arguments:   []string{"service", "run"},
+		Arguments:   []string{"--home", getResourceDir(), "service", "run"},
 	}
 
 	prg := &program{
@@ -2547,7 +2566,7 @@ func showNativeConfirmDialog(title, message string) bool {
 		psScript := fmt.Sprintf(`Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('%s', '%s', 'YesNo', 'Question')`, msg, title)
 
 		cmd := exec.Command("powershell", "-Command", psScript)
-		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+		cmd.SysProcAttr = getSysProcAttr()
 		out, err := cmd.Output()
 		if err != nil {
 			return false

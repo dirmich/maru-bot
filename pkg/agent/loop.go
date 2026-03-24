@@ -45,7 +45,10 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	workspace := cfg.WorkspacePath()
 	os.MkdirAll(workspace, 0755)
 
-	home, _ := os.UserHomeDir()
+	home := os.Getenv("MARUBOT_HOME")
+	if home == "" {
+		home, _ = os.UserHomeDir()
+	}
 	marubotHome := filepath.Join(home, ".marubot")
 
 	toolsRegistry := tools.NewToolRegistry()
