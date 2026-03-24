@@ -139,6 +139,8 @@ func main() {
 		configCmd()
 	case "cron":
 		cronCmd()
+	case "migrate-paths":
+		migratePathsCmd()
 	case "start":
 		startCmd()
 	case "reload":
@@ -2483,20 +2485,51 @@ func serviceCmdInternalPath(sub string, exePath string) {
 	cmd.Run()
 }
 
-func getServiceBinaryPath() string {
-	out, err := exec.Command("sc", "qc", "MaruBot").Output()
+func migratePathsCmd() {
+	oldPath := `C:\WINDOWS\system32\config\systemprofile\.marubot`
+	newPath := getResourceDir()
+
+	fmt.Printf("Migrating hardcoded paths from %s to %s...\n", oldPath, newPath)
+	
+	count := 0
+	err := filepath.Walk(newPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+
+		ext := strings.ToLower(filepath.Ext(path))
+		if ext == ".json" || ext == ".md" || ext == ".txt" {
+			data, err := os.ReadFile(path)
+			if err != nil {
+				return nil
+			}
+
+			content := string(data)
+			if strings.Contains(content, oldPath) || strings.Contains(content, strings.ReplaceAll(oldPath, "\\", "/")) {
+				fmt.Printf("  Processing: %s\n", path)
+				newContent := strings.ReplaceAll(content, oldPath, newPath)
+				newContent = strings.ReplaceAll(newContent, strings.ReplaceAll(oldPath, "\\", "/"), strings.ReplaceAll(newPath, "\\", "/"))
+				
+				err = os.WriteFile(path, []byte(newContent), info.Mode())
+				if err != nil {
+					fmt.Printf("    Error saving %s: %v\n", path, err)
+				} else {
+					count++
+				}
+			}
+		}
+		return nil
+	})
+
 	if err != nil {
-		return ""
+		fmt.Printf("\n❌ Migration failed: %v\n", err)
+	} else {
+		fmt.Printf("\n✅ Migration complete! Updated %d files.\n", count)
+		fmt.Println("Please restart MaruBot to apply changes.")
 	}
-	re := regexp.MustCompile(`BINARY_PATH_NAME\s*:\s*("([^"]+)"|([^\s]+))`)
-	matches := re.FindStringSubmatch(string(out))
-	if len(matches) < 2 {
-		return ""
-	}
-	if matches[2] != "" {
-		return matches[2]
-	}
-	return matches[3]
 }
 
 func checkServiceUpgrade(s service.Service) bool {
