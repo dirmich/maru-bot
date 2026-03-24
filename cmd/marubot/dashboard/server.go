@@ -376,7 +376,10 @@ func (s *Server) handleSkills(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	home, _ := os.UserHomeDir()
+	home := os.Getenv("MARUBOT_HOME")
+	if home == "" {
+		home, _ = os.UserHomeDir()
+	}
 	logFile := filepath.Join(home, ".marubot", "dashboard.log")
 
 	data, err := os.ReadFile(logFile)

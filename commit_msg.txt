@@ -1,4 +1,6 @@
-[v0.5.4] Windows 언인스톨(Uninstall) 및 슬랙(Slack) 연동 기능 강화 (0.5.4) 완료 보고
-- 윈도우 언인스톨: 프로세스 강제 종료, 서비스 완전 삭제, 바로가기 정리 로직 고도화
-- 슬랙 연동: DefaultChannelID 설정 추가 및 이벤트 로깅 상세화
-- 저장소(private/public) 간의 완전한 동기화 및 0.5.4 정식 릴리즈
+Windows 서비스 설정 경로(.marubot) 문제 해결
+
+- MARUBOT_HOME 환경 변수 및 --home 명령행 인자 지원 추가
+- Windows 서비스 설치 시 현재 사용자 홈 디렉토리 자동 캡처 및 전달 로직 구현
+- AgentLoop, Dashboard Server, System Tools에서 경로 재정의 지원
+- GPIO 설정 저장 로직 경로 관련 중복 코드 제거 및 최적화

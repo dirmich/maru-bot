@@ -7,7 +7,10 @@ import (
 )
 
 func main() {
-	home, _ := os.UserHomeDir()
+	home := os.Getenv("MARUBOT_HOME")
+	if home == "" {
+		home, _ = os.UserHomeDir()
+	}
 	path := filepath.Join(home, ".marubot", "config.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
