@@ -101,6 +101,7 @@ func main() {
 	for i := 0; i < len(os.Args); i++ {
 		if os.Args[i] == "--home" && i+1 < len(os.Args) {
 			overrideResourceDir = os.Args[i+1]
+			os.Setenv("MARUBOT_HOME", overrideResourceDir)
 			i++
 		} else {
 			newArgs = append(newArgs, os.Args[i])
