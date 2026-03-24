@@ -1,6 +1,0 @@
-Windows 서비스 설정 경로(.marubot) 문제 해결
-
-- MARUBOT_HOME 환경 변수 및 --home 명령행 인자 지원 추가
-- Windows 서비스 설치 시 현재 사용자 홈 디렉토리 자동 캡처 및 전달 로직 구현
-- AgentLoop, Dashboard Server, System Tools에서 경로 재정의 지원
-- GPIO 설정 저장 로직 경로 관련 중복 코드 제거 및 최적화
