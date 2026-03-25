@@ -34,3 +34,6 @@ maru-bot/
 
 # Web Admin dist
 web-admin/dist/
+
+# Temporary files
+tmp/
