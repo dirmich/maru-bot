@@ -31,8 +31,10 @@ mkdir -p "$RESOURCES_DIR"
 cp "$BUILD_DIR/$BINARY_NAME-darwin-$ARCH" "$MACOS_DIR/$BINARY_NAME"
 chmod +x "$MACOS_DIR/$BINARY_NAME"
 
-# 4. Copy Icon (Try to use PNG if available, macOS prefers .icns but PNG works in some contexts or we can just leave it)
-if [ -f "cmd/marubot/assets/tray_icon.png" ]; then
+# 4. Copy Icon
+if [ -f "cmd/marubot/assets/app_icon_mac.png" ]; then
+    cp "cmd/marubot/assets/app_icon_mac.png" "$RESOURCES_DIR/AppIcon.png"
+elif [ -f "cmd/marubot/assets/tray_icon.png" ]; then
     cp "cmd/marubot/assets/tray_icon.png" "$RESOURCES_DIR/AppIcon.png"
 fi
 
@@ -66,8 +68,8 @@ EOF
 ENTITLEMENTS="scripts/entitlements.plist"
 if [ -n "$SIGNING_IDENTITY" ]; then
     echo "Signing binary and app bundle with identity: $SIGNING_IDENTITY"
-    codesign --deep --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$SIGNING_IDENTITY" --timestamp "$MACOS_DIR/$BINARY_NAME"
-    codesign --force --sign "$SIGNING_IDENTITY" --timestamp "$APP_BUNDLE"
+    codesign --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$SIGNING_IDENTITY" --timestamp "$MACOS_DIR/$BINARY_NAME"
+    codesign --force --options runtime --sign "$SIGNING_IDENTITY" --timestamp "$APP_BUNDLE"
 else
     echo "⚠️ SIGNING_IDENTITY not set. Skipping code signing. App will likely be blocked by Gatekeeper."
 fi

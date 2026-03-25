@@ -53,6 +53,9 @@ var trayIconIco []byte
 //go:embed assets/tray_icon.png
 var trayIconPng []byte
 
+//go:embed assets/tray_icon_mac.png
+var trayIconMacPng []byte
+
 var Version = config.Version
 
 func copyDirectory(src, dst string) error {
@@ -185,6 +188,14 @@ func main() {
 }
 
 func uninstallCmd() {
+	skipConfirm := false
+	for _, arg := range os.Args {
+		if arg == "--yes" || arg == "-y" {
+			skipConfirm = true
+			break
+		}
+	}
+
 	if runtime.GOOS == "windows" {
 		if !isAdmin() {
 			fmt.Println("Elevation required for uninstallation. Requesting administrator privileges...")
@@ -199,12 +210,14 @@ func uninstallCmd() {
 	fmt.Printf("%s MaruBot Uninstaller\n", logo)
 	fmt.Println("WARNING: This will remove MaruBot and its resources from your system.")
 
-	fmt.Print("Are you sure you want to continue? (y/N): ")
-	var confirm string
-	fmt.Scanln(&confirm)
-	if strings.ToLower(confirm) != "y" {
-		fmt.Println("Aborted.")
-		return
+	if !skipConfirm {
+		fmt.Print("Are you sure you want to continue? (y/N): ")
+		var confirm string
+		fmt.Scanln(&confirm)
+		if strings.ToLower(confirm) != "y" {
+			fmt.Println("Aborted.")
+			return
+		}
 	}
 
 	// 0. Remove Windows Service (if applicable)

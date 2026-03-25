@@ -12,10 +12,20 @@ import { LogsPage } from "@/pages/LogsPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { isAuthenticated } from "@/lib/auth";
+import { useSystemStore } from "@/lib/system-store";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     if (!isAuthenticated()) {
         return <Navigate to="/login" replace />;
+    }
+    return <>{children}</>;
+}
+
+function GpioRoute({ children }: { children: React.ReactNode }) {
+    const { is_raspberry_pi, is_loading } = useSystemStore();
+    if (is_loading) return null;
+    if (!is_raspberry_pi) {
+        return <Navigate to="/dashboard" replace />;
     }
     return <>{children}</>;
 }
@@ -32,7 +42,7 @@ function App() {
                                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                                 <Route path="/dashboard" element={<DashboardPage />} />
                                 <Route path="/chat" element={<ChatPage />} />
-                                <Route path="/gpio" element={<GpioPage />} />
+                                <Route path="/gpio" element={<GpioRoute><GpioPage /></GpioRoute>} />
                                 <Route path="/skills" element={<SkillsPage />} />
                                 <Route path="/settings" element={<SettingsPage />} />
                                 <Route path="/logs" element={<LogsPage />} />
