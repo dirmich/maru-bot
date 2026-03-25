@@ -312,6 +312,7 @@ if [ "$HAS_WEB_SOURCE" = true ]; then
     fi
     # Embed Dist to Go Source
     echo -e "${BLUE}    📥 Embedding Web Admin into Go source...${NC}"
+    rm -rf "$INSTALL_DIR/cmd/marubot/dashboard/dist"
     mkdir -p "$INSTALL_DIR/cmd/marubot/dashboard/dist"
     cp -r dist/* "$INSTALL_DIR/cmd/marubot/dashboard/dist/"
     cd "$INSTALL_DIR"

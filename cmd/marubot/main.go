@@ -621,7 +621,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-` + config.Version + `
+0.6.1
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
@@ -1817,38 +1817,38 @@ func startCmd() {
 	if !cfg.IsAIConfigured() {
 		showGuideMessage(cfg)
 		
-		// In GUI/Desktop environments, we might want to keep the process alive
-		// so the user can finish setup via Web-Admin.
-		if runtime.GOOS == "windows" || runtime.GOOS == "darwin" || os.Getenv("MARUBOT_GUI") == "1" {
-			fmt.Println("Entering Setup Mode... (Server remains active for web configuration)")
-			
-			// Start dashboard server in a goroutine so user can configure
-			port := cfg.Gateway.Port
-			if port == 0 { port = 8080 }
-			dashAddr := fmt.Sprintf("0.0.0.0:%d", port)
-			
-			// 💡 Fix: Properly initialize dummyAgent components to prevent Nil Pointer Panic 
-			// even in Setup Mode.
-			bus := bus.NewMessageBus()
-			dummyAgent := agent.NewAgentLoop(cfg, bus, nil, Version)
-			dashServer := dashboard.NewServer(dashAddr, dummyAgent, cfg, getConfigPath(), Version, reloadCmd)
-			
-			go func() {
-				if err := dashServer.Start(); err != nil {
-					fmt.Printf("Dashboard failed to start: %v\n", err)
-				}
-			}()
-
-			// Wait for interrupt to exit
-			sig := make(chan os.Signal, 1)
-			signal.Notify(sig, os.Interrupt)
-			<-sig
-			fmt.Println("Setup Mode exiting...")
-			os.Exit(0)
-		} else {
-			// On Linux/RPi CLI, we might just show message and exit as instructions suggest
-			os.Exit(0)
+		// Allow all platforms to enter Setup Mode so the user can finish configuration via Web-Admin.
+		// Previously this was restricted to GUI environments, but RPi/Linux users also need this.
+		fmt.Println("Entering Setup Mode... (Server remains active for web configuration)")
+		
+		// Start dashboard server in a goroutine so user can configure
+		port := cfg.Gateway.Port
+		if port == 0 { port = 8080 }
+		dashAddr := fmt.Sprintf("0.0.0.0:%d", port)
+		
+		// 💡 Fix: Properly initialize dummyAgent components to prevent Nil Pointer Panic 
+		// even in Setup Mode.
+		bus := bus.NewMessageBus()
+		dummyAgent := agent.NewAgentLoop(cfg, bus, nil, Version)
+		dashServer := dashboard.NewServer(dashAddr, dummyAgent, cfg, getConfigPath(), Version, reloadCmd)
+		
+		if runForeground {
+			fmt.Printf("✓ Dashboard available at http://localhost:%d\n", port)
+			fmt.Println("  Please complete your configuration in the Web Admin.")
 		}
+
+		go func() {
+			if err := dashServer.Start(); err != nil {
+				fmt.Printf("Dashboard failed to start: %v\n", err)
+			}
+		}()
+
+		// Wait for interrupt to exit
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+		<-sig
+		fmt.Println("Setup Mode exiting...")
+		os.Exit(0)
 	}
 
 	workspace := cfg.WorkspacePath()

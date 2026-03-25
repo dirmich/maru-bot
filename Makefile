@@ -84,6 +84,7 @@ sync-ui:
 			cd web-admin && npm install && npm run build; \
 		fi; \
 		echo "Syncing web-admin assets..."; \
+		rm -rf cmd/marubot/dashboard/dist; \
 		mkdir -p cmd/marubot/dashboard/dist; \
 		cp -rv web-admin/dist/* cmd/marubot/dashboard/dist/; \
 	else \

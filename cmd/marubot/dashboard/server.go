@@ -96,6 +96,17 @@ func (s *Server) Start() error {
 		}
 
 		// Fallback to index.html for SPA routing
+		// 🛡️ Improved: Don't fallback for static assets (JS, CSS, etc.)
+		// If an asset is missing, returning index.html leads to mysterious "blank screen" errors.
+		assetExts := []string{".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".woff", ".woff2", ".ttf", ".webp"}
+		lowerPath := strings.ToLower(path)
+		for _, ext := range assetExts {
+			if strings.HasSuffix(lowerPath, ext) {
+				http.NotFound(w, r)
+				return
+			}
+		}
+
 		index, err := distFS.Open("index.html")
 		if err != nil {
 			http.Error(w, "Dashboard not found (build missing)", http.StatusNotFound)
