@@ -16,28 +16,32 @@ LDFLAGS_BASE=$(if $(VERSION),-X main.version=$(VERSION) -X main.buildTime=$(BUIL
 LDFLAGS_CONSOLE=-ldflags "$(LDFLAGS_BASE)"
 # For Windows (GUI - to hide CMD window)
 LDFLAGS_WINDOWSGUI=-ldflags "$(LDFLAGS_BASE) -H windowsgui"
+# OS detection
+UNAME_S:=$(shell uname -s)
+UNAME_M:=$(shell uname -m)
 
-CGO_ENABLED=0
+# CGO settings
+ifeq ($(UNAME_S),Darwin)
+	CGO_ENABLED=1
+else
+	CGO_ENABLED=0
+endif
 export CGO_ENABLED
 
 # Go variables
 GO?=go
 GOFLAGS?=-v
 
-# Installation
-INSTALL_PREFIX?=$(HOME)/.local
-INSTALL_BIN_DIR=$(INSTALL_PREFIX)/bin
-INSTALL_MAN_DIR=$(INSTALL_PREFIX)/share/man/man1
-
-# Workspace and Skills
+# MARUBOT_HOME is the base directory for resources and binary
 MARUBOT_HOME?=$(HOME)/.marubot
+
+# Installation
+INSTALL_BIN_DIR=$(MARUBOT_HOME)/bin
 WORKSPACE_DIR?=$(MARUBOT_HOME)/workspace
 WORKSPACE_SKILLS_DIR=$(WORKSPACE_DIR)/skills
 BUILTIN_SKILLS_DIR=$(CURDIR)/skills
 
 # OS detection
-UNAME_S:=$(shell uname -s)
-UNAME_M:=$(shell uname -m)
 
 # Platform-specific settings
 ifeq ($(UNAME_S),Linux)
@@ -71,26 +75,39 @@ endif
 
 BINARY_PATH=$(BUILD_DIR)/$(BINARY_NAME)-$(PLATFORM)-$(ARCH)
 
-# Default target
-all: build
+# internal helper to sync UI assets
+sync-ui:
+	@echo "Checking web-admin assets..."
+	@if [ -f "web-admin/package.json" ]; then \
+		if [ ! -f "web-admin/dist/index.html" ]; then \
+			echo "web-admin/dist/index.html not found. Building UI..."; \
+			cd web-admin && npm install && npm run build; \
+		fi; \
+		echo "Syncing web-admin assets..."; \
+		rm -rf cmd/marubot/dashboard/dist; \
+		mkdir -p cmd/marubot/dashboard/dist; \
+		cp -rv web-admin/dist/* cmd/marubot/dashboard/dist/; \
+	else \
+		echo "Skipping UI build (source not found). Checking for pre-built assets..."; \
+		if [ ! -f "cmd/marubot/dashboard/dist/index.html" ]; then \
+			echo "Error: cmd/marubot/dashboard/dist/index.html is missing!"; \
+			exit 1; \
+		fi; \
+		echo "✓ Pre-built assets found in dashboard/dist"; \
+	fi
 
 ## build: Build the marubot binary for current platform
-build:
+build: sync-ui
 	@echo "Building $(BINARY_NAME) for $(PLATFORM)/$(ARCH)..."
 	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=0 $(GO) build $(GOFLAGS) $(LDFLAGS_CONSOLE) -o $(BINARY_PATH) ./$(CMD_DIR)
+	$(GO) build $(GOFLAGS) $(LDFLAGS_CONSOLE) -o $(BINARY_PATH) ./$(CMD_DIR)
 	@echo "Build complete: $(BINARY_PATH)"
 	@ln -sf $(BINARY_NAME)-$(PLATFORM)-$(ARCH) $(BUILD_DIR)/$(BINARY_NAME)
 
-## build-all: Build marubot for all platforms
-build-all:
-	@echo "Building for multiple platforms..."
+## build-all: Build marubot for Windows and macOS
+build-all: sync-ui
+	@echo "Building for Windows and macOS..."
 	@mkdir -p $(BUILD_DIR)
-	@# Linux
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 ./$(CMD_DIR)
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64 ./$(CMD_DIR)
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-arm ./$(CMD_DIR)
-	CGO_ENABLED=0 GOOS=linux GOARCH=riscv64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-linux-riscv64 ./$(CMD_DIR)
 	@# Windows
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build $(LDFLAGS_WINDOWSGUI) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe ./$(CMD_DIR)
 	CGO_ENABLED=0 GOOS=windows GOARCH=386 $(GO) build $(LDFLAGS_WINDOWSGUI) -o $(BUILD_DIR)/$(BINARY_NAME)-windows-386.exe ./$(CMD_DIR)
@@ -98,32 +115,24 @@ build-all:
 	@echo "Building for macOS (CGO required for Tray Icon)..."
 	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 ./$(CMD_DIR)
 	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 $(GO) build $(LDFLAGS_CONSOLE) -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 ./$(CMD_DIR)
-	@echo "All builds complete"
+	@echo "Packaging DMGs..."
+	@$(MAKE) package-dmg
+	@echo "All targeted builds and packages complete"
 
-## package-win: Package Windows binaries into ZIP files (Single + Installable)
+## package-win: Collect Windows binaries (No ZIP)
 package-win: build-all
-	@echo "📦 Packaging Windows binaries (x64 & x86) with Go-Zip tool..."
-	@mkdir -p build/marubot-win-x64/config
-	@cp build/marubot-windows-amd64.exe build/marubot-win-x64/marubot.exe
-	@cp README.md build/marubot-win-x64/
-	@cp config/maru-config.json build/marubot-win-x64/config/maru-config.json
-	@go run scripts/zip_pack.go build/marubot-windows-x64.zip build/marubot-win-x64
-	@rm -rf build/marubot-win-x64
-
-	@mkdir -p build/marubot-win-x86/config
-	@cp build/marubot-windows-386.exe build/marubot-win-x86/marubot.exe
-	@cp README.md build/marubot-win-x86/
-	@cp config/maru-config.json build/marubot-win-x86/config/maru-config.json
-	@go run scripts/zip_pack.go build/marubot-windows-x86.zip build/marubot-win-x86
-	@rm -rf build/marubot-win-x86
-	@echo "✓ Windows packages created."
+	@echo "📦 Collecting Windows binaries (x64 & x86)..."
+	@mkdir -p build/
+	@rm -f build/*.zip
+	@echo "✓ Windows binaries ready in build/."
 
 ## package-dmg: Package macOS binaries into DMG files
-package-dmg: build-all
+package-dmg:
 	@echo "📦 Packaging macOS DMGs..."
 	@chmod +x scripts/build_dmg.sh
 	@./scripts/build_dmg.sh amd64
 	@./scripts/build_dmg.sh arm64
+	@rm -f build/*.zip
 	@echo "✓ macOS DMGs created."
 
 ## install: Install marubot to system and copy builtin skills
@@ -164,16 +173,17 @@ install-skills:
 
 ## public: Sync public files to ../marubot (for public repo maintenance)
 public: package-win package-dmg
+	@echo "🚀 Syncing to public repository (Windows: EXE only, macOS: DMG only)..."
 	@chmod +x scripts/publish.sh
 	@./scripts/publish.sh
 
 ## uninstall: Remove marubot from system
 uninstall:
 	@echo "Uninstalling $(BINARY_NAME)..."
+	-@$(INSTALL_BIN_DIR)/$(BINARY_NAME) uninstall
 	@rm -f $(INSTALL_BIN_DIR)/$(BINARY_NAME)
 	@echo "Removed binary from $(INSTALL_BIN_DIR)/$(BINARY_NAME)"
-	@echo "Note: Only the executable file has been deleted."
-	@echo "If you need to delete all configurations (config.json, workspace, etc.), run 'make uninstall-all'"
+	@echo "Note: Core configuration and workspace are kept unless you run 'make uninstall-all'"
 
 ## uninstall-all: Remove marubot and all data
 uninstall-all:
@@ -186,6 +196,7 @@ uninstall-all:
 clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf $(BUILD_DIR)
+	@rm -f *.zip
 	@echo "Clean complete"
 
 ## fmt: Format Go code
@@ -213,9 +224,8 @@ help:
 	@echo ""
 	@echo "Examples:"
 	@echo "  make build              # Build for current platform"
-	@echo "  make install            # Install to /usr/local/bin"
-	@echo "  make install-user       # Install to ~/.local/bin"
-	@echo "  make uninstall          # Remove from /usr/local/bin"
+	@echo "  make install            # Install to $(INSTALL_BIN_DIR)"
+	@echo "  make uninstall          # Remove from $(INSTALL_BIN_DIR)"
 	@echo "  make install-skills     # Install skills to workspace"
 	@echo ""
 	@echo "Environment Variables:"

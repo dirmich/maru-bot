@@ -2,12 +2,14 @@ package config
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
 	"github.com/caarlos0/env/v11"
+	"github.com/dirmich/marubot/pkg/utils"
 )
 
 type Config struct {
@@ -21,7 +23,13 @@ type Config struct {
 	Hardware      HardwareConfig  `json:"hardware"`
 	Drone         DroneConfig     `json:"drone"`
 	GPS           GPSConfig       `json:"gps"`
-	mu            sync.RWMutex
+	Admin         AdminConfig     `json:"admin"`
+	Mu            sync.RWMutex    `json:"-"`
+}
+
+type AdminConfig struct {
+	BackendURL string `json:"backend_url" env:"MARUBOT_ADMIN_BACKEND_URL"`
+	UserID     string `json:"user_id" env:"MARUBOT_ADMIN_USER_ID"`
 }
 
 type AgentsConfig struct {
@@ -30,19 +38,16 @@ type AgentsConfig struct {
 
 type AgentDefaults struct {
 	Workspace         string   `json:"workspace" env:"MARUBOT_AGENTS_DEFAULTS_WORKSPACE"`
+	Provider          string   `json:"provider" env:"MARUBOT_AGENTS_DEFAULTS_PROVIDER"`
 	Model             string   `json:"model" env:"MARUBOT_AGENTS_DEFAULTS_MODEL"`
 	FallbackModels    []string `json:"fallback_models" env:"MARUBOT_AGENTS_DEFAULTS_FALLBACK_MODELS"`
-	MaxTokens         int      `json:"max_tokens" env:"MARUBOT_AGENTS_DEFAULTS_MAX_TOKENS"`
-	Temperature       float64  `json:"temperature" env:"MARUBOT_AGENTS_DEFAULTS_TEMPERATURE"`
-	MaxToolIterations int      `json:"max_tool_iterations" env:"MARUBOT_AGENTS_DEFAULTS_MAX_TOOL_ITERATIONS"`
 }
 
 type ChannelsConfig struct {
 	WhatsApp WhatsAppConfig `json:"whatsapp"`
 	Telegram TelegramConfig `json:"telegram"`
-	Feishu   FeishuConfig   `json:"feishu"`
 	Discord  DiscordConfig  `json:"discord"`
-	MaixCam  MaixCamConfig  `json:"maixcam"`
+	Slack    SlackConfig    `json:"slack"`
 	Webhook  WebhookConfig  `json:"webhook"`
 }
 
@@ -58,6 +63,7 @@ type WhatsAppConfig struct {
 	Enabled   bool     `json:"enabled" env:"MARUBOT_CHANNELS_WHATSAPP_ENABLED"`
 	BridgeURL string   `json:"bridge_url" env:"MARUBOT_CHANNELS_WHATSAPP_BRIDGE_URL"`
 	AllowFrom []string `json:"allow_from" env:"MARUBOT_CHANNELS_WHATSAPP_ALLOW_FROM"`
+	APIKey    string   `json:"api_key" env:"MARUBOT_CHANNELS_WHATSAPP_API_KEY"`
 }
 
 type TelegramConfig struct {
@@ -66,14 +72,6 @@ type TelegramConfig struct {
 	AllowFrom []string `json:"allow_from" env:"MARUBOT_CHANNELS_TELEGRAM_ALLOW_FROM"`
 }
 
-type FeishuConfig struct {
-	Enabled           bool     `json:"enabled" env:"MARUBOT_CHANNELS_FEISHU_ENABLED"`
-	AppID             string   `json:"app_id" env:"MARUBOT_CHANNELS_FEISHU_APP_ID"`
-	AppSecret         string   `json:"app_secret" env:"MARUBOT_CHANNELS_FEISHU_APP_SECRET"`
-	EncryptKey        string   `json:"encrypt_key" env:"MARUBOT_CHANNELS_FEISHU_ENCRYPT_KEY"`
-	VerificationToken string   `json:"verification_token" env:"MARUBOT_CHANNELS_FEISHU_VERIFICATION_TOKEN"`
-	AllowFrom         []string `json:"allow_from" env:"MARUBOT_CHANNELS_FEISHU_ALLOW_FROM"`
-}
 
 type DiscordConfig struct {
 	Enabled   bool     `json:"enabled" env:"MARUBOT_CHANNELS_DISCORD_ENABLED"`
@@ -81,12 +79,14 @@ type DiscordConfig struct {
 	AllowFrom []string `json:"allow_from" env:"MARUBOT_CHANNELS_DISCORD_ALLOW_FROM"`
 }
 
-type MaixCamConfig struct {
-	Enabled   bool     `json:"enabled" env:"MARUBOT_CHANNELS_MAIXCAM_ENABLED"`
-	Host      string   `json:"host" env:"MARUBOT_CHANNELS_MAIXCAM_HOST"`
-	Port      int      `json:"port" env:"MARUBOT_CHANNELS_MAIXCAM_PORT"`
-	AllowFrom []string `json:"allow_from" env:"MARUBOT_CHANNELS_MAIXCAM_ALLOW_FROM"`
+type SlackConfig struct {
+	Enabled          bool     `json:"enabled" env:"MARUBOT_CHANNELS_SLACK_ENABLED"`
+	Token            string   `json:"token" env:"MARUBOT_CHANNELS_SLACK_TOKEN"`
+	AppToken         string   `json:"app_token" env:"MARUBOT_CHANNELS_SLACK_APP_TOKEN"`
+	DefaultChannelID string   `json:"default_channel_id" env:"MARUBOT_CHANNELS_SLACK_DEFAULT_CHANNEL_ID"`
+	AllowFrom        []string `json:"allow_from" env:"MARUBOT_CHANNELS_SLACK_ALLOW_FROM"`
 }
+
 
 type ProvidersConfig struct {
 	Anthropic  ProviderConfig `json:"anthropic"`
@@ -96,11 +96,22 @@ type ProvidersConfig struct {
 	Zhipu      ProviderConfig `json:"zhipu"`
 	VLLM       ProviderConfig `json:"vllm"`
 	Gemini     ProviderConfig `json:"gemini"`
+	Ollama     []ProviderConfig `json:"ollama"`
 }
 
 type ProviderConfig struct {
-	APIKey  string `json:"api_key" env:"MARUBOT_PROVIDERS_{{.Name}}_API_KEY"`
-	APIBase string `json:"api_base" env:"MARUBOT_PROVIDERS_{{.Name}}_API_BASE"`
+	APIKey  string        `json:"api_key,omitempty"`
+	APIBase string        `json:"api_base,omitempty"`
+	Models  []ModelConfig `json:"models"`
+}
+
+type ModelConfig struct {
+	Model             string  `json:"model"`
+	APIKey            string  `json:"api_key"`
+	APIBase           string  `json:"api_base"`
+	MaxTokens         int     `json:"max_tokens"`
+	Temperature       float64 `json:"temperature"`
+	MaxToolIterations int     `json:"max_tool_iterations"`
 }
 
 type GatewayConfig struct {
@@ -122,7 +133,9 @@ type ToolsConfig struct {
 }
 
 type HardwareConfig struct {
-	GPIO GPIOConfig `json:"gpio"`
+	IsRaspberryPi *bool      `json:"is_raspberry_pi,omitempty" env:"MARUBOT_HARDWARE_IS_RASPBERRY_PI"`
+	GPIOTestMode  bool       `json:"gpio_test_mode" env:"MARUBOT_HARDWARE_GPIO_TEST_MODE"`
+	GPIO          GPIOConfig `json:"gpio"`
 }
 
 type GPIOConfig struct {
@@ -149,43 +162,29 @@ func DefaultConfig() *Config {
 		Language: "ko",
 		Agents: AgentsConfig{
 			Defaults: AgentDefaults{
-				Workspace:         "~/.marubot/workspace",
-				Model:             "glm-4.7",
-				FallbackModels:    []string{"gpt-4o", "claude-3-5-sonnet-20241022", "gemini-2.5-flash"},
-				MaxTokens:         8192,
-				Temperature:       0.7,
-				MaxToolIterations: 20,
+				Workspace:      "~/.marubot/workspace",
+				Provider:       "vllm",
+				Model:          "openai/gpt-oss-20b",
+				FallbackModels: []string{"gpt-4o", "claude-3-5-sonnet-20241022", "gemini-2.0-flash"},
 			},
 		},
 		Channels: ChannelsConfig{
-			WhatsApp: WhatsAppConfig{
-				Enabled:   false,
-				BridgeURL: "ws://localhost:3001",
-				AllowFrom: []string{},
-			},
 			Telegram: TelegramConfig{
 				Enabled:   false,
 				Token:     "",
 				AllowFrom: []string{},
-			},
-			Feishu: FeishuConfig{
-				Enabled:           false,
-				AppID:             "",
-				AppSecret:         "",
-				EncryptKey:        "",
-				VerificationToken: "",
-				AllowFrom:         []string{},
 			},
 			Discord: DiscordConfig{
 				Enabled:   false,
 				Token:     "",
 				AllowFrom: []string{},
 			},
-			MaixCam: MaixCamConfig{
-				Enabled:   false,
-				Host:      "0.0.0.0",
-				Port:      18790,
-				AllowFrom: []string{},
+			Slack: SlackConfig{
+				Enabled:          false,
+				Token:            "",
+				AppToken:         "",
+				DefaultChannelID: "",
+				AllowFrom:        []string{},
 			},
 			Webhook: WebhookConfig{
 				Enabled:   false,
@@ -196,13 +195,36 @@ func DefaultConfig() *Config {
 			},
 		},
 		Providers: ProvidersConfig{
-			Anthropic:  ProviderConfig{},
-			OpenAI:     ProviderConfig{},
-			OpenRouter: ProviderConfig{},
-			Groq:       ProviderConfig{},
-			Zhipu:      ProviderConfig{},
-			VLLM:       ProviderConfig{},
-			Gemini:     ProviderConfig{},
+			Anthropic: ProviderConfig{
+				Models: []ModelConfig{},
+			},
+			OpenAI: ProviderConfig{
+				Models: []ModelConfig{},
+			},
+			OpenRouter: ProviderConfig{
+				Models: []ModelConfig{},
+			},
+			Groq: ProviderConfig{
+				Models: []ModelConfig{},
+			},
+			Zhipu: ProviderConfig{
+				Models: []ModelConfig{},
+			},
+			VLLM: ProviderConfig{
+				Models: []ModelConfig{
+					{
+						Model:             "openai/gpt-oss-20b",
+						APIKey:            "vllm",
+						APIBase:           "http://192.168.0.20:8000/v1",
+						MaxTokens:         8192,
+						Temperature:       0.7,
+						MaxToolIterations: 20,
+					},
+				},
+			},
+			Gemini: ProviderConfig{
+				Models: []ModelConfig{},
+			},
 		},
 		Gateway: GatewayConfig{
 			Host: "0.0.0.0",
@@ -217,6 +239,7 @@ func DefaultConfig() *Config {
 			},
 		},
 		Hardware: HardwareConfig{
+			GPIOTestMode: false,
 			GPIO: GPIOConfig{
 				Enabled: true,
 				Pins: map[string]interface{}{
@@ -238,6 +261,10 @@ func DefaultConfig() *Config {
 			Device:  "/dev/ttyUSB0",
 			Baud:    9600,
 		},
+		Admin: AdminConfig{
+			BackendURL: "",
+			UserID:     "",
+		},
 	}
 }
 
@@ -246,32 +273,74 @@ func LoadConfig(path string) (*Config, error) {
 
 	data, err := os.ReadFile(path)
 	if err == nil {
+		// Temporary struct to capture old format fields for migration
+		var oldCfg struct {
+			Agents struct {
+				Defaults struct {
+					MaxTokens         int     `json:"max_tokens"`
+					Temperature       float64 `json:"temperature"`
+					MaxToolIterations int     `json:"max_tool_iterations"`
+				} `json:"defaults"`
+			} `json:"agents"`
+			Providers map[string]struct {
+				APIKey  string `json:"api_key"`
+				APIBase string `json:"api_base"`
+			} `json:"providers"`
+		}
+		json.Unmarshal(data, &oldCfg)
+
+		// Special handling for GPIO pins in main config to avoid merging with defaults
+		var rawCfg map[string]interface{}
+		json.Unmarshal(data, &rawCfg)
+		if hw, ok := rawCfg["hardware"].(map[string]interface{}); ok {
+			if gp, ok := hw["gpio"].(map[string]interface{}); ok {
+				if _, ok := gp["pins"].(map[string]interface{}); ok {
+					// Clear default pins if pins are provided in the config file
+					cfg.Hardware.GPIO.Pins = make(map[string]interface{})
+				}
+			}
+		}
+
 		if err := json.Unmarshal(data, cfg); err != nil {
 			return nil, err
 		}
+
+		// Migrate old format to new format if needed
+		migrateProvider := func(name string, p *ProviderConfig) {
+			if old, ok := oldCfg.Providers[name]; ok && old.APIKey != "" {
+				// If Models is empty, migrate the old direct fields
+				if len(p.Models) == 0 {
+					p.Models = append(p.Models, ModelConfig{
+						Model:             cfg.Agents.Defaults.Model, // Use current default model
+						APIKey:            old.APIKey,
+						APIBase:           old.APIBase,
+						MaxTokens:         oldCfg.Agents.Defaults.MaxTokens,
+						Temperature:       oldCfg.Agents.Defaults.Temperature,
+						MaxToolIterations: oldCfg.Agents.Defaults.MaxToolIterations,
+					})
+				}
+			}
+		}
+
+		migrateProvider("anthropic", &cfg.Providers.Anthropic)
+		migrateProvider("openai", &cfg.Providers.OpenAI)
+		migrateProvider("openrouter", &cfg.Providers.OpenRouter)
+		migrateProvider("groq", &cfg.Providers.Groq)
+		migrateProvider("zhipu", &cfg.Providers.Zhipu)
+		migrateProvider("vllm", &cfg.Providers.VLLM)
+		migrateProvider("gemini", &cfg.Providers.Gemini)
+
 	} else if !os.IsNotExist(err) {
 		return nil, err
 	}
 
-	// Load usersetting.json as override if exists
+	// Unify: Check for usersetting.json and migrate to config.json if it exists
 	userSettingsPath := filepath.Join(filepath.Dir(path), "usersetting.json")
-	if userData, err := os.ReadFile(userSettingsPath); err == nil {
-		var userCfg map[string]interface{}
-		if err := json.Unmarshal(userData, &userCfg); err == nil {
-			// Special handling for GPIO pins: if exists in usersetting, replace the entire map
-			if hw, ok := userCfg["hardware"].(map[string]interface{}); ok {
-				if gp, ok := hw["gpio"].(map[string]interface{}); ok {
-					if pins, ok := gp["pins"].(map[string]interface{}); ok {
-						cfg.Hardware.GPIO.Pins = pins
-						delete(gp, "pins")
-					}
-				}
-			}
-
-			// Final unmarshal for everything else (merges into cfg)
-			if err := json.Unmarshal(userData, cfg); err != nil {
-				return nil, err
-			}
+	if _, err := os.Stat(userSettingsPath); err == nil {
+		if err := MigrateUserSettings(path, userSettingsPath, cfg); err == nil {
+			log.Printf("Successfully migrated usersetting.json to %s and removed it", path)
+		} else {
+			log.Printf("Migration of usersetting.json failed: %v", err)
 		}
 	}
 
@@ -279,7 +348,48 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, err
 	}
 
+	// Auto-encrypt password if it's plaintext
+	if cfg.AdminPassword != "" && !utils.IsPasswordHashed(cfg.AdminPassword) {
+		log.Printf("Plaintext admin password detected. Encrypting...")
+		cfg.AdminPassword = utils.HashPassword(cfg.AdminPassword)
+		if err := SaveConfig(path, cfg); err != nil {
+			log.Printf("Failed to save encrypted password: %v", err)
+		} else {
+			log.Printf("Admin password successfully encrypted.")
+		}
+	}
+
 	return cfg, nil
+}
+
+// MigrateUserSettings merges all data from usersetting.json into Config and saves it to config.json
+func MigrateUserSettings(configPath, userSettingsPath string, cfg *Config) error {
+	userData, err := os.ReadFile(userSettingsPath)
+	if err != nil {
+		return err
+	}
+
+	// 1. First, decode into a map to log what's being migrated (optional, for debug)
+	var userCfg map[string]interface{}
+	if err := json.Unmarshal(userData, &userCfg); err != nil {
+		return err
+	}
+
+	// 2. Unmarshal directly into the existing Config struct to merge all fields automatically.
+	// Since cfg already has defaults/existing data, this will overwrite only what's in usersetting.json.
+	if err := json.Unmarshal(userData, cfg); err != nil {
+		return err
+	}
+
+	// 3. Save merged config back to config.json
+	if err := SaveConfig(configPath, cfg); err != nil {
+		return err
+	}
+
+	// 4. Rename usersetting.json to usersetting.json.bak for safety
+	bakPath := userSettingsPath + ".bak"
+	os.Remove(bakPath) // Remove old backup if exists
+	return os.Rename(userSettingsPath, bakPath)
 }
 
 // FlattenPins converts nested pin maps into flat underscore-separated keys
@@ -329,8 +439,8 @@ func UnflattenPins(flat map[string]int) map[string]interface{} {
 }
 
 func SaveConfig(path string, cfg *Config) error {
-	cfg.mu.RLock()
-	defer cfg.mu.RUnlock()
+	cfg.Mu.RLock()
+	defer cfg.Mu.RUnlock()
 
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
@@ -346,97 +456,230 @@ func SaveConfig(path string, cfg *Config) error {
 }
 
 func (c *Config) Update(newCfg *Config) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.Language = newCfg.Language
-	c.AdminPassword = newCfg.AdminPassword
-	c.Agents = newCfg.Agents
-	c.Channels = newCfg.Channels
-	c.Providers = newCfg.Providers
+	c.Mu.Lock()
+	defer c.Mu.Unlock()
+	if newCfg.Language != "" {
+		c.Language = newCfg.Language
+	}
+	if newCfg.AdminPassword != "" {
+		c.AdminPassword = newCfg.AdminPassword
+	}
+	
+	// Selective Agents update
+	if newCfg.Agents.Defaults.Model != "" {
+		c.Agents.Defaults.Model = newCfg.Agents.Defaults.Model
+	}
+	if newCfg.Agents.Defaults.Provider != "" {
+		c.Agents.Defaults.Provider = newCfg.Agents.Defaults.Provider
+	}
+	if newCfg.Agents.Defaults.Workspace != "" {
+		c.Agents.Defaults.Workspace = newCfg.Agents.Defaults.Workspace
+	}
+	if len(newCfg.Agents.Defaults.FallbackModels) > 0 {
+		c.Agents.Defaults.FallbackModels = newCfg.Agents.Defaults.FallbackModels
+	}
+
+	// Merge Channels config
+	c.Channels.WhatsApp = newCfg.Channels.WhatsApp
+	c.Channels.Telegram = newCfg.Channels.Telegram
+	c.Channels.Discord = newCfg.Channels.Discord
+	c.Channels.Slack = newCfg.Channels.Slack
+	c.Channels.Webhook = newCfg.Channels.Webhook
+
+	// Merge Providers (assuming the UI sends the full provider model list it wants to update)
+	if len(newCfg.Providers.OpenAI.Models) > 0 || newCfg.Providers.OpenAI.APIKey != "" { c.Providers.OpenAI = newCfg.Providers.OpenAI }
+	if len(newCfg.Providers.Anthropic.Models) > 0 || newCfg.Providers.Anthropic.APIKey != "" { c.Providers.Anthropic = newCfg.Providers.Anthropic }
+	if len(newCfg.Providers.Gemini.Models) > 0 || newCfg.Providers.Gemini.APIKey != "" { c.Providers.Gemini = newCfg.Providers.Gemini }
+	if len(newCfg.Providers.Zhipu.Models) > 0 || newCfg.Providers.Zhipu.APIKey != "" { c.Providers.Zhipu = newCfg.Providers.Zhipu }
+	if len(newCfg.Providers.Groq.Models) > 0 || newCfg.Providers.Groq.APIKey != "" { c.Providers.Groq = newCfg.Providers.Groq }
+	if len(newCfg.Providers.VLLM.Models) > 0 || newCfg.Providers.VLLM.APIKey != "" { c.Providers.VLLM = newCfg.Providers.VLLM }
+	if len(newCfg.Providers.Ollama) > 0 { c.Providers.Ollama = newCfg.Providers.Ollama }
+
 	c.Gateway = newCfg.Gateway
 	c.Tools = newCfg.Tools
-	c.Hardware = newCfg.Hardware
-	c.Drone = newCfg.Drone
-	c.GPS = newCfg.GPS
+
+	// Selective hardware update to avoid losing GPIO pins when saving general settings
+	if newCfg.Hardware.GPIO.Enabled {
+		c.Hardware.GPIO.Enabled = true
+		if len(newCfg.Hardware.GPIO.Pins) > 0 {
+			c.Hardware.GPIO.Pins = newCfg.Hardware.GPIO.Pins
+		}
+	}
+	c.Hardware.GPIOTestMode = newCfg.Hardware.GPIOTestMode
+
+	if newCfg.Drone.Connection != "" || newCfg.Drone.Enabled {
+		c.Drone = newCfg.Drone
+	}
+	if newCfg.GPS.Device != "" || newCfg.GPS.Enabled {
+		c.GPS = newCfg.GPS
+	}
 }
 
 func (c *Config) UpdateGPIO(pins map[string]interface{}) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.Mu.Lock()
+	defer c.Mu.Unlock()
 	c.Hardware.GPIO.Pins = pins
 }
 
 func (c *Config) WorkspacePath() string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
 	return expandHome(c.Agents.Defaults.Workspace)
 }
 
 func (c *Config) GetAPIKey() string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	if c.Providers.OpenRouter.APIKey != "" {
-		return c.Providers.OpenRouter.APIKey
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	
+	// Use default model from defaults if configured
+	model := c.Agents.Defaults.Model
+	provider := c.Agents.Defaults.Provider
+	
+	if provider != "" {
+		mCfg := c.findModelConfig(provider, model)
+		if mCfg != nil {
+			return mCfg.APIKey
+		}
 	}
-	if c.Providers.Anthropic.APIKey != "" {
-		return c.Providers.Anthropic.APIKey
+	
+	for _, p := range []struct {
+		name string
+		cfg  ProviderConfig
+	}{
+		{"openai", c.Providers.OpenAI},
+		{"anthropic", c.Providers.Anthropic},
+		{"gemini", c.Providers.Gemini},
+		{"groq", c.Providers.Groq},
+		{"zhipu", c.Providers.Zhipu},
+		{"vllm", c.Providers.VLLM},
+		{"openrouter", c.Providers.OpenRouter},
+	} {
+		for _, m := range p.cfg.Models {
+			if m.APIKey != "" {
+				return m.APIKey
+			}
+		}
 	}
-	if c.Providers.OpenAI.APIKey != "" {
-		return c.Providers.OpenAI.APIKey
-	}
-	if c.Providers.Gemini.APIKey != "" {
-		return c.Providers.Gemini.APIKey
-	}
-	if c.Providers.Zhipu.APIKey != "" {
-		return c.Providers.Zhipu.APIKey
-	}
-	if c.Providers.Groq.APIKey != "" {
-		return c.Providers.Groq.APIKey
-	}
-	if c.Providers.VLLM.APIKey != "" {
-		return c.Providers.VLLM.APIKey
+
+	// Check Ollama list
+	for _, p := range c.Providers.Ollama {
+		for _, m := range p.Models {
+			if m.APIKey != "" {
+				return m.APIKey
+			}
+		}
 	}
 	return ""
 }
 
-func (c *Config) GetAPIBase() string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	if c.Providers.OpenRouter.APIKey != "" {
-		if c.Providers.OpenRouter.APIBase != "" {
-			return c.Providers.OpenRouter.APIBase
+func (c *Config) findModelConfig(providerName, modelName string) *ModelConfig {
+	var provider ProviderConfig
+	switch strings.ToLower(providerName) {
+	case "anthropic": provider = c.Providers.Anthropic
+	case "openai": provider = c.Providers.OpenAI
+	case "openrouter": provider = c.Providers.OpenRouter
+	case "groq": provider = c.Providers.Groq
+	case "zhipu": provider = c.Providers.Zhipu
+	case "vllm": provider = c.Providers.VLLM
+	case "gemini": provider = c.Providers.Gemini
+	case "ollama":
+		// For Ollama, we search through the slice of providers
+		for _, p := range c.Providers.Ollama {
+			for _, m := range p.Models {
+				if strings.EqualFold(m.Model, modelName) {
+					return &m
+				}
+			}
 		}
-		return "https://openrouter.ai/api/v1"
+		return nil
+	default: return nil
 	}
-	if c.Providers.Zhipu.APIKey != "" {
-		return c.Providers.Zhipu.APIBase
+	for _, m := range provider.Models {
+		if strings.EqualFold(m.Model, modelName) {
+			return &m
+		}
 	}
-	if c.Providers.VLLM.APIKey != "" && c.Providers.VLLM.APIBase != "" {
-		return c.Providers.VLLM.APIBase
+	return nil
+}
+
+
+func (c *Config) GetAPIBase() string {
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	
+	model := c.Agents.Defaults.Model
+	provider := c.Agents.Defaults.Provider
+	
+	if provider != "" {
+		mCfg := c.findModelConfig(provider, model)
+		if mCfg != nil && mCfg.APIBase != "" {
+			return mCfg.APIBase
+		}
+		// Fallback to default base for the provider if found
+		return GetDefaultBase(provider)
 	}
+
+	// If provider not specified, try to find the model and its base
+	for _, p := range []struct {
+		name string
+		cfg  ProviderConfig
+	}{
+		{"openai", c.Providers.OpenAI},
+		{"anthropic", c.Providers.Anthropic},
+		{"gemini", c.Providers.Gemini},
+		{"groq", c.Providers.Groq},
+		{"zhipu", c.Providers.Zhipu},
+		{"vllm", c.Providers.VLLM},
+		{"openrouter", c.Providers.OpenRouter},
+	} {
+		for _, m := range p.cfg.Models {
+			if strings.EqualFold(m.Model, model) {
+				if m.APIBase != "" {
+					return m.APIBase
+				}
+				return GetDefaultBase(p.name)
+			}
+		}
+	}
+
 	return ""
 }
 
 func (c *Config) IsAIConfigured() bool {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.Providers.Anthropic.APIKey != "" ||
-		c.Providers.OpenAI.APIKey != "" ||
-		c.Providers.OpenRouter.APIKey != "" ||
-		c.Providers.Groq.APIKey != "" ||
-		c.Providers.Zhipu.APIKey != "" ||
-		c.Providers.Gemini.APIKey != "" ||
-		c.Providers.VLLM.APIBase != ""
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
+	
+	allProviders := []ProviderConfig{
+		c.Providers.Anthropic,
+		c.Providers.OpenAI,
+		c.Providers.OpenRouter,
+		c.Providers.Groq,
+		c.Providers.Zhipu,
+		c.Providers.Gemini,
+		c.Providers.VLLM,
+	}
+	for _, p := range allProviders {
+		if len(p.Models) > 0 {
+			return true
+		}
+	}
+
+	// Check Ollama list
+	for _, p := range c.Providers.Ollama {
+		if len(p.Models) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Config) IsChannelEnabled() bool {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.Mu.RLock()
+	defer c.Mu.RUnlock()
 	return c.Channels.WhatsApp.Enabled ||
 		c.Channels.Telegram.Enabled ||
-		c.Channels.Feishu.Enabled ||
 		c.Channels.Discord.Enabled ||
-		c.Channels.MaixCam.Enabled ||
+		c.Channels.Slack.Enabled ||
 		c.Channels.Webhook.Enabled
 }
 
@@ -445,6 +688,12 @@ func expandHome(path string) string {
 		return path
 	}
 	if path[0] == '~' {
+		if h := os.Getenv("MARUBOT_HOME"); h != "" {
+			if strings.HasPrefix(path, "~/.marubot") {
+				return filepath.Join(h, path[len("~/.marubot"):])
+			}
+			return h
+		}
 		home, _ := os.UserHomeDir()
 		if len(path) > 1 && path[1] == '/' {
 			return home + path[1:]
@@ -452,4 +701,34 @@ func expandHome(path string) string {
 		return home
 	}
 	return path
+}
+
+func GetDefaultBase(provider string) string {
+	switch strings.ToLower(provider) {
+	case "openai":
+		return "https://api.openai.com/v1"
+	case "anthropic":
+		return "https://api.anthropic.com/v1"
+	case "gemini":
+		return "https://generativelanguage.googleapis.com/v1beta/openai"
+	case "groq":
+		return "https://api.groq.com/openai/v1"
+	case "zhipu":
+		return "https://open.bigmodel.cn/api/paas/v4"
+	case "openrouter":
+		return "https://openrouter.ai/api/v1"
+	case "vllm", "ollama":
+		return "http://localhost:11434/v1"
+	default:
+		return ""
+	}
+}
+
+func IsInputPin(name string) bool {
+	n := strings.ToLower(name)
+	return (n == "button" || n == "sensor" ||
+		(len(n) > 6 && n[:6] == "button") ||
+		(len(n) > 6 && n[:6] == "sensor") ||
+		(len(n) > 7 && n[len(n)-7:] == "_button") ||
+		(len(n) > 7 && n[len(n)-7:] == "_sensor"))
 }

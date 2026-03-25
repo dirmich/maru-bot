@@ -19,7 +19,10 @@ type SystemTool struct {
 }
 
 func NewSystemTool(cfg *config.Config, workspace string) *SystemTool {
-	home, _ := os.UserHomeDir()
+	home := os.Getenv("MARUBOT_HOME")
+	if home == "" {
+		home, _ = os.UserHomeDir()
+	}
 	marubotHome := filepath.Join(home, ".marubot")
 	return &SystemTool{
 		config:      cfg,

@@ -84,16 +84,16 @@ func (m *Manager) initChannels() error {
 		}
 	}
 
-	if m.config.Channels.MaixCam.Enabled {
-		logger.DebugC("channels", "Attempting to initialize MaixCam channel")
-		maixcam, err := NewMaixCamChannel(m.config.Channels.MaixCam, m.bus)
+	if m.config.Channels.Slack.Enabled && m.config.Channels.Slack.Token != "" {
+		logger.DebugC("channels", "Attempting to initialize Slack channel")
+		slack, err := NewSlackChannel(m.config.Channels.Slack, m.bus)
 		if err != nil {
-			logger.ErrorCF("channels", "Failed to initialize MaixCam channel", map[string]interface{}{
+			logger.ErrorCF("channels", "Failed to initialize Slack channel", map[string]interface{}{
 				"error": err.Error(),
 			})
 		} else {
-			m.channels["maixcam"] = maixcam
-			logger.InfoC("channels", "MaixCam channel enabled successfully")
+			m.channels["slack"] = slack
+			logger.InfoC("channels", "Slack channel enabled successfully")
 		}
 	}
 
@@ -177,6 +177,15 @@ func (m *Manager) StopAll(ctx context.Context) error {
 }
 
 func (m *Manager) dispatchOutbound(ctx context.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.ErrorCF("channels", "Outbound dispatcher panicked", map[string]interface{}{"error": r})
+			// Restart dispatcher if context is not done
+			if ctx.Err() == nil {
+				go m.dispatchOutbound(ctx)
+			}
+		}
+	}()
 	logger.InfoC("channels", "Outbound dispatcher started")
 
 	for {
@@ -201,10 +210,20 @@ func (m *Manager) dispatchOutbound(ctx context.Context) {
 				continue
 			}
 
+			logger.InfoCF("channels", "Dispatching outbound message", map[string]interface{}{
+				"channel": msg.Channel,
+				"chatID":  msg.ChatID,
+			})
 			if err := channel.Send(ctx, msg); err != nil {
 				logger.ErrorCF("channels", "Error sending message to channel", map[string]interface{}{
 					"channel": msg.Channel,
+					"chatID":  msg.ChatID,
 					"error":   err.Error(),
+				})
+			} else {
+				logger.InfoCF("channels", "Successfully sent message to channel", map[string]interface{}{
+					"channel": msg.Channel,
+					"chatID":  msg.ChatID,
 				})
 			}
 		}

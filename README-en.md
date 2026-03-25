@@ -1,6 +1,6 @@
-# MaruBot - Ultra-lightweight AI Assistant (v0.4.61) 🦞
+# MaruBot - Ultra-light AI Agent (0.6.2) 🦞
 
-**MaruBot** is an ultra-efficient, physical AI assistant inspired by the philosophy of [PicoClaw](https://github.com/sipeed/picoclaw). It is designed to run in extremely constrained environments, requiring as little as **10MB of RAM**. MaruBot supports Raspberry Pi, Generic Linux servers, and Windows PCs, and features a powerful 'Auto-Evolution' engine that allows it to expand its own capabilities autonomously.
+**MaruBot** is an ultra-efficient, physical AI assistant designed to run in extremely constrained environments, requiring as little as **10MB of RAM**. MaruBot supports Raspberry Pi, Generic Linux servers, and Windows PCs, and features a powerful 'Auto-Evolution' engine that allows it to expand its own capabilities autonomously.
 
 ---
 
@@ -28,6 +28,10 @@
 - **Cron Scheduler:** Supports scheduled tasks like "Remind me of the weather at 9 AM tomorrow."
 - **SSH Manager:** Intelligent management of SSH keys and remote server connections.
 - **MAVLink Drone:** Capability to interface with flight controllers for physical drone missions.
+31: 
+### 6. 🌐 Centralized Management & Landing Page
+- **Official Landing Page:** Multi-lingual support (EN, KO, JA, ES) with one-click installation guides.
+- **Admin Dashboard:** Centralized monitoring of multiple Marubot instances (OS, memory, status) via Google SSO.
 
 ---
 
@@ -114,4 +118,4 @@ MaruBot automatically detects your platform and enables supported tools:
 ## 📝 License
 MaruBot follows the MIT License. Feel free to modify and distribute.
 
-*Developed & Analyzed by Antigravity AI (2026-03-13)*
+*Developed & Analyzed by Antigravity AI (2026-03-24)*

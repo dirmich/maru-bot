@@ -49,6 +49,10 @@ github.com/getlantern/ops
 # github.com/getlantern/systray v1.2.2
 ## explicit; go 1.13
 github.com/getlantern/systray
+# github.com/go-ole/go-ole v1.2.6
+## explicit; go 1.12
+github.com/go-ole/go-ole
+github.com/go-ole/go-ole/oleutil
 # github.com/go-stack/stack v1.8.0
 ## explicit
 github.com/go-stack/stack
@@ -64,6 +68,9 @@ github.com/gorilla/websocket
 # github.com/kardianos/service v1.2.4
 ## explicit; go 1.23.0
 github.com/kardianos/service
+# github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0
+## explicit; go 1.16
+github.com/lufia/plan9stats
 # github.com/mattn/go-isatty v0.0.20
 ## explicit; go 1.15
 github.com/mattn/go-isatty
@@ -81,12 +88,39 @@ github.com/pion/logging
 github.com/pion/transport/v2/deadline
 github.com/pion/transport/v2/packetio
 github.com/pion/transport/v2/udp
+# github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c
+## explicit; go 1.14
+github.com/power-devops/perfstat
 # github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec
 ## explicit; go 1.12
 github.com/remyoudompheng/bigfft
 # github.com/robfig/cron/v3 v3.0.1
 ## explicit; go 1.12
 github.com/robfig/cron/v3
+# github.com/shirou/gopsutil/v3 v3.24.5
+## explicit; go 1.18
+github.com/shirou/gopsutil/v3/common
+github.com/shirou/gopsutil/v3/disk
+github.com/shirou/gopsutil/v3/internal/common
+github.com/shirou/gopsutil/v3/mem
+# github.com/slack-go/slack v0.19.0
+## explicit; go 1.25
+github.com/slack-go/slack
+github.com/slack-go/slack/internal/backoff
+github.com/slack-go/slack/internal/errorsx
+github.com/slack-go/slack/internal/timex
+github.com/slack-go/slack/slackevents
+github.com/slack-go/slack/slackutilsx
+github.com/slack-go/slack/socketmode
+# github.com/tklauser/go-sysconf v0.3.12
+## explicit; go 1.13
+github.com/tklauser/go-sysconf
+# github.com/tklauser/numcpus v0.6.1
+## explicit; go 1.13
+github.com/tklauser/numcpus
+# github.com/yusufpapurcu/wmi v1.2.4
+## explicit; go 1.16
+github.com/yusufpapurcu/wmi
 # go.bug.st/serial v1.6.4
 ## explicit; go 1.17
 go.bug.st/serial

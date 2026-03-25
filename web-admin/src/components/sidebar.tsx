@@ -31,14 +31,14 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 
-export function Sidebar() {
+export function Sidebar({ className, onClose }: { className?: string; onClose?: () => void }) {
     const t = useTranslation();
     const { language, setLanguage } = useLanguageStore();
     const { 
         version, 
         is_update_available, 
         is_raspberry_pi, 
-        latest_version,
+        latest_version, 
         fetchSystemInfo 
     } = useSystemStore();
     
@@ -50,7 +50,7 @@ export function Sidebar() {
 
     useEffect(() => {
         fetchSystemInfo();
-        const interval = setInterval(fetchSystemInfo, 600000); // Check every 10 mins
+        const interval = setInterval(fetchSystemInfo, 600000); 
         return () => clearInterval(interval);
     }, [fetchSystemInfo]);
 
@@ -60,7 +60,6 @@ export function Sidebar() {
             const resp = await fetch("/api/upgrade", { method: "POST" });
             if (resp.ok) {
                 toast.success(t.upgrading);
-                // System will restart, wait 10 seconds and refresh
                 setTimeout(() => {
                     window.location.reload();
                 }, 10000);
@@ -83,13 +82,8 @@ export function Sidebar() {
         { name: t.logs, href: "/logs", icon: ScrollText },
     ];
 
-    // Mock session for local admin
     const session = {
-        user: {
-            name: "Admin",
-            email: "admin@marubot.local",
-            image: ""
-        }
+        user: { name: "Admin", email: "admin@marubot.local", image: "" }
     };
 
     const languages: { code: Language; label: string }[] = [
@@ -100,14 +94,15 @@ export function Sidebar() {
 
     return (
         <aside className={cn(
-            "h-screen bg-white dark:bg-slate-900 border-r flex flex-col transition-all duration-300 shadow-xl",
-            isCollapsed ? "w-20" : "w-64"
+            "h-screen bg-white dark:bg-slate-900 border-r flex flex-col transition-all duration-300 shadow-xl z-50",
+            isCollapsed ? "w-20" : "w-64",
+            className
         )}>
             <div className="p-6 flex items-center justify-between">
                 {!isCollapsed && (
                     <div className="flex items-center gap-2">
                         <span className="text-2xl">🦞</span>
-                        <span className="font-bold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                        <span className="font-bold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent italic tracking-tighter">
                             MaruBot
                         </span>
                     </div>
@@ -117,21 +112,22 @@ export function Sidebar() {
                     variant="ghost"
                     size="icon"
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="hidden md:flex ml-auto"
+                    className="hidden lg:flex ml-auto text-slate-400 hover:text-blue-500 rounded-full"
                 >
                     {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
                 </Button>
             </div>
 
-            <nav className="flex-1 px-3 space-y-1">
+            <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
                 {menuItems.map((item) => (
                     <Link
                         key={item.href}
                         to={item.href}
+                        onClick={onClose}
                         className={cn(
                             "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group",
                             pathname === item.href
-                                ? "bg-blue-600 text-white shadow-md shadow-blue-200 dark:shadow-none"
+                                ? "bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-none"
                                 : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                         )}
                     >
@@ -139,13 +135,12 @@ export function Sidebar() {
                             "w-5 h-5",
                             pathname === item.href ? "text-white" : "group-hover:text-blue-500 transition-colors"
                         )} />
-                        {!isCollapsed && <span className="font-medium">{item.name}</span>}
+                        {!isCollapsed && <span className="font-bold text-sm">{item.name}</span>}
                     </Link>
                 ))}
             </nav>
 
             <div className="p-4 border-t space-y-4">
-                {/* Upgrade Button */}
                 {is_update_available && (
                     <div className={cn("px-2", isCollapsed ? "flex justify-center" : "")}>
                         <Button
@@ -163,17 +158,16 @@ export function Sidebar() {
                             ) : (
                                 <ArrowUpCircle size={18} className="animate-bounce" />
                             )}
-                            {!isCollapsed && <span className="text-xs font-bold">{t.upgrade_button}</span>}
+                            {!isCollapsed && <span className="text-xs font-black uppercase tracking-tight">{t.upgrade_button}</span>}
                         </Button>
                     </div>
                 )}
 
-                {/* Language Switcher */}
                 <div className={cn("px-2", isCollapsed ? "flex justify-center" : "")}>
-                    <Select value={language} onValueChange={(v) => setLanguage(v as Language)}>
+                    <Select value={language} onValueChange={(v) => { setLanguage(v as Language); onClose?.(); }}>
                         <SelectTrigger className={cn("h-9 border-none bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors", isCollapsed ? "px-0 w-9 justify-center" : "w-full justify-start gap-3")}>
-                            <Languages size={18} className="text-slate-500" />
-                            {!isCollapsed && <SelectValue className="text-xs" />}
+                            <Languages size={18} className="text-slate-500 font-black" />
+                            {!isCollapsed && <SelectValue className="text-xs font-bold" />}
                         </SelectTrigger>
                         <SelectContent>
                             {languages.map((lang) => (
@@ -187,21 +181,21 @@ export function Sidebar() {
 
                 {session?.user && (
                     <div className={cn(
-                        "flex items-center gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50",
+                        "flex items-center gap-3 p-2 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700",
                         isCollapsed ? "justify-center" : ""
                     )}>
-                        <Avatar className="w-8 h-8">
+                        <Avatar className="w-8 h-8 ring-2 ring-white dark:ring-slate-700">
                             <AvatarImage src={session.user.image || ""} />
                             <AvatarFallback><UserIcon size={16} /></AvatarFallback>
                         </Avatar>
                         {!isCollapsed && (
                             <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold truncate">{session.user.name}</p>
-                                <p className="text-[10px] text-slate-400 truncate">{session.user.email}</p>
+                                <p className="text-[10px] font-black truncate text-slate-900 dark:text-slate-100 leading-tight">{session.user.name}</p>
+                                <p className="text-[9px] text-slate-400 truncate leading-tight font-medium">{session.user.email}</p>
                             </div>
                         )}
                         {!isCollapsed && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-500" onClick={logout}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full" onClick={logout}>
                                 <LogOut size={14} />
                             </Button>
                         )}
@@ -209,11 +203,11 @@ export function Sidebar() {
                 )}
 
                 <div className={cn(
-                    "text-[10px] text-slate-400 px-2",
+                    "text-[9px] text-slate-400 px-2 font-black uppercase tracking-widest",
                     isCollapsed ? "text-center" : "flex justify-between"
                 )}>
                     {!isCollapsed && <span>{t.status_ok}</span>}
-                    <span className={cn(is_update_available && "text-indigo-500 font-bold")}>
+                    <span className={cn(is_update_available && "text-indigo-500")}>
                         {version}
                     </span>
                 </div>

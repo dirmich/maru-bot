@@ -7,6 +7,10 @@ import { toast } from 'sonner';
 import { Send, MessageSquare, Trash2 } from 'lucide-react';
 import { ConfirmDialog } from "@/components/ui-custom-dialog";
 import { useTranslation } from "@/lib/i18n";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+import { authenticatedFetch } from "@/lib/auth";
 
 // Simple ID generator
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -58,7 +62,7 @@ export function ChatPage() {
         scrollToBottom();
 
         try {
-            const res = await fetch('/api/chat', {
+            const res = await authenticatedFetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: userMsg.content }),
@@ -152,7 +156,18 @@ export function ChatPage() {
                                             : 'bg-white dark:bg-slate-800 border rounded-tl-none text-slate-800 dark:text-slate-200'
                                             }`}
                                     >
-                                        <p className="whitespace-pre-wrap leading-relaxed break-words">{m.content}</p>
+                                        {m.role === 'assistant' ? (
+                                            <div className="markdown-content overflow-x-auto">
+                                                <ReactMarkdown 
+                                                    remarkPlugins={[remarkGfm]}
+                                                    rehypePlugins={[rehypeRaw]}
+                                                >
+                                                    {m.content}
+                                                </ReactMarkdown>
+                                            </div>
+                                        ) : (
+                                            <p className="whitespace-pre-wrap leading-relaxed break-words">{m.content}</p>
+                                        )}
                                         <span className={`text-[10px] block mt-1 ${m.role === 'user' ? 'text-blue-100' : 'text-slate-400'}`}>
                                             {m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>

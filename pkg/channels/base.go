@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/dirmich/marubot/pkg/bus"
+	"github.com/dirmich/marubot/pkg/logger"
 )
 
 type Channel interface {
@@ -60,15 +61,24 @@ func (c *BaseChannel) HandleMessage(senderID, chatID, content string, media []st
 		return
 	}
 
+	sessionKey := c.name + ":" + chatID
+
 	msg := bus.InboundMessage{
-		Channel:  c.name,
-		SenderID: senderID,
-		ChatID:   chatID,
-		Content:  content,
-		Media:    media,
-		Metadata: metadata,
+		Channel:    c.name,
+		SenderID:   senderID,
+		ChatID:     chatID,
+		Content:    content,
+		Media:      media,
+		Metadata:   metadata,
+		SessionKey: sessionKey,
 	}
 
+	logger.InfoCF("channels", "Publishing inbound message to bus", map[string]interface{}{
+		"channel": c.name,
+		"sender":  senderID,
+		"chatID":  chatID,
+		"content_len": len(content),
+	})
 	c.bus.PublishInbound(msg)
 }
 

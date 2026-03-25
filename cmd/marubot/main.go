@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/dirmich/marubot/cmd/marubot/dashboard"
+	"github.com/dirmich/marubot/pkg/admin"
 	"github.com/dirmich/marubot/pkg/agent"
 	"github.com/dirmich/marubot/pkg/bus"
 	"github.com/dirmich/marubot/pkg/channels"
@@ -36,6 +37,7 @@ import (
 	"github.com/dirmich/marubot/pkg/logger"
 	"github.com/dirmich/marubot/pkg/providers"
 	"github.com/dirmich/marubot/pkg/skills"
+	"github.com/dirmich/marubot/pkg/utils"
 	"github.com/dirmich/marubot/pkg/voice"
 
 	"github.com/chzyer/readline"
@@ -47,16 +49,17 @@ import (
 
 const logo = "[MaruBot]"
 
-//go:embed assets/tray_icon.ico
-var trayIconIco []byte
+//go:embed assets/app_icon.png
+var appIconPng []byte
 
-//go:embed assets/tray_icon.png
-var trayIconPng []byte
+//go:embed assets/mac_menubar.png
+var macMenubarPng []byte
 
-//go:embed assets/tray_icon_mac.png
-var trayIconMacPng []byte
+//go:embed assets/window_tray.ico
+var windowTrayIco []byte
 
 var Version = config.Version
+var overrideResourceDir = ""
 
 func copyDirectory(src, dst string) error {
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
@@ -93,6 +96,19 @@ func copyDirectory(src, dst string) error {
 }
 
 func main() {
+	// Early flag parsing for --home to initialize paths
+	newArgs := []string{}
+	for i := 0; i < len(os.Args); i++ {
+		if os.Args[i] == "--home" && i+1 < len(os.Args) {
+			overrideResourceDir = os.Args[i+1]
+			os.Setenv("MARUBOT_HOME", overrideResourceDir)
+			i++
+		} else {
+			newArgs = append(newArgs, os.Args[i])
+		}
+	}
+	os.Args = newArgs
+
 	if len(os.Args) < 2 || (len(os.Args) == 2 && os.Args[1] == "--elevated") {
 		if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
 			handleGUIMode()
@@ -123,6 +139,8 @@ func main() {
 		configCmd()
 	case "cron":
 		cronCmd()
+	case "migrate-paths":
+		migratePathsCmd()
 	case "start":
 		startCmd()
 	case "reload":
@@ -210,7 +228,13 @@ func uninstallCmd() {
 	fmt.Printf("%s MaruBot Uninstaller\n", logo)
 	fmt.Println("WARNING: This will remove MaruBot and its resources from your system.")
 
-	if !skipConfirm {
+	// Show native dialog if on macOS or Windows to ensure confirmation in GUI mode
+	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+		if !showNativeConfirmDialog("Uninstall MaruBot", "Are you sure you want to uninstall MaruBot?") {
+			fmt.Println("Aborted by user.")
+			return
+		}
+	} else {
 		fmt.Print("Are you sure you want to continue? (y/N): ")
 		var confirm string
 		fmt.Scanln(&confirm)
@@ -220,28 +244,79 @@ func uninstallCmd() {
 		}
 	}
 
-	// 0. Remove Windows Service (if applicable)
+	// 0. Remove Services and Kill Processes (Cross-platform)
 	if runtime.GOOS == "windows" {
-		svcConfig := &service.Config{
-			Name: "MaruBot",
-		}
-		s, err := service.New(nil, svcConfig)
-		if err == nil {
-			fmt.Println("Removing Windows service...")
-			s.Stop()
-			if err := s.Uninstall(); err == nil {
-				fmt.Println("✓ Windows service removed.")
+		// Clean up shortcuts
+		removeWindowsShortcuts()
+
+		svcNames := []string{"MaruBot", "marubot"}
+
+		// Get current exe name to ensure we kill it too if another instance is running
+		exeCurrent, _ := os.Executable()
+		exeName := filepath.Base(exeCurrent)
+
+		// Try to kill any marubot processes first to unlock files.
+		// Use /T to kill child processes as well.
+		exec.Command("taskkill", "/F", "/T", "/IM", "marubot.exe").Run()
+		exec.Command("taskkill", "/F", "/T", "/IM", "marubot-*.exe").Run()
+		exec.Command("taskkill", "/F", "/T", "/IM", exeName).Run()
+		exec.Command("taskkill", "/F", "/T", "/FI", "IMAGENAME eq marubot*").Run()
+
+		// msys2/bash compatible
+		exec.Command("taskkill", "//F", "//T", "//IM", "marubot.exe").Run()
+
+		fmt.Println("Waiting for processes to exit and release file locks...")
+		time.Sleep(2 * time.Second)
+
+		for _, svcName := range svcNames {
+			fmt.Printf("Deep cleaning service '%s'...\n", svcName)
+			// 1. Force kill processes that are hosting this service if any
+			exec.Command("taskkill", "/F", "/T", "/FI", fmt.Sprintf("SERVICES eq %s", svcName)).Run()
+
+			// 2. Robust fallback via sc.exe stop/delete
+			exec.Command("sc", "stop", svcName).Run()
+			time.Sleep(1 * time.Second)
+			exec.Command("sc", "delete", svcName).Run()
+
+			// 3. Backup via service library
+			svcConfig := &service.Config{
+				Name: svcName,
+			}
+			s, err := service.New(nil, svcConfig)
+			if err == nil {
+				s.Stop()
+				s.Uninstall()
+			}
+
+			// 4. Verify removal
+			out, _ := exec.Command("sc", "query", svcName).Output()
+			if !strings.Contains(string(out), "1060") { // 1060 means service does not exist
+				fmt.Printf("! Warning: Service '%s' might still be present or marked for deletion.\n", svcName)
+				// Try killing by name if sc failed
+				exec.Command("taskkill", "/F", "/T", "/IM", svcName+".exe").Run()
 			} else {
-				// Fallback to sc delete
-				fmt.Printf("Standard uninstall failed (%v), trying sc delete...\n", err)
-				exec.Command("sc", "stop", "MaruBot").Run()
-				if err := exec.Command("sc", "delete", "MaruBot").Run(); err == nil {
-					fmt.Println("✓ Windows service removed via sc delete.")
-				} else {
-					fmt.Println("✗ Failed to remove Windows service. You may need to run 'sc delete MaruBot' manually.")
-				}
+				fmt.Printf("✓ Service '%s' removed successfully.\n", svcName)
 			}
 		}
+	} else if runtime.GOOS == "linux" {
+		// Stop and disable systemd service if exists
+		u, _ := user.Current()
+		if u != nil {
+			serviceDir := filepath.Join(u.HomeDir, ".config", "systemd", "user")
+			servicePath := filepath.Join(serviceDir, "marubot.service")
+			if _, err := os.Stat(servicePath); err == nil {
+				fmt.Println("Removing Linux systemd user service...")
+				exec.Command("systemctl", "--user", "stop", "marubot.service").Run()
+				exec.Command("systemctl", "--user", "disable", "marubot.service").Run()
+				os.Remove(servicePath)
+				exec.Command("systemctl", "--user", "daemon-reload").Run()
+			}
+		}
+		// Kill any remaining marubot processes
+		exec.Command("pkill", "-9", "marubot").Run()
+	} else if runtime.GOOS == "darwin" {
+		// For macOS, just pkill for now (can expand to launchctl if needed)
+		exec.Command("pkill", "-9", "marubot").Run()
 	}
 
 	fmt.Print("Do you want to keep your user data (config, memory, workspace)? (Y/n): ")
@@ -275,26 +350,47 @@ func uninstallCmd() {
 	// Try to remove self using os.Executable
 	exePath, err := os.Executable()
 	if err == nil {
-		fmt.Printf("Removing executable: %s\n", exePath)
-		if runtime.GOOS == "windows" {
-			// Windows cannot delete a running executable. 
-			// Use a PowerShell trick to delete after exit.
-			destDir := filepath.Dir(exePath)
-			exeName := filepath.Base(exePath)
-			script := fmt.Sprintf("Start-Sleep -Seconds 2; Remove-Item -Path '%s' -Force", exeName)
-			cmd := exec.Command("powershell", "-Command", fmt.Sprintf("Start-Process powershell -ArgumentList \"-Command %s\" -WindowStyle Hidden -WorkingDirectory '%s'", script, destDir))
-			if err := cmd.Start(); err != nil {
-				fmt.Printf("Error scheduling self-deletion: %v\n", err)
+		home, _ := os.UserHomeDir()
+		installBinDir := filepath.Join(home, ".marubot", "bin")
+		isInstalledBin := strings.HasPrefix(filepath.Clean(exePath), filepath.Clean(installBinDir))
+
+		shouldRemove := isInstalledBin
+		if !isInstalledBin {
+			fmt.Printf("\nExecutable is located at: %s\n", exePath)
+			if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+				shouldRemove = showNativeConfirmDialog("Remove Executable?", "This executable is not in the standard install path.\nDo you also want to remove this file?")
 			} else {
-				fmt.Println("✓ Executable scheduled for deletion after exit.")
+				fmt.Print("This executable is not in the standard install path. Remove it? (y/N): ")
+				var confirm string
+				fmt.Scanln(&confirm)
+				shouldRemove = strings.ToLower(confirm) == "y"
+			}
+		}
+
+		if shouldRemove {
+			fmt.Printf("Removing executable: %s\n", exePath)
+			if runtime.GOOS == "windows" {
+				// Windows cannot delete a running executable.
+				// Use a PowerShell trick to delete after exit with better path handling.
+				destDir := filepath.Dir(exePath)
+				// Quote the path correctly for PowerShell
+				script := fmt.Sprintf("Start-Sleep -Seconds 2; if (Test-Path '%s') { Remove-Item -Path '%s' -Force }", exePath, exePath)
+				cmd := exec.Command("powershell", "-Command", fmt.Sprintf("Start-Process powershell -ArgumentList \"-NoProfile -WindowStyle Hidden -Command \\\"%s\\\"\" -WindowStyle Hidden -WorkingDirectory '%s'", script, destDir))
+				if err := cmd.Start(); err != nil {
+					fmt.Printf("Error scheduling self-deletion: %v\n", err)
+				} else {
+					fmt.Println("✓ Executable scheduled for deletion after exit.")
+				}
+			} else {
+				if err := os.Remove(exePath); err != nil {
+					fmt.Printf("Error removing executable: %v\n", err)
+					fmt.Println("Hint: You may need to run this command with sudo: 'sudo marubot uninstall'")
+				} else {
+					fmt.Println("✓ Executable removed")
+				}
 			}
 		} else {
-			if err := os.Remove(exePath); err != nil {
-				fmt.Printf("Error removing executable: %v\n", err)
-				fmt.Println("Hint: You may need to run this command with sudo: 'sudo marubot uninstall'")
-			} else {
-				fmt.Println("✓ Executable removed")
-			}
+			fmt.Println("✓ Executable preserved.")
 		}
 	} else {
 		fmt.Println("Could not determine executable path. Please remove it manually.")
@@ -384,6 +480,24 @@ func onboard() {
 	fmt.Println("  1. Add your API key to", configPath)
 	fmt.Println("     Get one at: https://openrouter.ai/keys")
 	fmt.Println("  2. Chat: marubot agent -m \"Hello!\"")
+}
+
+func ensureAdminPassword(cfg *config.Config) {
+	fmt.Printf("Set Admin Password for Web Dashboard: ")
+	var password string
+	fmt.Scanln(&password)
+
+	if password == "" {
+		fmt.Println("Password cannot be empty. Defaulting to 'admin'.")
+		password = "admin"
+	}
+
+	cfg.AdminPassword = utils.HashPassword(password)
+	if err := config.SaveConfig(getConfigPath(), cfg); err != nil {
+		fmt.Printf("Error saving config: %v\n", err)
+	} else {
+		fmt.Println("Password saved successfully.")
+	}
 }
 
 func createWorkspaceTemplates(workspace string) {
@@ -515,7 +629,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-" + config.Version + "
+0.6.2
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
@@ -554,16 +668,15 @@ Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 MIT License - Free and open source
 
 ## Repository
-https://marubot
+https://github.com/dirmich/maru-bot
 
 ## Contact
-Issues: https://marubot/issues
-Discussions: https://marubot/discussions
+Issues: https://github.com/dirmich/maru-bot/issues
+Discussions: https://github.com/dirmich/maru-bot/discussions
 
 ---
 
-"Every bit helps, every bit matters."
-- Picoclaw
+"Simple, Powerful, Personal."
 `,
 	}
 
@@ -794,6 +907,12 @@ func gatewayCmd() {
 	gpioService.Start(context.Background())
 	defer gpioService.Stop()
 
+	if cfg.Admin.BackendURL != "" && cfg.Admin.UserID != "" {
+		adminClient := admin.NewAdminClient(cfg.Admin.BackendURL, cfg.Admin.UserID, Version, cfg.Language)
+		adminClient.StartReporting()
+		fmt.Println("✓ Admin reporting service started")
+	}
+
 	cronStorePath := filepath.Join(filepath.Dir(getConfigPath()), "cron", "jobs.json")
 	cronService := cron.NewCronService(cronStorePath, func(job *cron.CronJob) (string, error) {
 		return agentLoop.ProcessDirect(context.Background(), job.Payload.Message, "cron:"+job.ID)
@@ -815,9 +934,12 @@ func gatewayCmd() {
 	}
 
 	var transcriber *voice.GroqTranscriber
-	if cfg.Providers.Groq.APIKey != "" {
-		transcriber = voice.NewGroqTranscriber(cfg.Providers.Groq.APIKey)
-		logger.InfoC("voice", "Groq voice transcription enabled")
+	for _, m := range cfg.Providers.Groq.Models {
+		if m.APIKey != "" {
+			transcriber = voice.NewGroqTranscriber(m.APIKey)
+			logger.InfoC("voice", "Groq voice transcription enabled")
+			break
+		}
 	}
 
 	if transcriber != nil {
@@ -1345,13 +1467,12 @@ func configCmd() {
 
 	subcommand := os.Args[2]
 	configPath := getConfigPath()
-	userSettingsPath := filepath.Join(filepath.Dir(configPath), "usersetting.json")
 
 	switch subcommand {
 	case "show":
 		cfg, _ := loadConfig()
 		data, _ := json.MarshalIndent(cfg, "", "  ")
-		fmt.Printf("Current Configuration (including usersetting.json):\n%s\n", string(data))
+		fmt.Printf("Current Configuration (%s):\n%s\n", configPath, string(data))
 	case "set":
 		if len(os.Args) < 5 {
 			fmt.Println("Usage: marubot config set <key> <value>")
@@ -1360,27 +1481,41 @@ func configCmd() {
 		key := os.Args[3]
 		value := os.Args[4]
 
-		var settings map[string]interface{}
-		data, err := os.ReadFile(userSettingsPath)
-		if err == nil {
-			json.Unmarshal(data, &settings)
+		cfg, err := loadConfig()
+		if err != nil {
+			fmt.Printf("Error loading config: %v\n", err)
+			return
+		}
+
+		// Update the key in config
+		// For simple implementation of CLI 'set', we can either use a generic updater
+		// or focus on common fields. Since we want to unify, we update the Config object.
+		// Note: Detailed nested key update usually requires reflection or a dedicated updater.
+		// For the CLI, we'll provide a simple message that we're updating the main config.
+
+		// Map simple keys for CLI convenience
+		if key == "admin_password" {
+			cfg.AdminPassword = value
+		} else if key == "language" {
+			cfg.Language = value
 		} else {
-			settings = make(map[string]interface{})
+			fmt.Printf("⚠️  Key '%s' update via CLI is limited. Please use Web Admin for advanced settings.\n", key)
+			return
 		}
 
-		// Try to parse as JSON if it looks like one, otherwise keep as string
-		var val interface{}
-		if err := json.Unmarshal([]byte(value), &val); err != nil {
-			val = value // stay as string
+		if err := config.SaveConfig(configPath, cfg); err != nil {
+			fmt.Printf("Error saving config: %v\n", err)
+			return
 		}
-		settings[key] = val
-
-		newData, _ := json.MarshalIndent(settings, "", "  ")
-		os.WriteFile(userSettingsPath, newData, 0644)
-		fmt.Printf("✓ Saved '%s' = %s to %s\n", key, value, userSettingsPath)
+		fmt.Printf("✓ Saved '%s' = %s directly to %s\n", key, value, configPath)
 	case "reset":
-		os.Remove(userSettingsPath)
-		fmt.Println("✓ User settings reset to defaults.")
+		fmt.Println("Resetting to default config...")
+		defaultCfg := config.DefaultConfig()
+		if err := config.SaveConfig(configPath, defaultCfg); err != nil {
+			fmt.Printf("Error resetting config: %v\n", err)
+		} else {
+			fmt.Println("✓ Configuration reset to defaults.")
+		}
 	default:
 		configHelp()
 	}
@@ -1388,9 +1523,9 @@ func configCmd() {
 
 func configHelp() {
 	fmt.Println("\nConfig commands:")
-	fmt.Println("  reset             Remove all user overrides")
-	fmt.Println("  set <key> <val>   Set an override in usersetting.json")
-	fmt.Println("  show              Show merged configuration")
+	fmt.Println("  reset             Reset config.json to defaults")
+	fmt.Println("  set <key> <val>   Set a value in config.json (e.g. admin_password, language)")
+	fmt.Println("  show              Show current configuration")
 }
 
 func statusCmd() {
@@ -1409,18 +1544,13 @@ func statusCmd() {
 	fmt.Printf("Workspace: %s\n", workspace)
 	fmt.Printf("Model: %s\n", cfg.Agents.Defaults.Model)
 
-	userSettingsPath := filepath.Join(filepath.Dir(configPath), "usersetting.json")
-	if _, err := os.Stat(userSettingsPath); err == nil {
-		fmt.Printf("User Settings: %s (OK)\n", userSettingsPath)
-	}
-
-	hasOpenRouter := cfg.Providers.OpenRouter.APIKey != ""
-	hasAnthropic := cfg.Providers.Anthropic.APIKey != ""
-	hasOpenAI := cfg.Providers.OpenAI.APIKey != ""
-	hasGemini := cfg.Providers.Gemini.APIKey != ""
-	hasZhipu := cfg.Providers.Zhipu.APIKey != ""
-	hasGroq := cfg.Providers.Groq.APIKey != ""
-	hasVLLM := cfg.Providers.VLLM.APIBase != ""
+	hasOpenRouter := len(cfg.Providers.OpenRouter.Models) > 0
+	hasAnthropic := len(cfg.Providers.Anthropic.Models) > 0
+	hasOpenAI := len(cfg.Providers.OpenAI.Models) > 0
+	hasGemini := len(cfg.Providers.Gemini.Models) > 0
+	hasZhipu := len(cfg.Providers.Zhipu.Models) > 0
+	hasGroq := len(cfg.Providers.Groq.Models) > 0
+	hasVLLM := len(cfg.Providers.VLLM.Models) > 0
 
 	maskKey := func(key string) string {
 		if key == "" {
@@ -1447,15 +1577,23 @@ func statusCmd() {
 	fmt.Printf("Groq API: %s\n", status(hasGroq))
 
 	if hasVLLM {
+		m := cfg.Providers.VLLM.Models[0]
 		fmt.Printf("vLLM/Local API: (OK)\n")
-		fmt.Printf("  - Base: %s\n", cfg.Providers.VLLM.APIBase)
-		fmt.Printf("  - Key:  %s\n", maskKey(cfg.Providers.VLLM.APIKey))
+		fmt.Printf("  - Base:  %s\n", m.APIBase)
+		fmt.Printf("  - Model: %s\n", m.Model)
+		fmt.Printf("  - Key:   %s\n", maskKey(m.APIKey))
 	} else {
 		fmt.Printf("vLLM/Local: not set\n")
 	}
 }
 
 func getResourceDir() string {
+	if overrideResourceDir != "" {
+		return overrideResourceDir
+	}
+	if h := os.Getenv("MARUBOT_HOME"); h != "" {
+		return h
+	}
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".marubot")
 }
@@ -1538,10 +1676,9 @@ func reloadCmd() {
 			}
 			servicePath := filepath.Join(serviceDir, "marubot.service")
 			if _, err := os.Stat(servicePath); err == nil {
-				// Ensure systemd knows about potential binary or service file changes
 				daemonReload := exec.Command("systemctl", "--user", "daemon-reload")
 				restart := exec.Command("systemctl", "--user", "restart", "marubot.service")
-				
+
 				if os.Getenv("XDG_RUNTIME_DIR") == "" && uid != "" {
 					daemonReload.Env = append(os.Environ(), fmt.Sprintf("XDG_RUNTIME_DIR=/run/user/%s", uid))
 					restart.Env = append(os.Environ(), fmt.Sprintf("XDG_RUNTIME_DIR=/run/user/%s", uid))
@@ -1549,7 +1686,7 @@ func reloadCmd() {
 					daemonReload.Env = os.Environ()
 					restart.Env = os.Environ()
 				}
-				
+
 				daemonReload.Run()
 				if err := restart.Run(); err == nil {
 					fmt.Println("✓ Reloaded via systemd.")
@@ -1559,20 +1696,25 @@ func reloadCmd() {
 		}
 	}
 
-	stopCmd()
-	time.Sleep(1 * time.Second)
+	// For macOS/Windows or if systemd failed:
+	// We always call stopCmd() to kill the existing PID before spawning a new one.
+	// But first, we need to clear the MARUBOT_DAEMON env var to ensure startCmd() calls stopCmd().
+	os.Unsetenv("MARUBOT_DAEMON")
 
 	exe, err := os.Executable()
 	if err != nil {
 		fmt.Printf("✗ Executable path error: %v\n", err)
 		return
 	}
+
+	// Spawn 'marubot start' without the DAEMON env var.
+	// This process will then stop the old one and daemonize itself.
 	cmd := exec.Command(exe, "start")
 	if err := cmd.Start(); err != nil {
 		fmt.Printf("✗ Failed to start during reload: %v\n", err)
 		return
 	}
-	fmt.Println("✓ Reload complete.")
+	fmt.Println("✓ Reload trigger sent.")
 }
 
 func startCmd() {
@@ -1587,6 +1729,10 @@ func startCmd() {
 
 	// Double-fork / Detach logic
 	if !runForeground && os.Getenv("MARUBOT_DAEMON") != "1" {
+		// Clean up existing instance before starting a new one in background
+		stopCmd()
+		time.Sleep(500 * time.Millisecond)
+
 		exe, err := os.Executable()
 		if err != nil {
 			fmt.Printf("Error getting executable path: %v\n", err)
@@ -1597,18 +1743,21 @@ func startCmd() {
 			err = installAndRunSystemdService(exe)
 			if err == nil {
 				fmt.Println("✨ MaruBot started as a systemd service.")
-				fmt.Println("   It will auto-restart on reboot and continue working.")
 				fmt.Println("   URL: http://localhost:8080")
-				fmt.Println("   To stop: use 'marubot stop'")
-				fmt.Println("   To reload config: use 'marubot reload'")
 				return
 			}
-			fmt.Printf("Systemd service setup failed: %v. Falling back to simple daemon...\n", err)
 		}
 
 		// Re-run with special env var
 		cmd := exec.Command(exe, "start")
-		cmd.Env = append(os.Environ(), "MARUBOT_DAEMON=1")
+		// Clean up inherited DAEMON env var if any
+		newEnv := make([]string, 0)
+		for _, e := range os.Environ() {
+			if !strings.HasPrefix(e, "MARUBOT_DAEMON=") {
+				newEnv = append(newEnv, e)
+			}
+		}
+		cmd.Env = append(newEnv, "MARUBOT_DAEMON=1")
 		// Detach process
 		cmd.Stdin = nil
 		cmd.Stdout = nil
@@ -1618,7 +1767,6 @@ func startCmd() {
 			fmt.Printf("Failed to start background process: %v\n", err)
 			os.Exit(1)
 		}
-
 		pidFile := getPidFilePath()
 		os.WriteFile(pidFile, []byte(fmt.Sprintf("%d", cmd.Process.Pid)), 0644)
 
@@ -1638,19 +1786,20 @@ func startCmd() {
 		f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err == nil {
 			// Redirect stdout/stderr to log file
-			// Note: This only redirects Go's fmt.Print output if we assign it,
-			// but for true redirection we'd need syscalls which are OS specific.
-			// Ideally just use a logger.
-			// For simplicity in this cross-platform Go app without syscalls:
-			// We will just let it run. Stdout/Stderr are discarded by the parent anyway.
-			// But creating a log file is good practice.
+			os.Stdout = f
+			os.Stderr = f
+			fmt.Printf("\n--- MaruBot Log Started at %v ---\n", time.Now().Format(time.RFC3339))
 		}
-		defer f.Close()
+		// Note: we don't defer f.Close() here because it should stay open for the life of the process
 	}
 
 	if runForeground {
 		fmt.Printf("%s Starting MaruBot Dashboard & API Server...\n", logo)
 	}
+
+	// Always write PID file so stopCmd/reloadCmd can find us
+	pidFile := getPidFilePath()
+	os.WriteFile(pidFile, []byte(fmt.Sprintf("%d", os.Getpid())), 0644)
 
 	cfg, err := loadConfig()
 	if err != nil {
@@ -1660,42 +1809,56 @@ func startCmd() {
 		return
 	}
 
-	// Validate configuration: At least one AI provider and one channel must be enabled
-	// If password is also missing, we prioritize security setup.
-	if cfg.AdminPassword == "" || !cfg.IsAIConfigured() || !cfg.IsChannelEnabled() {
-		showGuideMessage(cfg)
-		
-		// In GUI/Desktop environments, we might want to keep the process alive
-		// so the user can finish setup via Web-Admin.
-		if runtime.GOOS == "windows" || runtime.GOOS == "darwin" || os.Getenv("MARUBOT_GUI") == "1" {
-			fmt.Println("Entering Setup Mode... (Server remains active for web configuration)")
-			
-			// Start dashboard server in a goroutine so user can configure
-			port := cfg.Gateway.Port
-			if port == 0 { port = 8080 }
-			dashAddr := fmt.Sprintf("0.0.0.0:%d", port)
-			
-			// We need a dummy agent for the dashboard to start, but it won't be able to do much
-			// until providers are configured.
-			dummyAgent := &agent.AgentLoop{} 
-			dashServer := dashboard.NewServer(dashAddr, dummyAgent, cfg, Version)
-			
-			go func() {
-				if err := dashServer.Start(); err != nil {
-					fmt.Printf("Dashboard failed to start: %v\n", err)
-				}
-			}()
+	// Ensure config file is in sync with latest struct (e.g. adding missing Slack fields)
+	if err := config.SaveConfig(getConfigPath(), cfg); err != nil {
+		fmt.Printf("Warning: Failed to sync config file: %v\n", err)
+	}
 
-			// Wait for interrupt to exit
-			sig := make(chan os.Signal, 1)
-			signal.Notify(sig, os.Interrupt)
-			<-sig
-			fmt.Println("Setup Mode exiting...")
-			os.Exit(0)
-		} else {
-			// On Linux/RPi CLI, we might just show message and exit as instructions suggest
-			os.Exit(0)
+	if cfg.AdminPassword == "" {
+		ensureAdminPassword(cfg)
+	}
+
+	// Validate configuration: At least one AI provider must be enabled
+	// If password is also missing, we prioritize security setup.
+	// We no longer require a channel to be enabled to leave setup mode,
+	// because web-admin chat is always available.
+	if !cfg.IsAIConfigured() {
+		showGuideMessage(cfg)
+
+		// Allow all platforms to enter Setup Mode so the user can finish configuration via Web-Admin.
+		// Previously this was restricted to GUI environments, but RPi/Linux users also need this.
+		fmt.Println("Entering Setup Mode... (Server remains active for web configuration)")
+
+		// Start dashboard server in a goroutine so user can configure
+		port := cfg.Gateway.Port
+		if port == 0 {
+			port = 8080
 		}
+		dashAddr := fmt.Sprintf("0.0.0.0:%d", port)
+
+		// 💡 Fix: Properly initialize dummyAgent components to prevent Nil Pointer Panic
+		// even in Setup Mode.
+		bus := bus.NewMessageBus()
+		dummyAgent := agent.NewAgentLoop(cfg, bus, nil, Version)
+		dashServer := dashboard.NewServer(dashAddr, dummyAgent, cfg, getConfigPath(), Version, reloadCmd)
+
+		if runForeground {
+			fmt.Printf("✓ Dashboard available at http://localhost:%d\n", port)
+			fmt.Println("  Please complete your configuration in the Web Admin.")
+		}
+
+		go func() {
+			if err := dashServer.Start(); err != nil {
+				fmt.Printf("Dashboard failed to start: %v\n", err)
+			}
+		}()
+
+		// Wait for interrupt to exit
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+		<-sig
+		fmt.Println("Setup Mode exiting...")
+		os.Exit(0)
 	}
 
 	workspace := cfg.WorkspacePath()
@@ -1753,6 +1916,7 @@ func startCmd() {
 
 	channelManager, err := channels.NewManager(cfg, bus)
 	if err == nil {
+		agentLoop.SetChannelManager(channelManager)
 		if err := channelManager.StartAll(ctx); err != nil && runForeground {
 			fmt.Printf("Error starting channels: %v\n", err)
 		}
@@ -1768,7 +1932,7 @@ func startCmd() {
 
 	// Initialize Dashboard Server
 	port := "8080"
-	server := dashboard.NewServer(":"+port, agentLoop, cfg, Version)
+	server := dashboard.NewServer(":"+port, agentLoop, cfg, getConfigPath(), Version, reloadCmd)
 
 	if runForeground {
 		go func() {
@@ -2056,12 +2220,12 @@ func serviceCmd() {
 			}
 		}
 	}
-	
+
 	svcConfig := &service.Config{
 		Name:        "MaruBot",
 		DisplayName: "MaruBot Service",
 		Description: "Ultra-lightweight personal AI agent service.",
-		Arguments:   []string{"service", "run"},
+		Arguments:   []string{"--home", getResourceDir(), "service", "run"},
 	}
 
 	prg := &program{
@@ -2175,7 +2339,7 @@ func checkAndFixPort(cfg *config.Config) bool {
 	if cfg.Gateway.Port == 18790 || cfg.Gateway.Port == 0 {
 		cfg.Gateway.Port = 8080
 	}
-	
+
 	port := cfg.Gateway.Port
 	if isPortAvailable(port) {
 		return true
@@ -2199,27 +2363,51 @@ if ($result -eq "Yes") {
 		if err != nil {
 			return false
 		}
-		
+
 		var newPort int
 		fmt.Sscanf(strings.TrimSpace(string(out)), "%d", &newPort)
 		if newPort > 0 {
 			cfg.Gateway.Port = newPort
-			// Save to usersetting.json for persistence
-			userSettingsPath := filepath.Join(filepath.Dir(getConfigPath()), "usersetting.json")
-			var settings map[string]interface{}
-			data, err := os.ReadFile(userSettingsPath)
-			if err == nil {
-				json.Unmarshal(data, &settings)
-			} else {
-				settings = make(map[string]interface{})
+			// Save directly to config.json
+			if err := config.SaveConfig(getConfigPath(), cfg); err != nil {
+				fmt.Printf("Error saving config: %v\n", err)
 			}
-			settings["gateway.port"] = newPort
-			newData, _ := json.MarshalIndent(settings, "", "  ")
-			os.WriteFile(userSettingsPath, newData, 0644)
 			return true
 		}
+	} else if runtime.GOOS == "darwin" {
+		// Ask for a new port via AppleScript (osascript)
+		title := "MaruBot Port Conflict"
+		msg := fmt.Sprintf("Port %d is already in use. Would you like to use a different port?", port)
+		script := fmt.Sprintf(`display dialog "%s" with title "%s" buttons {"Cancel", "Yes"} default button "Yes" with icon caution`, msg, title)
+		cmd := exec.Command("osascript", "-e", script)
+		if err := cmd.Run(); err != nil {
+			return false // User cancelled
+		}
+
+		// Show input dialog
+		inputScript := fmt.Sprintf(`display dialog "Enter a new port number:" with title "%s" default answer "8081" buttons {"Cancel", "OK"} default button "OK"`, title)
+		out, err := exec.Command("osascript", "-e", inputScript).Output()
+		if err != nil {
+			return false // User cancelled
+		}
+
+		// osascript returns: button returned:OK, text returned:8081
+		outStr := string(out)
+		if strings.Contains(outStr, "text returned:") {
+			parts := strings.Split(outStr, "text returned:")
+			newPortStr := strings.TrimSpace(parts[len(parts)-1])
+			var newPort int
+			fmt.Sscanf(newPortStr, "%d", &newPort)
+			if newPort > 0 {
+				cfg.Gateway.Port = newPort
+				if err := config.SaveConfig(getConfigPath(), cfg); err != nil {
+					fmt.Printf("Error saving config: %v\n", err)
+				}
+				return true
+			}
+		}
 	} else {
-		fmt.Printf("Warning: Port 8080 is in use. Please check your configuration.\n")
+		fmt.Printf("Warning: Port %d is in use. Please check your configuration.\n", port)
 	}
 	return false
 }
@@ -2256,7 +2444,7 @@ func installBinary() (string, error) {
 	exe, _ := os.Executable()
 	installDir := filepath.Join(getResourceDir(), "bin")
 	os.MkdirAll(installDir, 0755)
-	
+
 	targetPath := filepath.Join(installDir, "marubot.exe")
 	if runtime.GOOS != "windows" {
 		targetPath = filepath.Join(installDir, "marubot")
@@ -2284,7 +2472,7 @@ func installBinary() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	return targetPath, nil
 }
 
@@ -2307,20 +2495,51 @@ func serviceCmdInternalPath(sub string, exePath string) {
 	cmd.Run()
 }
 
-func getServiceBinaryPath() string {
-	out, err := exec.Command("sc", "qc", "MaruBot").Output()
+func migratePathsCmd() {
+	oldPath := `C:\WINDOWS\system32\config\systemprofile\.marubot`
+	newPath := getResourceDir()
+
+	fmt.Printf("Migrating hardcoded paths from %s to %s...\n", oldPath, newPath)
+
+	count := 0
+	err := filepath.Walk(newPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+
+		ext := strings.ToLower(filepath.Ext(path))
+		if ext == ".json" || ext == ".md" || ext == ".txt" {
+			data, err := os.ReadFile(path)
+			if err != nil {
+				return nil
+			}
+
+			content := string(data)
+			if strings.Contains(content, oldPath) || strings.Contains(content, strings.ReplaceAll(oldPath, "\\", "/")) {
+				fmt.Printf("  Processing: %s\n", path)
+				newContent := strings.ReplaceAll(content, oldPath, newPath)
+				newContent = strings.ReplaceAll(newContent, strings.ReplaceAll(oldPath, "\\", "/"), strings.ReplaceAll(newPath, "\\", "/"))
+
+				err = os.WriteFile(path, []byte(newContent), info.Mode())
+				if err != nil {
+					fmt.Printf("    Error saving %s: %v\n", path, err)
+				} else {
+					count++
+				}
+			}
+		}
+		return nil
+	})
+
 	if err != nil {
-		return ""
+		fmt.Printf("\n❌ Migration failed: %v\n", err)
+	} else {
+		fmt.Printf("\n✅ Migration complete! Updated %d files.\n", count)
+		fmt.Println("Please restart MaruBot to apply changes.")
 	}
-	re := regexp.MustCompile(`BINARY_PATH_NAME\s*:\s*("([^"]+)"|([^\s]+))`)
-	matches := re.FindStringSubmatch(string(out))
-	if len(matches) < 2 {
-		return ""
-	}
-	if matches[2] != "" {
-		return matches[2]
-	}
-	return matches[3]
 }
 
 func checkServiceUpgrade(s service.Service) bool {
@@ -2360,7 +2579,7 @@ func checkServiceUpgrade(s service.Service) bool {
 
 	svcVer := strings.TrimSpace(string(svcVerOut))
 	currentVer := Version
-	
+
 	// Simple string compare for now
 	return svcVer != currentVer && svcVer != ""
 }
@@ -2375,4 +2594,49 @@ if ($result -eq "Yes") { exit 0 } else { exit 1 }
 	cmd := exec.Command("powershell", "-Command", script)
 	err := cmd.Run()
 	return err == nil
+}
+
+func showNativeConfirmDialog(title, message string) bool {
+	if runtime.GOOS == "darwin" {
+		// Escape double quotes in message
+		msg := strings.ReplaceAll(message, `"`, `\"`)
+		script := fmt.Sprintf(`display dialog "%s" with title "%s" buttons {"Cancel", "OK"} default button "OK" with icon caution`, msg, title)
+		cmd := exec.Command("osascript", "-e", script)
+		err := cmd.Run()
+		return err == nil
+	} else if runtime.GOOS == "windows" {
+		// Create PowerShell script for MessageBox
+		msg := strings.ReplaceAll(message, `'`, `''`)
+		psScript := fmt.Sprintf(`Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('%s', '%s', 'YesNo', 'Question')`, msg, title)
+
+		cmd := exec.Command("powershell", "-Command", psScript)
+		cmd.SysProcAttr = getSysProcAttr()
+		out, err := cmd.Output()
+		if err != nil {
+			return false
+		}
+		return strings.TrimSpace(string(out)) == "Yes"
+	}
+	return true
+}
+
+func removeWindowsShortcuts() {
+	if runtime.GOOS != "windows" {
+		return
+	}
+	psScript := `
+$shell = New-Object -ComObject WScript.Shell
+$desktop = [System.Environment]::GetFolderPath('Desktop')
+$startMenu = [System.Environment]::GetFolderPath('StartMenu')
+$programs = Join-Path $startMenu "Programs"
+
+$targets = @(Join-Path $desktop "MaruBot.lnk", Join-Path $programs "MaruBot.lnk")
+
+foreach ($t in $targets) {
+    if (Test-Path $t) {
+        Remove-Item $t -Force
+    }
+}
+`
+	exec.Command("powershell", "-NoProfile", "-Command", psScript).Run()
 }

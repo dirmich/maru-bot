@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Package, Plus, Terminal, RefreshCw } from 'lucide-react';
 import { ConfirmDialog } from "@/components/ui-custom-dialog";
 import { useTranslation } from "@/lib/i18n";
+import { authenticatedFetch } from "@/lib/auth";
 
 export function SkillsPage() {
     const t = useTranslation();
@@ -22,7 +23,7 @@ export function SkillsPage() {
 
     const fetchSkills = async () => {
         try {
-            const res = await fetch('/api/skills');
+            const res = await authenticatedFetch('/api/skills');
             if (res.ok) {
                 const data = await res.json();
                 setSkillsOutput(data.output || t.skills_empty);
@@ -45,7 +46,7 @@ export function SkillsPage() {
             action: async () => {
                 toast.info(`${skill} ${actionName}...`);
                 try {
-                    const res = await fetch('/api/skills', {
+                    const res = await authenticatedFetch('/api/skills', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ action, skill }),

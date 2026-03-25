@@ -4,8 +4,18 @@
 
 ---
 
+## 🟢 Phase 0: 텔레그램 응답 및 UI/UX 유지보수 (진행 중)
+- [/] 텔레그램 및 채널 응답 이슈 디버깅 및 해결
+    - [x] 구버전 데몬 프로세스 강제 종료 및 신규 바이너리 완전 교체
+    - [x] 시스템 언어(`Language`) 설정에 따른 채널 다국어(한국어) 답변 강제 지원 (`context.go`)
+    - [x] 마크다운 출력 시 표 내 `<br/>` 태그 사용 원천 차단 (`context.go` 프롬프트 수정 완료)
+    - [x] WebAdmin 전용 대화(`web-admin` session)에서 LLM 최종 응답 추출이 안되어 발생하는 "I've completed processing..." 현상 규명 및 수정 (`loop.go` 메시지 폴백 로직 추가)
+- [x] Mac/Windows 트레이 아이콘 교체 (더 심플하고 구별되는 컬러/형태 적용)
+
+---
+
 ## 🟢 Phase 1: 기반 구축 및 기본 인터랙션 (완료 및 검증)
-- [x] PicoClaw 소스 코드 독립화 및 모듈 리팩토링 (`marubot` 모듈)
+- [x] 독립된 자체 엔진(`marubot`) 구축 및 모듈 리팩토링
 - [x] Raspberry Pi 하드웨어 설정 자동화 스크립트 작성 (`setup-rpi.sh`)
 - [x] CSI/USB 카메라 통합 지원 도구 구현 (`camera_capture`)
 - [x] 기본 설정 템플릿 및 프로젝트 구조 수립
@@ -30,8 +40,8 @@
     - [x] `README.md` (KR) 및 `README-en.md` (EN) 고도화
     - [x] 사용자 지침(영문 커밋 등) `USER.md` 영구 기록 및 웹어드민 하드웨어 메뉴 스마트 필터링 적용
     - [x] 공개 저장소(`maru-bot`) 전 영역 문서 동기화 및 바이너리 릴리스
-- [ ] v0.4.44: `install.sh` 내 `git` 미탑재 환경 소스 확보 폴백 구현
-    - [ ] `git clone` 실패 시 `curl` 또는 `wget`으로 GitHub archive(tar.gz) 획득 로직 추가
+- [x] v0.4.44: `install.sh` 내 `git` 미탑재 환경 소스 확보 폴백 구현
+    - [x] `git clone` 실패 시 `curl` 또는 `wget`으로 GitHub archive(tar.gz) 획득 로직 추가
 - [x] **Task 2.3: IMU(MPU6050) 가속도/자이로 센서 연동**
     - [x] I2C 통신 기반 센서 데이터 읽기
     - [x] 로봇의 기울기 및 방향(Bearing) 계산 도구 구현
@@ -359,3 +369,9 @@
 - [x] 2026-02-22: GPIO 모니터링 및 하드웨어 인식 고도화 완료 및 최종 배포.
 - **2026-03-05**: MaruBot v0.4.7 업데이트. GPIO 실시간 토글 제어, 설정 우선순위(`usersetting.json`) 개선, 중첩 핀 매핑 평탄화 및 대시보드 UI 연동 완료.
 - **2026-03-05**: MaruBot v0.4.8 업데이트. 로컬 모델(vLLM/llama.cpp) 프로바이더 매칭 로직 개선, `.gguf` 자동 인식 및 인증 완화 적용.
+- **2026-03-15**: MaruBot v0.4.64 업데이트. `install.sh` 내 `git` 실패 시 `curl`/`wget` 폴백 로직 강화 및 안정성 보완.
+- **2026-03-15**: MaruBot v0.4.66 업데이트. 모델 명칭 자동 변조(Stripping) 로직을 완전히 제거하여 설정된 그대로 사용하도록 수정.
+- **2026-03-15**: MaruBot v0.4.67 업데이트. 모델 명칭 전달 과정을 추적하기 위한 디버그 로그 추가.
+- **2026-03-15**: MaruBot v0.4.68 업데이트. 모델 명칭 정규화(`openai/` 접두사 포함) 및 구형 폴백 로직 제거.
+- **2026-03-15**: MaruBot v0.4.69 업데이트. 도구 실행 누락 방지(Robust Parsing) 및 설정 호환성 개선.
+- **2026-03-21**: MaruBot v0.4.86 업데이트. macOS 포트 충돌 대화상자(osascript) 및 실행 안정성 강화, Windows 빌드 패키징(ZIP) 자동화 추가.

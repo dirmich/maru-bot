@@ -24,7 +24,7 @@ mkdir -p "$TARGET_DIR"
 # 2. 대상 디렉토리 정리 ( .git 보존 )
 echo "🧹 대상 폴더를 정리 중..."
 if [ -d "$TARGET_DIR" ]; then
-    find "$TARGET_DIR" -mindepth 1 -maxdepth 1 -not -name ".git" -exec rm -rf {} +
+    find "$TARGET_DIR" -mindepth 1 -maxdepth 1 -not -name ".git" -not -name "admin" -not -name "homepage" -exec rm -rf {} +
 else
     mkdir -p "$TARGET_DIR"
 fi
@@ -73,40 +73,20 @@ else
 fi
 
 # 5. 빌드 바이너리 및 패키지 동기화
-echo "📦 빌드된 바이너리 및 패키지들을 releases 폴더로 수집 중..."
+echo "📦 빌드된 바이너리들을 releases 폴더로 수집 중 (Linux 제외)..."
 RELEASE_DIR="$TARGET_DIR/releases"
 mkdir -p "$RELEASE_DIR"
 
 if [ -d "$SOURCE_DIR/build" ]; then
-    # Copy ONLY Windows binaries (to keep release clean, Linux users install via source)
-    cp "$SOURCE_DIR/build/marubot-windows-"* "$RELEASE_DIR/"
+    # Copy Windows binaries (EXE only, no ZIP)
+    echo "  🪟 Copying Windows binaries (.exe)..."
+    cp "$SOURCE_DIR/build/marubot-windows-"*.exe "$RELEASE_DIR/" 2>/dev/null || true
     
-    # Create Windows ZIP Packages using Go-Zip tool (for stability)
-    echo "  🤐 Creating Windows ZIP packages using go-zip tool..."
-    
-    # Windows x64
-    WIN64_TMP="$SOURCE_DIR/build/marubot-win-x64"
-    mkdir -p "$WIN64_TMP/config"
-    cp "$SOURCE_DIR/build/marubot-windows-amd64.exe" "$WIN64_TMP/marubot.exe"
-    cp "$SOURCE_DIR/README.md" "$WIN64_TMP/"
-    cp "$SOURCE_DIR/config/maru-config.json" "$WIN64_TMP/config/maru-config.json"
-    go run "$SOURCE_DIR/scripts/zip_pack.go" "$RELEASE_DIR/marubot-windows-x64.zip" "$WIN64_TMP"
-    rm -rf "$WIN64_TMP"
-
-    # Windows x86
-    WIN32_TMP="$SOURCE_DIR/build/marubot-win-x86"
-    mkdir -p "$WIN32_TMP/config"
-    cp "$SOURCE_DIR/build/marubot-windows-386.exe" "$WIN32_TMP/marubot.exe"
-    cp "$SOURCE_DIR/README.md" "$WIN32_TMP/"
-    cp "$SOURCE_DIR/config/maru-config.json" "$WIN32_TMP/config/maru-config.json"
-    go run "$SOURCE_DIR/scripts/zip_pack.go" "$RELEASE_DIR/marubot-windows-x86.zip" "$WIN32_TMP"
-    rm -rf "$WIN32_TMP"
-
-    echo "  ✓ 빌드 자산 수집 및 패키징 완료 (Path: $RELEASE_DIR)"
-
-    # Copy macOS DMGs
+    # Copy macOS packages (DMG only, no bare binaries)
     echo "  🍎 Copying macOS DMGs..."
-    cp "$SOURCE_DIR/build/marubot-macos-"* "$RELEASE_DIR/"
+    cp "$SOURCE_DIR/build/marubot-macos-"*.dmg "$RELEASE_DIR/" 2>/dev/null || true
+
+    echo "  ✓ 빌드 자산 수집 완료 (Path: $RELEASE_DIR)"
 else
     echo "  ⚠️ build 폴더를 찾을 수 없어 바이너리 복사 건너뜜"
 fi
@@ -115,12 +95,6 @@ fi
 echo "📝 README 다국어 정리 중..."
 cp "$SOURCE_DIR/README-en.md" "$TARGET_DIR/README.md"
 cp "$SOURCE_DIR/README.md" "$TARGET_DIR/README-kor.md"
-
-# 6. 민감 정보 제거 (설정 파일 등)
-if [ -f "$TARGET_DIR/config/usersetting.json" ]; then
-    rm "$TARGET_DIR/config/usersetting.json"
-    echo "  🔒 usersetting.json (비공개 설정) 제거 완료"
-fi
 
 # 7. 명칭 최종 체크 및 치환
 echo "🔄 명칭 최종 확인 중 (maruminibot -> marubot)..."

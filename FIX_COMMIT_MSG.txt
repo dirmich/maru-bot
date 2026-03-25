@@ -1,0 +1,5 @@
+fix: cmd/marubot 빌드 에러 수정 및 v0.4.63 릴리즈
+
+- ProviderConfig 구조 변경에 따른 cmd/marubot/main.go 컴파일 에러 해결
+- Groq 음성 인식 및 상태 출력(status) 로직을 새로운 모델 리스트 구조에 맞춰 수정
+- 버전 업데이트: v0.4.63
