@@ -1,7 +1,7 @@
 # 🦞 MaruBot (마루 미니봇) 프로젝트 이력 (History)
 
 ## 2026-03-24
-### 0.5.9
+###Version: 0.6.1
 - **빌드 오류 수정**: Linux 및 기타 플랫폼에서 `getSysProcAttr` 식별자를 찾지 못해 빌드가 실패하던 컴파일 오류 해결 (`sys_linux.go`, `sys_default.go` 추가).
 
 ### 0.5.8
