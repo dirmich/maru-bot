@@ -14,10 +14,12 @@
 ## 3. 소스 코드 버전 업데이트 (Manual)
 반드시 다음 파일들을 찾아 직접 수정합니다:
 *   [ ] **Back-end Core**: `pkg/config/version.go` -> `const Version = "0.6.2"`
+*   [ ] **Identity Template**: `cmd/marubot/main.go` 내 `IDENTITY.md` 섹션의 `Version` 필드 수정. (매우 중요: WebAdmin 초기화 시 사용됨)
 *   [ ] **Front-end**: `web-admin/package.json` -> `"version": "0.6.2"`
-*   [ ] **Identity Template**: `cmd/marubot/main.go` 내 `IDENTITY.md` 섹션의 `Version` 필드 수정.
+    *   *주의*: UI 빌드 전 `web-admin/dist`를 반드시 삭제해야 최신 버전이 반영됩니다.
 *   [ ] **Documentation**: `README.md`, `README-en.md` 등의 첫 줄 버전 번호 수정.
 *   [ ] **History**: `Project.md`에 새 버전 일시 및 변경 사항 기록.
+*   [ ] **Makefile**: `LDFLAGS`의 `-X main.Version` 대소문자 확인 (반드시 대문자 V).
 
 ## 4. UI 빌드 및 자산 동기화 (Critical)
 웹 관리자의 버전을 반영하기 위해 클린 빌드가 필수입니다.
