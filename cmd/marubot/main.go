@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/dirmich/marubot/cmd/marubot/dashboard"
+	"github.com/dirmich/marubot/pkg/admin"
 	"github.com/dirmich/marubot/pkg/agent"
 	"github.com/dirmich/marubot/pkg/bus"
 	"github.com/dirmich/marubot/pkg/channels"
@@ -38,7 +39,6 @@ import (
 	"github.com/dirmich/marubot/pkg/skills"
 	"github.com/dirmich/marubot/pkg/utils"
 	"github.com/dirmich/marubot/pkg/voice"
-	"github.com/dirmich/marubot/pkg/admin"
 
 	"github.com/chzyer/readline"
 	"github.com/kardianos/service"
@@ -206,6 +206,14 @@ func main() {
 }
 
 func uninstallCmd() {
+	skipConfirm := false
+	for _, arg := range os.Args {
+		if arg == "--yes" || arg == "-y" {
+			skipConfirm = true
+			break
+		}
+	}
+
 	if runtime.GOOS == "windows" {
 		if !isAdmin() {
 			fmt.Println("Elevation required for uninstallation. Requesting administrator privileges...")
@@ -221,18 +229,20 @@ func uninstallCmd() {
 	fmt.Println("WARNING: This will remove MaruBot and its resources from your system.")
 
 	// Show native dialog if on macOS or Windows to ensure confirmation in GUI mode
-	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
-		if !showNativeConfirmDialog("Uninstall MaruBot", "Are you sure you want to uninstall MaruBot?") {
-			fmt.Println("Aborted by user.")
-			return
-		}
-	} else {
-		fmt.Print("Are you sure you want to continue? (y/N): ")
-		var confirm string
-		fmt.Scanln(&confirm)
-		if strings.ToLower(confirm) != "y" {
-			fmt.Println("Aborted.")
-			return
+	if !skipConfirm {
+		if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+			if !showNativeConfirmDialog("Uninstall MaruBot", "Are you sure you want to uninstall MaruBot?") {
+				fmt.Println("Aborted by user.")
+				return
+			}
+		} else {
+			fmt.Print("Are you sure you want to continue? (y/N): ")
+			var confirm string
+			fmt.Scanln(&confirm)
+			if strings.ToLower(confirm) != "y" {
+				fmt.Println("Aborted.")
+				return
+			}
 		}
 	}
 
@@ -242,7 +252,7 @@ func uninstallCmd() {
 		removeWindowsShortcuts()
 
 		svcNames := []string{"MaruBot", "marubot"}
-		
+
 		// Get current exe name to ensure we kill it too if another instance is running
 		exeCurrent, _ := os.Executable()
 		exeName := filepath.Base(exeCurrent)
@@ -253,10 +263,10 @@ func uninstallCmd() {
 		exec.Command("taskkill", "/F", "/T", "/IM", "marubot-*.exe").Run()
 		exec.Command("taskkill", "/F", "/T", "/IM", exeName).Run()
 		exec.Command("taskkill", "/F", "/T", "/FI", "IMAGENAME eq marubot*").Run()
-		
+
 		// msys2/bash compatible
 		exec.Command("taskkill", "//F", "//T", "//IM", "marubot.exe").Run()
-		
+
 		fmt.Println("Waiting for processes to exit and release file locks...")
 		time.Sleep(2 * time.Second)
 
@@ -264,7 +274,7 @@ func uninstallCmd() {
 			fmt.Printf("Deep cleaning service '%s'...\n", svcName)
 			// 1. Force kill processes that are hosting this service if any
 			exec.Command("taskkill", "/F", "/T", "/FI", fmt.Sprintf("SERVICES eq %s", svcName)).Run()
-			
+
 			// 2. Robust fallback via sc.exe stop/delete
 			exec.Command("sc", "stop", svcName).Run()
 			time.Sleep(1 * time.Second)
@@ -345,7 +355,7 @@ func uninstallCmd() {
 		home, _ := os.UserHomeDir()
 		installBinDir := filepath.Join(home, ".marubot", "bin")
 		isInstalledBin := strings.HasPrefix(filepath.Clean(exePath), filepath.Clean(installBinDir))
-		
+
 		shouldRemove := isInstalledBin
 		if !isInstalledBin {
 			fmt.Printf("\nExecutable is located at: %s\n", exePath)
@@ -362,7 +372,7 @@ func uninstallCmd() {
 		if shouldRemove {
 			fmt.Printf("Removing executable: %s\n", exePath)
 			if runtime.GOOS == "windows" {
-				// Windows cannot delete a running executable. 
+				// Windows cannot delete a running executable.
 				// Use a PowerShell trick to delete after exit with better path handling.
 				destDir := filepath.Dir(exePath)
 				// Quote the path correctly for PowerShell
@@ -1484,7 +1494,7 @@ func configCmd() {
 		// or focus on common fields. Since we want to unify, we update the Config object.
 		// Note: Detailed nested key update usually requires reflection or a dedicated updater.
 		// For the CLI, we'll provide a simple message that we're updating the main config.
-		
+
 		// Map simple keys for CLI convenience
 		if key == "admin_password" {
 			cfg.AdminPassword = value
@@ -1670,7 +1680,7 @@ func reloadCmd() {
 			if _, err := os.Stat(servicePath); err == nil {
 				daemonReload := exec.Command("systemctl", "--user", "daemon-reload")
 				restart := exec.Command("systemctl", "--user", "restart", "marubot.service")
-				
+
 				if os.Getenv("XDG_RUNTIME_DIR") == "" && uid != "" {
 					daemonReload.Env = append(os.Environ(), fmt.Sprintf("XDG_RUNTIME_DIR=/run/user/%s", uid))
 					restart.Env = append(os.Environ(), fmt.Sprintf("XDG_RUNTIME_DIR=/run/user/%s", uid))
@@ -1678,7 +1688,7 @@ func reloadCmd() {
 					daemonReload.Env = os.Environ()
 					restart.Env = os.Environ()
 				}
-				
+
 				daemonReload.Run()
 				if err := restart.Run(); err == nil {
 					fmt.Println("✓ Reloaded via systemd.")
@@ -1812,26 +1822,28 @@ func startCmd() {
 
 	// Validate configuration: At least one AI provider must be enabled
 	// If password is also missing, we prioritize security setup.
-	// We no longer require a channel to be enabled to leave setup mode, 
+	// We no longer require a channel to be enabled to leave setup mode,
 	// because web-admin chat is always available.
 	if !cfg.IsAIConfigured() {
 		showGuideMessage(cfg)
-		
+
 		// Allow all platforms to enter Setup Mode so the user can finish configuration via Web-Admin.
 		// Previously this was restricted to GUI environments, but RPi/Linux users also need this.
 		fmt.Println("Entering Setup Mode... (Server remains active for web configuration)")
-		
+
 		// Start dashboard server in a goroutine so user can configure
 		port := cfg.Gateway.Port
-		if port == 0 { port = 8080 }
+		if port == 0 {
+			port = 8080
+		}
 		dashAddr := fmt.Sprintf("0.0.0.0:%d", port)
-		
-		// 💡 Fix: Properly initialize dummyAgent components to prevent Nil Pointer Panic 
+
+		// 💡 Fix: Properly initialize dummyAgent components to prevent Nil Pointer Panic
 		// even in Setup Mode.
 		bus := bus.NewMessageBus()
 		dummyAgent := agent.NewAgentLoop(cfg, bus, nil, Version)
 		dashServer := dashboard.NewServer(dashAddr, dummyAgent, cfg, getConfigPath(), Version, reloadCmd)
-		
+
 		if runForeground {
 			fmt.Printf("✓ Dashboard available at http://localhost:%d\n", port)
 			fmt.Println("  Please complete your configuration in the Web Admin.")
@@ -2210,7 +2222,7 @@ func serviceCmd() {
 			}
 		}
 	}
-	
+
 	svcConfig := &service.Config{
 		Name:        "MaruBot",
 		DisplayName: "MaruBot Service",
@@ -2329,7 +2341,7 @@ func checkAndFixPort(cfg *config.Config) bool {
 	if cfg.Gateway.Port == 18790 || cfg.Gateway.Port == 0 {
 		cfg.Gateway.Port = 8080
 	}
-	
+
 	port := cfg.Gateway.Port
 	if isPortAvailable(port) {
 		return true
@@ -2353,7 +2365,7 @@ if ($result -eq "Yes") {
 		if err != nil {
 			return false
 		}
-		
+
 		var newPort int
 		fmt.Sscanf(strings.TrimSpace(string(out)), "%d", &newPort)
 		if newPort > 0 {
@@ -2434,7 +2446,7 @@ func installBinary() (string, error) {
 	exe, _ := os.Executable()
 	installDir := filepath.Join(getResourceDir(), "bin")
 	os.MkdirAll(installDir, 0755)
-	
+
 	targetPath := filepath.Join(installDir, "marubot.exe")
 	if runtime.GOOS != "windows" {
 		targetPath = filepath.Join(installDir, "marubot")
@@ -2462,7 +2474,7 @@ func installBinary() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	return targetPath, nil
 }
 
@@ -2490,7 +2502,7 @@ func migratePathsCmd() {
 	newPath := getResourceDir()
 
 	fmt.Printf("Migrating hardcoded paths from %s to %s...\n", oldPath, newPath)
-	
+
 	count := 0
 	err := filepath.Walk(newPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -2512,7 +2524,7 @@ func migratePathsCmd() {
 				fmt.Printf("  Processing: %s\n", path)
 				newContent := strings.ReplaceAll(content, oldPath, newPath)
 				newContent = strings.ReplaceAll(newContent, strings.ReplaceAll(oldPath, "\\", "/"), strings.ReplaceAll(newPath, "\\", "/"))
-				
+
 				err = os.WriteFile(path, []byte(newContent), info.Mode())
 				if err != nil {
 					fmt.Printf("    Error saving %s: %v\n", path, err)
@@ -2569,7 +2581,7 @@ func checkServiceUpgrade(s service.Service) bool {
 
 	svcVer := strings.TrimSpace(string(svcVerOut))
 	currentVer := Version
-	
+
 	// Simple string compare for now
 	return svcVer != currentVer && svcVer != ""
 }
