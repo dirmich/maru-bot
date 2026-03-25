@@ -229,18 +229,20 @@ func uninstallCmd() {
 	fmt.Println("WARNING: This will remove MaruBot and its resources from your system.")
 
 	// Show native dialog if on macOS or Windows to ensure confirmation in GUI mode
-	if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
-		if !showNativeConfirmDialog("Uninstall MaruBot", "Are you sure you want to uninstall MaruBot?") {
-			fmt.Println("Aborted by user.")
-			return
-		}
-	} else {
-		fmt.Print("Are you sure you want to continue? (y/N): ")
-		var confirm string
-		fmt.Scanln(&confirm)
-		if strings.ToLower(confirm) != "y" {
-			fmt.Println("Aborted.")
-			return
+	if !skipConfirm {
+		if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+			if !showNativeConfirmDialog("Uninstall MaruBot", "Are you sure you want to uninstall MaruBot?") {
+				fmt.Println("Aborted by user.")
+				return
+			}
+		} else {
+			fmt.Print("Are you sure you want to continue? (y/N): ")
+			var confirm string
+			fmt.Scanln(&confirm)
+			if strings.ToLower(confirm) != "y" {
+				fmt.Println("Aborted.")
+				return
+			}
 		}
 	}
 
