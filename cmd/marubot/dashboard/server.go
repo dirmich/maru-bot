@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"mime"
 	"path/filepath"
 	"strings"
 	"time"
@@ -74,6 +75,20 @@ func (s *Server) Start() error {
 	mux.Handle("/api/system/stats", s.authMiddleware(http.HandlerFunc(s.handleSystemStats)))
 	mux.Handle("/api/upgrade", s.authMiddleware(http.HandlerFunc(s.handleUpgrade)))
 
+	// Register manual MIME types for environments without /etc/mime.types (e.g. minimal RPi/Docker)
+	mime.AddExtensionType(".js", "application/javascript; charset=utf-8")
+	mime.AddExtensionType(".mjs", "application/javascript; charset=utf-8")
+	mime.AddExtensionType(".css", "text/css; charset=utf-8")
+	mime.AddExtensionType(".svg", "image/svg+xml")
+	mime.AddExtensionType(".png", "image/png")
+	mime.AddExtensionType(".jpg", "image/jpeg")
+	mime.AddExtensionType(".jpeg", "image/jpeg")
+	mime.AddExtensionType(".ico", "image/x-icon")
+	mime.AddExtensionType(".json", "application/json")
+	mime.AddExtensionType(".woff", "font/woff")
+	mime.AddExtensionType(".woff2", "font/woff2")
+	mime.AddExtensionType(".ttf", "font/ttf")
+
 	// Static File Serving (SPA Fallback)
 	fileServer := http.FileServer(http.FS(distFS))
 	staticHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -85,11 +100,27 @@ func (s *Server) Start() error {
 		}
 
 		// Check if file exists in FS
-		f, err := distFS.Open(strings.TrimPrefix(path, "/"))
+		cleanPath := strings.TrimPrefix(path, "/")
+		if cleanPath == "" {
+			cleanPath = "index.html"
+		}
+
+		f, err := distFS.Open(cleanPath)
 		if err == nil {
 			defer f.Close()
 			stat, _ := f.Stat()
 			if !stat.IsDir() {
+				// Manually set Content-Type based on extension to avoid system-dependent MIME issues
+				ext := filepath.Ext(cleanPath)
+				if contentType := mime.TypeByExtension(ext); contentType != "" {
+					w.Header().Set("Content-Type", contentType)
+				}
+				
+				// Add cache control for hashed assets
+				if strings.Contains(cleanPath, "assets/") {
+					w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+				}
+
 				fileServer.ServeHTTP(w, r)
 				return
 			}
@@ -97,11 +128,11 @@ func (s *Server) Start() error {
 
 		// Fallback to index.html for SPA routing
 		// 🛡️ Improved: Don't fallback for static assets (JS, CSS, etc.)
-		// If an asset is missing, returning index.html leads to mysterious "blank screen" errors.
 		assetExts := []string{".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".woff", ".woff2", ".ttf", ".webp"}
 		lowerPath := strings.ToLower(path)
 		for _, ext := range assetExts {
 			if strings.HasSuffix(lowerPath, ext) {
+				fmt.Printf("[Dashboard] Asset not found: %s\n", path)
 				http.NotFound(w, r)
 				return
 			}
