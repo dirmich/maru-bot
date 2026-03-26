@@ -326,7 +326,7 @@ TOTAL_MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}' || echo "0")
 EXTRA_GOFLAGS=""
 if [ "$TOTAL_MEM_KB" -gt 0 ] && [ "$TOTAL_MEM_KB" -lt 1500000 ]; then
     echo -e "${YELLOW}⚠️ Low memory detected (${TOTAL_MEM_KB}KB). Limiting build parallelism to prevent OOM...${NC}"
-    EXTRA_GOFLAGS="-p 1"
+    EXTRA_GOFLAGS="-p=1"
 fi
 
 $GO_CMD mod tidy
