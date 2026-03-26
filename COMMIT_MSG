@@ -1,5 +1,5 @@
-GoBrowser 포팅 및 종합 검증 완료
+Release v0.6.3
 
-- cheliped-browser를 Go 네이티브 gobrowser 도구로 포팅 완료 (chromedp 사용)
-- Heartbeat 및 Cron 서비스 Webhook 연동 종합 검증 완료
-- 테스트용 설정 원복 및 임시 파일 정리 완료
+- Go 네이티브 gobrowser 도구 통합 및 종합 검증 완료
+- 버전 정보 동기화 (pkg/config, main.go, package.json, README, IDENTITY.md)
+- 웹 관리자 UI 최신 빌드 자산 반영

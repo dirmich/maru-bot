@@ -1,5 +1,11 @@
 # 🦞 MaruBot (마루 미니봇) 프로젝트 이력 (History)
 
+## 2026-03-26
+### v0.6.3
+- **Go 네이티브 Browser 도구 통합**: `cheliped-browser`를 `chromedp` 기반의 네이티브 도구인 `gobrowser`로 포팅하여 외부 의존성 제거 및 성능 향상.
+- **종합 관리 서비스 검증**: Webhook을 통한 동적 Cron 작업 등록 및 Heartbeat 서비스 연동성 강화.
+
+
 ## 2026-03-24
 ###Version: 0.6.1
 - **빌드 오류 수정**: Linux 및 기타 플랫폼에서 `getSysProcAttr` 식별자를 찾지 못해 빌드가 실패하던 컴파일 오류 해결 (`sys_linux.go`, `sys_default.go` 추가).
