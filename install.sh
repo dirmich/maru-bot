@@ -320,9 +320,18 @@ fi
 
 # 5-2. Go Build
 echo -e "${BLUE}    ${MSG_GO_BUILD}${NC}"
+
+# Detect low-memory environments (RPi3, etc.)
+TOTAL_MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}' || echo "0")
+EXTRA_GOFLAGS=""
+if [ "$TOTAL_MEM_KB" -gt 0 ] && [ "$TOTAL_MEM_KB" -lt 1500000 ]; then
+    echo -e "${YELLOW}⚠️ Low memory detected (${TOTAL_MEM_KB}KB). Limiting build parallelism to prevent OOM...${NC}"
+    EXTRA_GOFLAGS="-p 1"
+fi
+
 $GO_CMD mod tidy
 $GO_CMD clean -cache # Ensure new code is recompiled
-make GO="$GO_CMD" clean build
+make GO="$GO_CMD" GOFLAGS="-v $EXTRA_GOFLAGS" clean build
 
 # 6. Install System and Deploy Resources
 echo -e "${BLUE}🏗️ Installing system and deploying resources...${NC}"
