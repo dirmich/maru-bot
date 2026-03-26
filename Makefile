@@ -78,6 +78,7 @@ BINARY_PATH=$(BUILD_DIR)/$(BINARY_NAME)-$(PLATFORM)-$(ARCH)
 # internal helper to sync UI assets
 sync-ui:
 	@echo "Checking web-admin assets..."
+	@if [ -d "web-admin" ]; then \
 		echo "Building UI (Clean build)..."; \
 		cd web-admin && npm run build; \
 		echo "Syncing web-admin assets..."; \
