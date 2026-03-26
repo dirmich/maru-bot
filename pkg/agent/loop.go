@@ -100,6 +100,8 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 		toolsRegistry.Register(tools.NewGPSTool(cfg.GPS.Device, cfg.GPS.Baud))
 	}
 
+	toolsRegistry.Register(tools.NewBrowserTool())
+
 	// Ensure sessions directory is under .marubot
 	sessionsDir := filepath.Join(marubotHome, "sessions")
 	os.MkdirAll(sessionsDir, 0755)

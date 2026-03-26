@@ -1,0 +1,6 @@
+feat(tools): port cheliped-browser to Go-native gobrowser tool
+
+- Implement Agent DOM compression and semantic extraction in Go using chromedp
+- Register gobrowser tool in MaruBot agent registry
+- Remove legacy Node.js-based cheliped-browser skill
+- Update vendor dependencies
