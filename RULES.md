@@ -6,8 +6,8 @@
 
 모든 기능 작업이 완료된 후, 아래 **6단계 절차**를 반드시 순서대로 수행해야 합니다:
 
-1. **전방위 버전업**: 아래 모든 파일의 버전을 동일하게 올립니다.
-   - `pkg/config/version.go`, `README.md` (및 모든 언어별 README), `IDENTITY.md`, `Project.md`, `web-admin/package.json`
+1. **전방위 버전업**: `versionup.md` 문서를 **반드시 먼저 읽고** 그 절차에 따라 모든 파일의 버전을 동일하게 올립니다.
+   - 대상: `pkg/config/version.go`, `README.md` (및 모든 언어별 README), `IDENTITY.md`, `Project.md`, `web-admin/package.json`
 2. **내부 저장소 동기화**: `maruminibot` 저장소에 **한글** 커밋 메시지로 `git add/commit/push`를 수행합니다.
 3. **웹 관리자 빌드**: `maruminibot`의 `web-admin` 폴더에서 `npm run build`를 수행하고 `make sync-ui`로 백엔드에 반영합니다. (매우 중요: 공개 저장소에는 소스가 없으므로 여기서 반드시 빌드를 완료해야 함)
 4. **바이너리 빌드**: `go build`를 통해 최신 버전의 Windows 실행 파일(`.exe`)을 새로 생성합니다.
@@ -54,4 +54,4 @@
 - **포트 설명**: Webhook 등 네트워크 관련 설정 시 `0` 입력이 기본 게이트웨이 포트 사용을 의미한다는 안내를 UI와 문서에 포함합니다.
 
 ---
-*최종 업데이트: 2026-03-23 (0.4.86 릴리즈 기준 - 프라이빗 릴리즈 금지, 기본 언어 영어, 버저닝 규칙(v 제외) 명시)*
+*최종 업데이트: 2026-03-26 (v0.6.3 릴리즈 기준 - versionup.md 절차 준수 의무화 추가)*
