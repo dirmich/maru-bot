@@ -930,7 +930,7 @@ func gatewayCmd() {
 		func(msg string) (string, error) {
 			return agentLoop.ProcessDirect(context.Background(), msg, "heartbeat")
 		},
-		30*60,
+		30 * 60,
 		true,
 	)
 
