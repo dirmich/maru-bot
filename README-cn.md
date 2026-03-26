@@ -1,4 +1,4 @@
-# MaruBot - 超轻量级 AI 助手 (0.6.2) 🦞
+# MaruBot - 超轻量级 AI 助手 (0.6.3) 🦞
 
 **MaruBot** 是一款追求极致效率的超轻量级物理 AI 助手，能够在仅 **10MB 的内存 (RAM)** 环境中运行。它支持从树莓派 (Raspberry Pi) 到常规的 Linux 服务器乃至 Windows PC。配备了能够扩展自身能力的“自我进化”引擎，它是最智能的个人助手。
 
@@ -137,4 +137,4 @@ MaruBot 会自动监测运行的平台，并智能筛选可用的扩展工具：
 ## 📝 许可证
 MaruBot 遵循 MIT License 进行开源。用户可自由修改及分发。
 
-*Developed & Analyzed by Antigravity AI (2026-03-24)*
+*Developed & Analyzed by Antigravity AI (2026-03-26)*
