@@ -10,7 +10,8 @@ This skill helps the bot seamlessly establish a secure **SSH Public Key Authenti
 
 ## 🛑 Absolute Restrictions (CRITICAL)
 - **NO INTERACTIVE PROMPTS:** The `shell` tool runs invisibly in the background. It CANNOT handle passwords or (yes/no) host verification prompts.
-- **MANDATORY OPTIONS:** Every `ssh` command you run via `shell` MUST include: `-o StrictHostKeyChecking=no -o PasswordAuthentication=no -o BatchMode=yes`.
+- **WINDOWS WORKAROUND (CRITICAL):** On Windows, the `shell` tool cannot easily handle SSH passwords. Always use the dedicated `ssh` tool (not `shell`) if a password is required on a Windows host.
+- **MANDATORY OPTIONS (for `shell` tool):** Every `ssh` command you run via `shell` MUST include: `-o StrictHostKeyChecking=no -o PasswordAuthentication=no -o BatchMode=yes`.
 - **DISABLE LOCALE WARNING:** Always prefix remote commands with `LC_ALL=C` (e.g. `ssh ... "LC_ALL=C df -h"`) so you don't get garbage text warnings.
 
 ## 🤖 Bot Workflow Guidelines
@@ -21,11 +22,14 @@ Before any connection attempt, YOU must ensure the local machine has at least on
 2. If NO keys exist, YOU must generate a default one immediately: `ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519`.
 3. Do not wait for a connection failure to do this. Be proactive.
 
-### Step 1. Pre-connection Test
-First, verify if passwordless connection to the target host is possible via the `shell` tool.
-Command example: `ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=no -o BatchMode=yes -o ConnectTimeout=5 [user]@[host] "echo ok"`
-- `-o PasswordAuthentication=no` and `-o BatchMode=yes` forcibly prevent connection hangs.
-- If the result is `ok`, instantly execute the user's requested command (e.g., `ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=no -o BatchMode=yes [user]@[host] "LC_ALL=C df -h"`) and report the outcome.
+### Step 1. Pre-connection & Tool Selection
+Analyze the host OS and requirements:
+1. **On Windows (when password-based login is requested):** Use the `ssh` tool directly with `host`, `user`, `password`, and `command` parameters.
+2. **On Linux or when using Keys:** You may use the `shell` tool with the standard `ssh` command.
+Command example for `shell` tool: `ssh -o StrictHostKeyChecking=no -o PasswordAuthentication=no -o BatchMode=yes -o ConnectTimeout=5 [user]@[host] "echo ok"`
+- `-o PasswordAuthentication=no` and `-o BatchMode=yes` forcibly prevent connection hangs when using the `shell` tool.
+- If using the dedicated `ssh` tool, these options are handled internally.
+- If the result is `ok`, execute the user's requested command and report the outcome.
 
 ### Step 2. Auto Public Key Setup (When Step 1 Fails)
 If Step 1 yields any error (password required, permission denied, etc.), DO NOT print instructions for the user to fix it! YOU must automatically run the following sequence via the `shell` tool:

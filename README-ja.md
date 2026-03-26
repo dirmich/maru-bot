@@ -1,4 +1,4 @@
-# MaruBot (マルボット) - 超軽量 AI エージェント (0.6.2) 🦞
+# MaruBot (マルボット) - 超軽量 AI エージェント (0.6.3) 🦞
 
 **MaruBot** は究極の効率を追求し、わずか **10MBのメモリ (RAM)** 環境でも駆動可能な超軽量フィジカル AI エージェントです。Raspberry Pi から一般的な Linux サーバー、Windows PC までサポートし、自らの能力を拡張する「自己進化」エンジンを備えた最も賢いパーソナルアシスタントです。
 
@@ -137,4 +137,4 @@ MaruBot は、駆動プラットフォームを検出し、利用可能なツー
 ## 📝 ライセンス
 MaruBot は MIT ライセンスに従います。ユーザーは自由に変更して配布することができます。
 
-*Developed & Analyzed by Antigravity AI (2026-03-24)*
+*Developed & Analyzed by Antigravity AI (2026-03-26)*

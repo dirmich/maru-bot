@@ -601,6 +601,11 @@ This document describes the tools available to marubot.
 - Run in workspace directory
 - Full shell access with timeout protection
 
+### SSH Connections
+- Execute commands on remote hosts via SSH
+- Supports password and key-based authentication
+- Handles Windows-specific limitations for remote access
+
 ## Messaging
 
 ### Send Messages
@@ -645,7 +650,7 @@ Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 - File system operations (read, write, edit)
 - Shell command execution
 - Multi-channel messaging (Telegram, WhatsApp, Feishu)
-- SSH & Remote System Access (Automated execution via shell)
+- SSH & Remote System Access (Support for password and key authentication)
 - Skill-based extensibility
 - Memory and context management
 - GPIO/Hardware control and monitoring
@@ -925,7 +930,7 @@ func gatewayCmd() {
 		func(msg string) (string, error) {
 			return agentLoop.ProcessDirect(context.Background(), msg, "heartbeat")
 		},
-		30*60,
+		30 * 60,
 		true,
 	)
 

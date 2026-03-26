@@ -58,6 +58,7 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	configPath := filepath.Join(marubotHome, "config.json")
 	toolsRegistry.Register(tools.NewConfigTool(configPath, cfg))
 	toolsRegistry.Register(tools.NewExecTool(workspace))
+	toolsRegistry.Register(tools.NewSSHTool())
 
 	cronStorePath := filepath.Join(marubotHome, "cron", "jobs.json")
 	toolsRegistry.Register(tools.NewCronTool(cronStorePath))
@@ -98,6 +99,8 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	if cfg.GPS.Enabled {
 		toolsRegistry.Register(tools.NewGPSTool(cfg.GPS.Device, cfg.GPS.Baud))
 	}
+
+	toolsRegistry.Register(tools.NewBrowserTool())
 
 	// Ensure sessions directory is under .marubot
 	sessionsDir := filepath.Join(marubotHome, "sessions")
