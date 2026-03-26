@@ -331,7 +331,17 @@ fi
 
 $GO_CMD mod tidy
 $GO_CMD clean -cache # Ensure new code is recompiled
+
+# Use disk-based TMPDIR to avoid tmpfs exhaustion on RPi
+BUILD_TMPDIR="$HOME/.marubot/tmp"
+mkdir -p "$BUILD_TMPDIR"
+export TMPDIR="$BUILD_TMPDIR"
+
 make GO="$GO_CMD" GOFLAGS="-v $EXTRA_GOFLAGS" clean build
+
+# Clean up TMPDIR
+rm -rf "$BUILD_TMPDIR"
+unset TMPDIR
 
 # 6. Install System and Deploy Resources
 echo -e "${BLUE}🏗️ Installing system and deploying resources...${NC}"
