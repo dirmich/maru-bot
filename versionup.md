@@ -17,7 +17,7 @@
 *   [ ] **Identity Template**: `cmd/marubot/main.go` 내 `IDENTITY.md` 섹션의 `Version` 필드 수정. (매우 중요: WebAdmin 초기화 시 사용됨)
 *   [ ] **Front-end**: `web-admin/package.json` -> `"version": "0.6.2"`
     *   *주의*: UI 빌드 전 `web-admin/dist`를 반드시 삭제해야 최신 버전이 반영됩니다.
-*   [ ] **Documentation**: `README.md`, `README-en.md` 등의 첫 줄 버전 번호 수정.
+*   [ ] **Documentation**: `README.md` (KO), `README-en.md`, `README-ja.md`, `README-cn.md` 등 모든 글로벌 문서의 첫 줄 버전 번호 수정.
 *   [ ] **History**: `Project.md`에 새 버전 일시 및 변경 사항 기록.
 *   [ ] **Makefile**: `LDFLAGS`의 `-X main.Version` 대소문자 확인 (반드시 대문자 V).
 

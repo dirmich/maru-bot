@@ -4,6 +4,8 @@
 ### v0.6.3
 - **Go 네이티브 Browser 도구 통합**: `cheliped-browser`를 `chromedp` 기반의 네이티브 도구인 `gobrowser`로 포팅하여 외부 의존성 제거 및 성능 향상.
 - **종합 관리 서비스 검증**: Webhook을 통한 동적 Cron 작업 등록 및 Heartbeat 서비스 연동성 강화.
+- **빌드 안정성 개선**: `Makefile`의 `sync-ui` 구문 오류 수정 및 `install.sh` 내 저사양 기기(RPi3 등) OOM 방지를 위한 빌드 병렬성 제한(`-p=1`) 로직 추가.
+- **다국어 문서 동기화**: 모든 언어별 README의 버전을 0.6.3으로 통일하고 배포 가이드(`versionup.md`)를 보강.
 
 
 ## 2026-03-24
