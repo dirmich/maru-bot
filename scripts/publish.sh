@@ -45,6 +45,7 @@ ITEMS=(
     ".gitignore"
     "install.sh"
     "maru-setup.sh"
+    "Project.md"
     "LICENSE"
 )
 
