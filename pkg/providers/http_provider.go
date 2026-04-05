@@ -19,15 +19,17 @@ import (
 )
 
 type HTTPProvider struct {
-	apiKey     string
-	apiBase    string
-	httpClient *http.Client
+	apiKey       string
+	apiBase      string
+	providerType string
+	httpClient   *http.Client
 }
 
-func NewHTTPProvider(apiKey, apiBase string) *HTTPProvider {
+func NewHTTPProvider(apiKey, apiBase, providerType string) *HTTPProvider {
 	return &HTTPProvider{
-		apiKey:  apiKey,
-		apiBase: apiBase,
+		apiKey:       apiKey,
+		apiBase:      apiBase,
+		providerType: providerType,
 		httpClient: &http.Client{
 			Timeout: 0,
 		},
@@ -48,7 +50,11 @@ func (p *HTTPProvider) Chat(ctx context.Context, messages []Message, tools []Too
 	}
 
 	if len(tools) > 0 {
-		requestBody["tools"] = tools
+		effectiveTools := tools
+		if p.providerType == "llamacpp" {
+			effectiveTools = p.simplifyTools(tools)
+		}
+		requestBody["tools"] = effectiveTools
 		requestBody["tool_choice"] = "auto"
 	}
 
@@ -63,6 +69,10 @@ func (p *HTTPProvider) Chat(ctx context.Context, messages []Message, tools []Too
 	jsonData, err := json.Marshal(requestBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	if p.providerType == "llamacpp" {
+		fmt.Printf("[Debug] Llama.cpp request body: %s\n", string(jsonData))
 	}
 
 	url := p.apiBase
@@ -196,6 +206,8 @@ func findModelConfig(providerName, modelName string, cfg *config.Config) (*confi
 		provider = cfg.Providers.VLLM
 	case "gemini":
 		provider = cfg.Providers.Gemini
+	case "llamacpp":
+		provider = cfg.Providers.LlamaCPP
 	case "ollama":
 		for _, p := range cfg.Providers.Ollama {
 			for _, m := range p.Models {
@@ -223,7 +235,7 @@ func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error)
 	if cfg.Agents.Defaults.Provider != "" && strings.EqualFold(cfg.Agents.Defaults.Model, model) {
 		mCfg, err := findModelConfig(cfg.Agents.Defaults.Provider, model, cfg)
 		if err == nil {
-			return NewHTTPProvider(mCfg.APIKey, mCfg.APIBase), nil
+			return NewHTTPProvider(mCfg.APIKey, mCfg.APIBase, strings.ToLower(cfg.Agents.Defaults.Provider)), nil
 		}
 	}
 
@@ -238,6 +250,7 @@ func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error)
 		{"gemini", cfg.Providers.Gemini},
 		{"zhipu", cfg.Providers.Zhipu},
 		{"groq", cfg.Providers.Groq},
+		{"llamacpp", cfg.Providers.LlamaCPP},
 		{"openrouter", cfg.Providers.OpenRouter},
 	}
 
@@ -249,7 +262,7 @@ func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error)
 				if apiBase == "" {
 					apiBase = config.GetDefaultBase(p.name)
 				}
-				return NewHTTPProvider(apiKey, apiBase), nil
+				return NewHTTPProvider(apiKey, apiBase, p.name), nil
 			}
 		}
 	}
@@ -258,7 +271,7 @@ func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error)
 	for _, p := range cfg.Providers.Ollama {
 		for _, m := range p.Models {
 			if strings.EqualFold(m.Model, model) {
-				return NewHTTPProvider(m.APIKey, m.APIBase), nil
+				return NewHTTPProvider(m.APIKey, m.APIBase, "ollama"), nil
 			}
 		}
 	}
@@ -270,19 +283,19 @@ func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error)
 		if len(cfg.Providers.OpenAI.Models) > 0 {
 			apiKey = cfg.Providers.OpenAI.Models[0].APIKey
 		}
-		return NewHTTPProvider(apiKey, config.GetDefaultBase("openai")), nil
+		return NewHTTPProvider(apiKey, config.GetDefaultBase("openai"), "openai"), nil
 	} else if strings.Contains(lowerModel, "claude-") {
 		apiKey := ""
 		if len(cfg.Providers.Anthropic.Models) > 0 {
 			apiKey = cfg.Providers.Anthropic.Models[0].APIKey
 		}
-		return NewHTTPProvider(apiKey, config.GetDefaultBase("anthropic")), nil
+		return NewHTTPProvider(apiKey, config.GetDefaultBase("anthropic"), "anthropic"), nil
 	} else if strings.Contains(lowerModel, "gemini-") {
 		apiKey := ""
 		if len(cfg.Providers.Gemini.Models) > 0 {
 			apiKey = cfg.Providers.Gemini.Models[0].APIKey
 		}
-		return NewHTTPProvider(apiKey, config.GetDefaultBase("gemini")), nil
+		return NewHTTPProvider(apiKey, config.GetDefaultBase("gemini"), "gemini"), nil
 	}
 
 	return nil, fmt.Errorf("no configuration found for model: %s", model)
@@ -340,7 +353,14 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 			if apiBase == "" {
 				apiBase = config.GetDefaultBase(primaryProviderName)
 			}
-			primaryProvider = NewHTTPProvider(mCfg.APIKey, apiBase)
+			primaryProvider = NewHTTPProvider(mCfg.APIKey, apiBase, primaryProviderName)
+		} else {
+			// If provider is explicitly specified but model configuration not found,
+			// still attempt to use that provider with its default base.
+			apiBase := config.GetDefaultBase(primaryProviderName)
+			if apiBase != "" {
+				primaryProvider = NewHTTPProvider("", apiBase, primaryProviderName)
+			}
 		}
 	}
 
@@ -372,4 +392,35 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 	}
 
 	return fallback, nil
+}
+
+func (p *HTTPProvider) simplifyTools(tools []ToolDefinition) []ToolDefinition {
+	simplified := make([]ToolDefinition, len(tools))
+	for i, td := range tools {
+		simTool := td
+		// Create a deep-ish copy of the parameters to avoid modifying the original
+		params, _ := json.Marshal(td.Function.Parameters)
+		var newParams map[string]interface{}
+		json.Unmarshal(params, &newParams)
+
+		// llama.cpp simplification: remove 'required' at the parameters level
+		// Some models/versions fail to parse this correctly
+		delete(newParams, "required")
+
+		// Ensure all properties have a type and are simple
+		if props, ok := newParams["properties"].(map[string]interface{}); ok {
+			for name, prop := range props {
+				if pMap, ok := prop.(map[string]interface{}); ok {
+					// Remove any nested required/additionalProperties
+					delete(pMap, "required")
+					delete(pMap, "additionalProperties")
+					props[name] = pMap
+				}
+			}
+		}
+
+		simTool.Function.Parameters = newParams
+		simplified[i] = simTool
+	}
+	return simplified
 }

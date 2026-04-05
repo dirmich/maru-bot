@@ -80,7 +80,7 @@ sync-ui:
 	@echo "Checking web-admin assets..."
 	@if [ -d "web-admin" ]; then \
 		echo "Building UI (Clean build)..."; \
-		cd web-admin && npm run build; \
+		cd web-admin && npm run build && cd ..; \
 		echo "Syncing web-admin assets..."; \
 		rm -rf cmd/marubot/dashboard/dist; \
 		mkdir -p cmd/marubot/dashboard/dist; \
