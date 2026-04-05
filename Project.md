@@ -1,5 +1,12 @@
 # 🦞 MaruBot (마루 미니봇) 프로젝트 이력 (History)
 
+## 2026-04-06
+### 0.6.4
+- **llama.cpp 프로바이더 공식 지원 추가**: `llamacpp` 타입을 명시적으로 지원하여 로컬 LLM 서버 연동성 개선.
+- **도구 스키마 호환성 최적화**: `llama.cpp`의 엄격한 문법 변환기를 고려하여 `required` 및 `additionalProperties` 제약 조건을 자동으로 제거하는 스키마 단순화 로직 구현 (400 Bad Request 에러 해결).
+- **디버깅 로그 강화**: `llamacpp` 프로바이더 사용 시 실제 LLM 요청 본문을 로그로 출력하여 가시성 확보.
+- **환경 변수 지원**: `MARUBOT_HOME` 환경 변수를 통한 커스텀 홈 디렉토리 지정 기능의 경로 분석 로직 강화.
+
 ## 2026-03-26
 ### v0.6.3
 - **Go 네이티브 Browser 도구 통합**: `cheliped-browser`를 `chromedp` 기반의 네이티브 도구인 `gobrowser`로 포팅하여 외부 의존성 제거 및 성능 향상.
