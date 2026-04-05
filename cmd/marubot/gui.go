@@ -1,4 +1,5 @@
 //go:build windows || darwin
+
 package main
 
 import (
@@ -255,10 +256,8 @@ func onTrayReady(targetExe string) {
 				if runtime.GOOS == "windows" {
 					runAsAdminAction("uninstall")
 				} else {
-					uninstallCmd()
+					fmt.Println("Uninstall aborted by user.")
 				}
-				systray.Quit()
-				os.Exit(0)
 			case <-mExit.ClickedCh:
 				if runtime.GOOS == "windows" {
 					l := getLabels()
@@ -270,7 +269,7 @@ func onTrayReady(targetExe string) {
 			case <-mUpgrade.ClickedCh:
 				l := getLabels()
 				showWindowsNotification(l.Upgrade, "Checking for latest version...")
-				
+
 				latest, err := config.CheckLatestVersion()
 				if err != nil {
 					showNativeMessageDialog("Error", "Failed to check for updates: "+err.Error())
@@ -279,14 +278,14 @@ func onTrayReady(targetExe string) {
 						msg := fmt.Sprintf("New version v%s is available.\n(Current: v%s)\n\nDo you want to upgrade now?", latest, config.Version)
 						if showNativeConfirmDialog("Update Available", msg) {
 							showWindowsNotification(l.Upgrade, "Upgrading to v"+latest+"... Please wait.")
-							
+
 							// Run upgrade in background
 							go func() {
 								exe, _ := os.Executable()
 								cmd := exec.Command(exe, "upgrade", "--yes")
 								// Hide console window on Windows
 								cmd.SysProcAttr = getSysProcAttr()
-								
+
 								if err := cmd.Run(); err != nil {
 									showNativeMessageDialog("Upgrade Failed", "Error during upgrade: "+err.Error())
 								} else {
@@ -307,7 +306,7 @@ func createWindowsShortcuts(exePath string, verbose bool) {
 	if runtime.GOOS != "windows" {
 		return
 	}
-	
+
 	psScript := fmt.Sprintf(`
 $shell = New-Object -ComObject WScript.Shell
 $desktop = [System.Environment]::GetFolderPath('Desktop')
@@ -328,7 +327,7 @@ foreach ($t in $targets) {
 `, verbose, exePath, exePath)
 
 	exec.Command("powershell", "-NoProfile", "-Command", psScript).Run()
-	
+
 	if verbose {
 		l := getLabels()
 		showWindowsNotification(l.CreateLink, l.LinkCreated)
@@ -339,7 +338,7 @@ func showNativeMessageDialog(title, message string) {
 	if runtime.GOOS != "windows" {
 		return
 	}
-	
+
 	// 64 = Information icon
 	psScript := fmt.Sprintf(`
 Add-Type -AssemblyName PresentationFramework
@@ -368,4 +367,38 @@ $notify.ShowBalloonTip(3000, "%s", "%s", [System.Windows.Forms.ToolTipIcon]::Inf
 
 func onTrayExit() {
 	// Cleanup on exit
+}
+
+func showConfirmDialog(title, message string) bool {
+	if runtime.GOOS == "darwin" {
+		script := fmt.Sprintf("display dialog %q with title %q buttons {\"Cancel\", \"OK\"} default button \"Cancel\" with icon caution", message, title)
+		cmd := exec.Command("osascript", "-e", script)
+		err := cmd.Run()
+		return err == nil
+	} else if runtime.GOOS == "windows" {
+		// Use PowerShell for a simple message box
+		vbs := fmt.Sprintf("res = MsgBox(\"%s\", 1+48, \"%s\"): If res = 1 Then WScript.Quit(0) Else WScript.Quit(1)", message, title)
+		cmd := exec.Command("wscript", "-e", "vbscript", "-e", vbs)
+		// Or simpler with PowerShell:
+		ps := fmt.Sprintf("[System.Windows.Forms.MessageBox]::Show('%s', '%s', 'OKCancel', 'Warning')", message, title)
+		cmd = exec.Command("powershell", "-Command", "Add-Type -AssemblyName System.Windows.Forms;", "if ("+ps+" -eq 'OK') { exit 0 } else { exit 1 }")
+		err := cmd.Run()
+		return err == nil
+	}
+	return true // Fallback for other OS
+}
+
+func showAboutDialog() {
+	title := "About MaruBot"
+	message := fmt.Sprintf("MaruBot - AI Agent Service\n\nVersion: %s\n\n© 2026 MaruBot Contributors", Version)
+
+	if runtime.GOOS == "darwin" {
+		script := fmt.Sprintf("display alert %q message %q as informational buttons {\"OK\"} default button \"OK\"", title, message)
+		exec.Command("osascript", "-e", script).Run()
+	} else if runtime.GOOS == "windows" {
+		ps := fmt.Sprintf("[System.Windows.Forms.MessageBox]::Show('%s', '%s', 'OK', 'Information')", message, title)
+		exec.Command("powershell", "-Command", "Add-Type -AssemblyName System.Windows.Forms;", ps).Run()
+	} else {
+		fmt.Printf("--- %s ---\n%s\n", title, message)
+	}
 }

@@ -696,6 +696,12 @@ func expandHome(path string) string {
 		return path
 	}
 	if path[0] == '~' {
+		if h := os.Getenv("MARUBOT_HOME"); h != "" {
+			if strings.HasPrefix(path, "~/.marubot") {
+				return filepath.Join(h, path[len("~/.marubot"):])
+			}
+			return h
+		}
 		home, _ := os.UserHomeDir()
 		if len(path) > 1 && path[1] == '/' {
 			return home + path[1:]

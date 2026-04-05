@@ -1,0 +1,5 @@
+Release v0.6.3
+
+- Go 네이티브 gobrowser 도구 통합 및 종합 검증 완료
+- 버전 정보 동기화 (pkg/config, main.go, package.json, README, IDENTITY.md)
+- 웹 관리자 UI 최신 빌드 자산 반영

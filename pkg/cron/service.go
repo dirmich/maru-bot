@@ -137,6 +137,7 @@ func (cs *CronService) checkJobs() {
 	for i := range cs.store.Jobs {
 		job := &cs.store.Jobs[i]
 		if job.Enabled && job.State.NextRunAtMS != nil && *job.State.NextRunAtMS <= now {
+			fmt.Printf("Cron: Job %s is due (next: %d, now: %d)\n", job.Name, *job.State.NextRunAtMS, now)
 			dueJobs = append(dueJobs, job)
 		}
 	}
@@ -156,6 +157,7 @@ func (cs *CronService) executeJob(job *CronJob) {
 
 	var err error
 	if cs.onJob != nil {
+		fmt.Printf("Cron: Executing job %s payload: %s\n", job.Name, job.Payload.Message)
 		_, err = cs.onJob(job)
 	}
 

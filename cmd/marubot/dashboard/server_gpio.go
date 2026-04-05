@@ -7,9 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
-
 	"github.com/dirmich/marubot/pkg/config"
 	"periph.io/x/conn/v3/gpio"
 	"periph.io/x/conn/v3/gpio/gpioreg"
@@ -47,9 +44,7 @@ func (s *Server) handleGpio(w http.ResponseWriter, r *http.Request) {
 		s.config.Hardware.GPIO.Pins = pins
 
 		// Save directly to main config.json
-		home, _ := os.UserHomeDir()
-		configPath := filepath.Join(home, ".marubot", "config.json")
-		if err := config.SaveConfig(configPath, s.config); err != nil {
+		if err := config.SaveConfig(s.configPath, s.config); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save config: %v", err), http.StatusInternalServerError)
 			return
 		}

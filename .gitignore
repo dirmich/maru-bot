@@ -25,7 +25,8 @@ yarn-error.log*
 .env
 .env.*
 ! .env.example
-dist/
+# web-admin/dist/ (Handled below)
+!cmd/marubot/dashboard/dist/
 build-admin/
 
 # Public Distribution folder
@@ -34,3 +35,6 @@ maru-bot/
 
 # Web Admin dist
 web-admin/dist/
+
+# Temporary files
+tmp/

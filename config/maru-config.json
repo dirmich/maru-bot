@@ -48,9 +48,14 @@
       "enabled": true,
       "token": "YOUR_TELEGRAM_BOT_TOKEN",
       "allow_from": []
+    },
+    "webhook": {
+      "enabled": true,
+      "port": 18791,
+      "path": "/api/channels/webhook"
     }
   },
   "tools": {
-    "enabled": ["shell", "filesystem", "web", "gpio", "camera"]
+    "enabled": ["shell", "filesystem", "web", "gpio", "camera", "ssh"]
   }
 }
