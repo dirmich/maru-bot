@@ -1,0 +1,10 @@
+//go:build !windows && !darwin && !linux
+package main
+
+import "syscall"
+
+func hideConsole() {}
+
+func getSysProcAttr() *syscall.SysProcAttr {
+	return nil
+}

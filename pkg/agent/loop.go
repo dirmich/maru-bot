@@ -36,6 +36,7 @@ type AgentLoop struct {
 	tools          *tools.ToolRegistry
 	version        string
 	config         *config.Config
+	channelManager bus.ChannelManager // Add this interface for channel tools
 	running        bool
 	mu             sync.RWMutex
 }
@@ -44,16 +45,20 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	workspace := cfg.WorkspacePath()
 	os.MkdirAll(workspace, 0755)
 
-	home, _ := os.UserHomeDir()
-	marubotHome := filepath.Join(home, ".marubot")
+	marubotHome := os.Getenv("MARUBOT_HOME")
+	if marubotHome == "" {
+		home, _ := os.UserHomeDir()
+		marubotHome = filepath.Join(home, ".marubot")
+	}
 
 	toolsRegistry := tools.NewToolRegistry()
 	toolsRegistry.Register(&tools.ReadFileTool{})
 	toolsRegistry.Register(&tools.WriteFileTool{})
 	toolsRegistry.Register(&tools.ListDirTool{})
-	configPath := filepath.Join(marubotHome, "config", "config.json")
+	configPath := filepath.Join(marubotHome, "config.json")
 	toolsRegistry.Register(tools.NewConfigTool(configPath, cfg))
 	toolsRegistry.Register(tools.NewExecTool(workspace))
+	toolsRegistry.Register(tools.NewSSHTool())
 
 	cronStorePath := filepath.Join(marubotHome, "cron", "jobs.json")
 	toolsRegistry.Register(tools.NewCronTool(cronStorePath))
@@ -94,6 +99,8 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	if cfg.GPS.Enabled {
 		toolsRegistry.Register(tools.NewGPSTool(cfg.GPS.Device, cfg.GPS.Baud))
 	}
+
+	toolsRegistry.Register(tools.NewBrowserTool())
 
 	// Ensure sessions directory is under .marubot
 	sessionsDir := filepath.Join(marubotHome, "sessions")
@@ -139,18 +146,46 @@ func (al *AgentLoop) SetProvider(p providers.LLMProvider) {
 	al.provider = p
 }
 
+func (al *AgentLoop) SetChannelManager(m bus.ChannelManager) {
+	al.mu.Lock()
+	defer al.mu.Unlock()
+	al.channelManager = m
+	
+	// Register channel-related tools once we have the manager
+	if al.tools != nil {
+		al.tools.Register(tools.NewChannelTool(m))
+	}
+}
+
 func (al *AgentLoop) Run(ctx context.Context) error {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.ErrorCF("agent", "Agent loop panicked", map[string]interface{}{"error": r})
+			// Restart loop if context is not done
+			if ctx.Err() == nil {
+				go al.Run(ctx)
+			}
+		}
+	}()
+
 	al.running = true
+	logger.InfoC("agent", "Agent loop started successfully")
 
 	for al.running {
 		select {
 		case <-ctx.Done():
+			logger.InfoC("agent", "Agent loop stopping (context done)")
 			return nil
 		default:
 			msg, ok := al.bus.ConsumeInbound(ctx)
 			if !ok {
 				continue
 			}
+			logger.InfoCF("agent", "Consuming inbound message", map[string]interface{}{
+				"channel": msg.Channel,
+				"sender":  msg.SenderID,
+				"session": msg.SessionKey,
+			})
 
 			response, err := al.processMessage(ctx, msg)
 			if err != nil {
@@ -158,11 +193,24 @@ func (al *AgentLoop) Run(ctx context.Context) error {
 			}
 
 			if response != "" {
-				al.bus.PublishOutbound(bus.OutboundMessage{
+				outMsg := bus.OutboundMessage{
 					Channel: msg.Channel,
 					ChatID:  msg.ChatID,
 					Content: response,
+				}
+				// Copy relevant metadata for threading (e.g. thread_ts for Slack)
+				if msg.Metadata != nil {
+					outMsg.Metadata = make(map[string]string)
+					for k, v := range msg.Metadata {
+						outMsg.Metadata[k] = v
+					}
+				}
+				logger.InfoCF("agent", "Publishing outbound message", map[string]interface{}{
+					"channel": outMsg.Channel,
+					"chatID":  outMsg.ChatID,
+					"content_len": len(outMsg.Content),
 				})
+				al.bus.PublishOutbound(outMsg)
 			}
 		}
 	}

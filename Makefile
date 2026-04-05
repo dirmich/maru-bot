@@ -11,7 +11,7 @@ VERSION?=$(shell git describe --tags --exact-match 2>/dev/null || echo "")
 # If VERSION is empty, main.go's harcoded version will be used because we'll conditionalize LDFLAGS
 BUILD_TIME=$(shell date +%FT%T%z)
 # Base LDFLAGS
-LDFLAGS_BASE=$(if $(VERSION),-X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME),-X main.buildTime=$(BUILD_TIME))
+LDFLAGS_BASE=$(if $(VERSION),-X main.Version=$(VERSION) -X main.buildTime=$(BUILD_TIME),-X main.buildTime=$(BUILD_TIME))
 # For Linux/Darwin (Console)
 LDFLAGS_CONSOLE=-ldflags "$(LDFLAGS_BASE)"
 # For Windows (GUI - to hide CMD window)
@@ -77,9 +77,22 @@ BINARY_PATH=$(BUILD_DIR)/$(BINARY_NAME)-$(PLATFORM)-$(ARCH)
 
 # internal helper to sync UI assets
 sync-ui:
-	@echo "Syncing web-admin assets..."
-	@mkdir -p cmd/marubot/dashboard/dist
-	@cp -rv web-admin/dist/* cmd/marubot/dashboard/dist/
+	@echo "Checking web-admin assets..."
+	@if [ -d "web-admin" ]; then \
+		echo "Building UI (Clean build)..."; \
+		cd web-admin && npm run build; \
+		echo "Syncing web-admin assets..."; \
+		rm -rf cmd/marubot/dashboard/dist; \
+		mkdir -p cmd/marubot/dashboard/dist; \
+		cp -rv web-admin/dist/* cmd/marubot/dashboard/dist/; \
+	else \
+		echo "Skipping UI build (source not found). Checking for pre-built assets..."; \
+		if [ ! -f "cmd/marubot/dashboard/dist/index.html" ]; then \
+			echo "Error: cmd/marubot/dashboard/dist/index.html is missing!"; \
+			exit 1; \
+		fi; \
+		echo "✓ Pre-built assets found in dashboard/dist"; \
+	fi
 
 ## build: Build the marubot binary for current platform
 build: sync-ui
