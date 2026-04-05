@@ -25,6 +25,17 @@
           "max_tool_iterations": 10
         }
       ]
+    },
+    "llamacpp": {
+      "models": [
+        {
+          "model": "local-model",
+          "api_key": "not-needed",
+          "api_base": "http://localhost:8080/v1",
+          "max_tokens": 2048,
+          "temperature": 0.7
+        }
+      ]
     }
   },
   "channels": {

@@ -94,8 +94,9 @@ type ProvidersConfig struct {
 	OpenRouter ProviderConfig `json:"openrouter"`
 	Groq       ProviderConfig `json:"groq"`
 	Zhipu      ProviderConfig `json:"zhipu"`
-	VLLM       ProviderConfig `json:"vllm"`
-	Gemini     ProviderConfig `json:"gemini"`
+	VLLM       ProviderConfig   `json:"vllm"`
+	Gemini     ProviderConfig   `json:"gemini"`
+	LlamaCPP   ProviderConfig   `json:"llamacpp"`
 	Ollama     []ProviderConfig `json:"ollama"`
 }
 
@@ -225,6 +226,9 @@ func DefaultConfig() *Config {
 			Gemini: ProviderConfig{
 				Models: []ModelConfig{},
 			},
+			LlamaCPP: ProviderConfig{
+				Models: []ModelConfig{},
+			},
 		},
 		Gateway: GatewayConfig{
 			Host: "0.0.0.0",
@@ -329,6 +333,7 @@ func LoadConfig(path string) (*Config, error) {
 		migrateProvider("zhipu", &cfg.Providers.Zhipu)
 		migrateProvider("vllm", &cfg.Providers.VLLM)
 		migrateProvider("gemini", &cfg.Providers.Gemini)
+		migrateProvider("llamacpp", &cfg.Providers.LlamaCPP)
 
 	} else if !os.IsNotExist(err) {
 		return nil, err
@@ -493,6 +498,7 @@ func (c *Config) Update(newCfg *Config) {
 	if len(newCfg.Providers.Zhipu.Models) > 0 || newCfg.Providers.Zhipu.APIKey != "" { c.Providers.Zhipu = newCfg.Providers.Zhipu }
 	if len(newCfg.Providers.Groq.Models) > 0 || newCfg.Providers.Groq.APIKey != "" { c.Providers.Groq = newCfg.Providers.Groq }
 	if len(newCfg.Providers.VLLM.Models) > 0 || newCfg.Providers.VLLM.APIKey != "" { c.Providers.VLLM = newCfg.Providers.VLLM }
+	if len(newCfg.Providers.LlamaCPP.Models) > 0 || newCfg.Providers.LlamaCPP.APIKey != "" { c.Providers.LlamaCPP = newCfg.Providers.LlamaCPP }
 	if len(newCfg.Providers.Ollama) > 0 { c.Providers.Ollama = newCfg.Providers.Ollama }
 
 	c.Gateway = newCfg.Gateway
@@ -582,6 +588,7 @@ func (c *Config) findModelConfig(providerName, modelName string) *ModelConfig {
 	case "zhipu": provider = c.Providers.Zhipu
 	case "vllm": provider = c.Providers.VLLM
 	case "gemini": provider = c.Providers.Gemini
+	case "llamacpp": provider = c.Providers.LlamaCPP
 	case "ollama":
 		// For Ollama, we search through the slice of providers
 		for _, p := range c.Providers.Ollama {
@@ -657,6 +664,7 @@ func (c *Config) IsAIConfigured() bool {
 		c.Providers.Zhipu,
 		c.Providers.Gemini,
 		c.Providers.VLLM,
+		c.Providers.LlamaCPP,
 	}
 	for _, p := range allProviders {
 		if len(p.Models) > 0 {
@@ -713,6 +721,8 @@ func GetDefaultBase(provider string) string {
 		return "https://openrouter.ai/api/v1"
 	case "vllm", "ollama":
 		return "http://localhost:11434/v1"
+	case "llamacpp":
+		return "http://localhost:8080/v1"
 	default:
 		return ""
 	}
