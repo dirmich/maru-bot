@@ -1,6 +1,11 @@
 # 🦞 MaruBot (마루 미니봇) 프로젝트 이력 (History)
 
 ## 2026-04-06
+### 0.6.5
+- **web-admin provider 노출 보강**: 설정 페이지의 provider 추가 목록에 `llamacpp`를 포함하고 기본 API Base를 `http://localhost:8080/v1`로 지정.
+- **llama.cpp 모델 조회 연결**: Web Admin의 `/api/config/fetch-models` 경로에서 `llamacpp`를 OpenAI 호환 provider로 처리하도록 확장.
+- **로컬 서버 설정 UX 개선**: `llamacpp`는 `ollama`와 동일하게 API Key 없이도 추가 및 모델 조회가 가능하도록 정리.
+
 ### 0.6.4
 - **llama.cpp 프로바이더 공식 지원 추가**: `llamacpp` 타입을 명시적으로 지원하여 로컬 LLM 서버 연동성 개선.
 - **도구 스키마 호환성 최적화**: `llama.cpp`의 엄격한 문법 변환기를 고려하여 `required` 및 `additionalProperties` 제약 조건을 자동으로 제거하는 스키마 단순화 로직 구현 (400 Bad Request 에러 해결).
