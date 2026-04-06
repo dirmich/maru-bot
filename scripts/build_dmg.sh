@@ -1,6 +1,16 @@
 #!/bin/bash
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SIGNING_ENV_FILE="${MARUBOT_SIGNING_ENV:-$REPO_ROOT/.env.signing}"
+
+if [ -z "$SIGNING_IDENTITY" ] && [ -f "$SIGNING_ENV_FILE" ]; then
+    echo "Loading signing environment from $SIGNING_ENV_FILE"
+    # shellcheck disable=SC1090
+    . "$SIGNING_ENV_FILE"
+fi
+
 ARCH=$1
 if [ -z "$ARCH" ]; then
     echo "Usage: $0 <amd64|arm64>"

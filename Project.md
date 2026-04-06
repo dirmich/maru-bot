@@ -2,6 +2,10 @@
 
 ## 2026-04-06
 ### 0.6.5
+- **릴리스 경로 안정화**: `Makefile`의 `sync-ui`가 `web-admin/dist`를 잘못 참조하던 문제를 수정하여 `make public`이 UI 동기화 단계에서 중단되지 않도록 개선.
+- **macOS 서명 환경 자동 로드**: `scripts/build_dmg.sh`가 기본적으로 `.env.signing`을 읽어 `SIGNING_IDENTITY`, `AC_APPLE_ID`, `AC_PASSWORD`, `AC_TEAM_ID`를 자동으로 로드하도록 정리.
+- **키체인 승인 가이드 문서화**: macOS 서명 실패(`errSecInternalComponent`) 대응을 위해 개인키 접근 승인 절차를 `docs/macos-keychain-signing-access.md`로 문서화.
+- **공개 릴리스 자산 재업로드**: Web Admin 재빌드 후 Windows 실행 파일과 macOS DMG를 다시 생성하여 `maru-bot` 공개 릴리스 `0.6.5` 자산을 최신 상태로 갱신.
 - **web-admin provider 노출 보강**: 설정 페이지의 provider 추가 목록에 `llamacpp`를 포함하고 기본 API Base를 `http://localhost:8080/v1`로 지정.
 - **llama.cpp 모델 조회 연결**: Web Admin의 `/api/config/fetch-models` 경로에서 `llamacpp`를 OpenAI 호환 provider로 처리하도록 확장.
 - **로컬 서버 설정 UX 개선**: `llamacpp`는 `ollama`와 동일하게 API Key 없이도 추가 및 모델 조회가 가능하도록 정리.
