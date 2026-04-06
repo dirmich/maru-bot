@@ -290,12 +290,33 @@ export function SettingsPage() {
         return groups;
     }, [config]);
 
+    const modelOptions = useMemo(
+        () => groupedModels.flatMap((group) => group.models.map((model: any) => ({
+            ...model,
+            provider: group.provider,
+        }))),
+        [groupedModels]
+    );
+
     const currentModelValue = useMemo(() => {
-        const provider = config?.agents?.defaults?.provider;
-        const model = config?.agents?.defaults?.model;
-        if (!provider || !model) return '';
-        return makeModelValue(provider, model);
-    }, [config]);
+        const provider = config?.agents?.defaults?.provider || '';
+        const model = config?.agents?.defaults?.model || '';
+        if (!model) return '';
+
+        if (provider) {
+            const explicitValue = makeModelValue(provider, model);
+            if (modelOptions.some((option: any) => option.value === explicitValue)) {
+                return explicitValue;
+            }
+        }
+
+        const legacyMatches = modelOptions.filter((option: any) => option.name === model);
+        if (legacyMatches.length === 1) {
+            return legacyMatches[0].value;
+        }
+
+        return provider ? makeModelValue(provider, model) : '';
+    }, [config, modelOptions]);
 
     const fallbackOptions = useMemo(() => {
         const primaryValue = currentModelValue;
@@ -321,6 +342,18 @@ export function SettingsPage() {
             selected.add(value);
         }
         updateConfig(['agents', 'defaults', 'fallback_models'], Array.from(selected));
+    };
+
+    const setPrimaryModel = (value: string) => {
+        const parsed = parseModelValue(value);
+        setConfig((prev: any) => {
+            const newConfig = JSON.parse(JSON.stringify(prev));
+            newConfig.agents.defaults.provider = parsed.provider;
+            newConfig.agents.defaults.model = parsed.model;
+            newConfig.agents.defaults.fallback_models = (newConfig.agents.defaults.fallback_models || [])
+                .filter((entry: string) => entry !== value && entry !== parsed.model);
+            return newConfig;
+        });
     };
 
     if (!config) return <div className="p-12 flex justify-center"><RefreshCw className="animate-spin text-blue-500" /></div>;
@@ -493,15 +526,7 @@ export function SettingsPage() {
                                 <label className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">{t.settings_model}</label>
                                 <Select 
                                     value={currentModelValue} 
-                                    onValueChange={(v) => {
-                                        const parsed = parseModelValue(v);
-                                        const newConfig = JSON.parse(JSON.stringify(config));
-                                        newConfig.agents.defaults.provider = parsed.provider;
-                                        newConfig.agents.defaults.model = parsed.model;
-                                        newConfig.agents.defaults.fallback_models = (newConfig.agents.defaults.fallback_models || [])
-                                            .filter((entry: string) => entry !== v);
-                                        setConfig(newConfig);
-                                    }}
+                                    onValueChange={setPrimaryModel}
                                 >
                                     <SelectTrigger className="h-11 shadow-inner bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
                                         <SelectValue placeholder="Select a model" />
@@ -555,7 +580,12 @@ export function SettingsPage() {
                                                     <div className="text-[10px] uppercase tracking-widest text-slate-500">{option.providerLabel}</div>
                                                     <div className="text-[11px] text-slate-400 mt-1 font-mono">{option.value}</div>
                                                 </div>
-                                                <Switch checked={selected} disabled />
+                                                <Switch
+                                                    checked={selected}
+                                                    onCheckedChange={() => toggleFallbackModel(option.value)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    aria-label={`Toggle fallback model ${option.value}`}
+                                                />
                                             </div>
                                         </button>
                                     );

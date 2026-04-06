@@ -1,6 +1,11 @@
 # 🦞 MaruBot (마루 미니봇) 프로젝트 이력 (History)
 
 ## 2026-04-06
+### 0.6.7
+- **Settings 모델 선택 보정**: 메인 에이전트 모델 선택 시 `agents.defaults.provider`와 `agents.defaults.model`이 항상 함께 저장되도록 UI 저장 경로를 정리.
+- **중복 모델명 복원 개선**: 같은 모델명이 여러 provider에 있을 때도 현재 설정값을 `provider::model` 기준으로 정확히 복원하도록 선택값 해석 로직을 보강.
+- **Fallback 스위치 동작 수정**: `Fallback Models` 항목의 스위치가 실제로 enable/disable 되도록 수정하고, 메인 모델과 중복되는 fallback 항목은 자동으로 정리.
+
 ### 0.6.6
 - **Provider 활성화 스위치 추가**: 각 LLM provider와 Ollama 인스턴스를 개별적으로 enable/disable 할 수 있도록 설정 구조와 Web Admin UI를 확장.
 - **Fallback 모델 식별자 명확화**: `agents.defaults.fallback_models`를 `provider::model` 형식으로 저장하도록 변경하여 provider와 모델의 대응 관계를 명시.

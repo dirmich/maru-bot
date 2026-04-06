@@ -1,4 +1,4 @@
-# MaruBot - Ultra-light AI Agent (0.6.6) 🦞
+# MaruBot - Ultra-light AI Agent (0.6.7) 🦞
 
 **MaruBot** is an ultra-lightweight, Physical AI agent designed for extreme efficiency, capable of running in an environment with just **10MB of memory (RAM)**. It supports ranging from Raspberry Pi to generic Linux servers and Windows PCs. Equipped with a 'Self-Evolution' engine that expands its own capabilities, it is the smartest personal assistant.
 
