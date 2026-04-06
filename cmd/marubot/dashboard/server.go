@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"mime"
 	"net/http"
 	"os"
 	"os/exec"
-	"mime"
 	"path/filepath"
 	"strings"
 	"time"
@@ -115,7 +115,7 @@ func (s *Server) Start() error {
 				if contentType := mime.TypeByExtension(ext); contentType != "" {
 					w.Header().Set("Content-Type", contentType)
 				}
-				
+
 				// Add cache control for hashed assets
 				if strings.Contains(cleanPath, "assets/") {
 					w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
@@ -414,7 +414,6 @@ func (s *Server) handleSkills(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-
 func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -460,7 +459,7 @@ func (s *Server) handleSystemStats(w http.ResponseWriter, r *http.Request) {
 
 	stats["is_ai_configured"] = s.config.IsAIConfigured()
 	stats["is_channel_configured"] = s.config.IsChannelEnabled()
-	
+
 	// User config override takes precedence, otherwise use platform detection (considering test mode)
 	if s.config.Hardware.IsRaspberryPi != nil {
 		stats["is_raspberry_pi"] = *s.config.Hardware.IsRaspberryPi
@@ -518,7 +517,7 @@ func (s *Server) handleFetchModels(w http.ResponseWriter, r *http.Request) {
 	}
 
 	provider := strings.ToLower(req.Provider)
-	if req.APIKey == "" && provider != "ollama" {
+	if req.APIKey == "" && provider != "ollama" && provider != "llamacpp" {
 		http.Error(w, "API Key is required", http.StatusBadRequest)
 		return
 	}
@@ -529,9 +528,8 @@ func (s *Server) handleFetchModels(w http.ResponseWriter, r *http.Request) {
 	var models []string
 	var err error
 
-
 	switch provider {
-	case "openai", "groq", "openrouter", "vllm":
+	case "openai", "groq", "openrouter", "vllm", "llamacpp":
 		models, err = s.fetchOpenAIModels(ctx, req.APIKey, req.APIBase, provider)
 	case "gemini":
 		models, err = s.fetchGeminiModels(ctx, req.APIKey)
@@ -559,9 +557,14 @@ func (s *Server) fetchOpenAIModels(ctx context.Context, apiKey, apiBase, provide
 	baseUrl := apiBase
 	if baseUrl == "" {
 		switch provider {
-		case "openai": baseUrl = "https://api.openai.com/v1"
-		case "groq": baseUrl = "https://api.groq.com/openai/v1"
-		case "openrouter": baseUrl = "https://openrouter.ai/api/v1"
+		case "openai":
+			baseUrl = "https://api.openai.com/v1"
+		case "groq":
+			baseUrl = "https://api.groq.com/openai/v1"
+		case "openrouter":
+			baseUrl = "https://openrouter.ai/api/v1"
+		case "llamacpp":
+			baseUrl = "http://localhost:8080/v1"
 		}
 	}
 
@@ -569,7 +572,9 @@ func (s *Server) fetchOpenAIModels(ctx context.Context, apiKey, apiBase, provide
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+apiKey)
+	if apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

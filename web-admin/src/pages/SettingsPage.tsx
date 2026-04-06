@@ -102,7 +102,15 @@ export function SettingsPage() {
         } else if (config.providers[name] && !Array.isArray(config.providers[name])) {
              setTempProvider(config.providers[name]);
         } else {
-             setTempProvider({ api_key: '', api_base: name === 'ollama' ? 'http://localhost:11434' : '', models: [] });
+             setTempProvider({
+                api_key: '',
+                api_base: name === 'ollama'
+                    ? 'http://localhost:11434'
+                    : name === 'llamacpp'
+                        ? 'http://localhost:8080/v1'
+                        : '',
+                models: []
+            });
         }
         setIsAddProviderOpen(true);
     };
@@ -140,6 +148,9 @@ export function SettingsPage() {
     const fetchModelsForTemp = async () => {
         if (!tempProvider.api_base && addingProvider?.name === 'ollama') {
             tempProvider.api_base = 'http://localhost:11434';
+        }
+        if (!tempProvider.api_base && addingProvider?.name === 'llamacpp') {
+            tempProvider.api_base = 'http://localhost:8080/v1';
         }
         
         setFetchingModels(prev => ({ ...prev, temp: true }));
@@ -251,7 +262,7 @@ export function SettingsPage() {
                                 <SelectValue placeholder="Add Provider" />
                             </SelectTrigger>
                             <SelectContent>
-                                {['openai', 'anthropic', 'gemini', 'openrouter', 'groq', 'zhipu', 'vllm'].map(p => (
+                                {['openai', 'anthropic', 'gemini', 'openrouter', 'groq', 'zhipu', 'vllm', 'llamacpp'].map(p => (
                                     <SelectItem key={p} value={p} className="uppercase font-bold">{p}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -566,7 +577,7 @@ export function SettingsPage() {
                         </div>
 
                         <div className="space-y-4">
-                            {addingProvider?.name !== 'ollama' && (
+                            {addingProvider?.name !== 'ollama' && addingProvider?.name !== 'llamacpp' && (
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">API Key</label>
                                     <Input 
