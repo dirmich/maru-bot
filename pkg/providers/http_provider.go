@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/dirmich/marubot/pkg/config"
@@ -189,9 +190,60 @@ func (p *HTTPProvider) GetDefaultModel() string {
 	return ""
 }
 
+func splitProviderModelRef(ref string) (string, string, bool) {
+	parts := strings.SplitN(ref, "::", 2)
+	if len(parts) != 2 {
+		return "", "", false
+	}
+	return parts[0], parts[1], true
+}
+
+func parseProviderRef(providerName string) (string, *int) {
+	lower := strings.ToLower(strings.TrimSpace(providerName))
+	if strings.HasPrefix(lower, "ollama#") {
+		if idx, err := strconv.Atoi(strings.TrimPrefix(lower, "ollama#")); err == nil {
+			return "ollama", &idx
+		}
+	}
+	return lower, nil
+}
+
+func providerEnabled(providerName string, cfg *config.Config) bool {
+	base, idx := parseProviderRef(providerName)
+	switch base {
+	case "anthropic":
+		return cfg.Providers.Anthropic.Enabled
+	case "openai":
+		return cfg.Providers.OpenAI.Enabled
+	case "openrouter":
+		return cfg.Providers.OpenRouter.Enabled
+	case "groq":
+		return cfg.Providers.Groq.Enabled
+	case "zhipu":
+		return cfg.Providers.Zhipu.Enabled
+	case "vllm":
+		return cfg.Providers.VLLM.Enabled
+	case "gemini":
+		return cfg.Providers.Gemini.Enabled
+	case "llamacpp":
+		return cfg.Providers.LlamaCPP.Enabled
+	case "ollama":
+		if idx != nil && *idx >= 0 && *idx < len(cfg.Providers.Ollama) {
+			return cfg.Providers.Ollama[*idx].Enabled
+		}
+		for _, p := range cfg.Providers.Ollama {
+			if p.Enabled {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func findModelConfig(providerName, modelName string, cfg *config.Config) (*config.ModelConfig, error) {
+	baseProvider, idx := parseProviderRef(providerName)
 	var provider config.ProviderConfig
-	switch strings.ToLower(providerName) {
+	switch baseProvider {
 	case "anthropic":
 		provider = cfg.Providers.Anthropic
 	case "openai":
@@ -209,6 +261,17 @@ func findModelConfig(providerName, modelName string, cfg *config.Config) (*confi
 	case "llamacpp":
 		provider = cfg.Providers.LlamaCPP
 	case "ollama":
+		if idx != nil {
+			if *idx < 0 || *idx >= len(cfg.Providers.Ollama) {
+				return nil, fmt.Errorf("ollama provider index %d out of range", *idx)
+			}
+			for _, m := range cfg.Providers.Ollama[*idx].Models {
+				if strings.EqualFold(m.Model, modelName) {
+					return &m, nil
+				}
+			}
+			return nil, fmt.Errorf("model %s not found in provider %s", modelName, providerName)
+		}
 		for _, p := range cfg.Providers.Ollama {
 			for _, m := range p.Models {
 				if strings.EqualFold(m.Model, modelName) {
@@ -230,12 +293,17 @@ func findModelConfig(providerName, modelName string, cfg *config.Config) (*confi
 	return nil, fmt.Errorf("model %s not found in provider %s", modelName, providerName)
 }
 
-func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error) {
-	// If explicit provider is specified in Agents.Defaults, use it
-	if cfg.Agents.Defaults.Provider != "" && strings.EqualFold(cfg.Agents.Defaults.Model, model) {
-		mCfg, err := findModelConfig(cfg.Agents.Defaults.Provider, model, cfg)
+func createSingleProvider(providerName, model string, cfg *config.Config) (LLMProvider, error) {
+	// If explicit provider is specified, use it first.
+	if providerName != "" {
+		mCfg, err := findModelConfig(providerName, model, cfg)
 		if err == nil {
-			return NewHTTPProvider(mCfg.APIKey, mCfg.APIBase, strings.ToLower(cfg.Agents.Defaults.Provider)), nil
+			apiBase := mCfg.APIBase
+			if apiBase == "" {
+				apiBase = config.GetDefaultBase(parseProviderOnly(providerName))
+			}
+			baseProvider, _ := parseProviderRef(providerName)
+			return NewHTTPProvider(mCfg.APIKey, apiBase, baseProvider), nil
 		}
 	}
 
@@ -255,6 +323,12 @@ func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error)
 	}
 
 	for _, p := range providersList {
+		if providerName == "" && !p.cfg.Enabled {
+			continue
+		}
+		if providerName != "" && p.name != parseProviderOnly(providerName) {
+			continue
+		}
 		for _, m := range p.cfg.Models {
 			if strings.EqualFold(m.Model, model) {
 				apiKey := m.APIKey
@@ -268,7 +342,19 @@ func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error)
 	}
 
 	// Search in Ollama list
-	for _, p := range cfg.Providers.Ollama {
+	for i, p := range cfg.Providers.Ollama {
+		if providerName == "" && !p.Enabled {
+			continue
+		}
+		if providerName != "" {
+			baseProvider, idx := parseProviderRef(providerName)
+			if baseProvider != "ollama" {
+				continue
+			}
+			if idx != nil && *idx != i {
+				continue
+			}
+		}
 		for _, m := range p.Models {
 			if strings.EqualFold(m.Model, model) {
 				return NewHTTPProvider(m.APIKey, m.APIBase, "ollama"), nil
@@ -299,6 +385,11 @@ func createSingleProvider(model string, cfg *config.Config) (LLMProvider, error)
 	}
 
 	return nil, fmt.Errorf("no configuration found for model: %s", model)
+}
+
+func parseProviderOnly(providerName string) string {
+	baseProvider, _ := parseProviderRef(providerName)
+	return baseProvider
 }
 
 type fallbackEntry struct {
@@ -351,21 +442,21 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 		if err == nil {
 			apiBase := mCfg.APIBase
 			if apiBase == "" {
-				apiBase = config.GetDefaultBase(primaryProviderName)
+				apiBase = config.GetDefaultBase(parseProviderOnly(primaryProviderName))
 			}
-			primaryProvider = NewHTTPProvider(mCfg.APIKey, apiBase, primaryProviderName)
+			primaryProvider = NewHTTPProvider(mCfg.APIKey, apiBase, parseProviderOnly(primaryProviderName))
 		} else {
 			// If provider is explicitly specified but model configuration not found,
 			// still attempt to use that provider with its default base.
-			apiBase := config.GetDefaultBase(primaryProviderName)
+			apiBase := config.GetDefaultBase(parseProviderOnly(primaryProviderName))
 			if apiBase != "" {
-				primaryProvider = NewHTTPProvider("", apiBase, primaryProviderName)
+				primaryProvider = NewHTTPProvider("", apiBase, parseProviderOnly(primaryProviderName))
 			}
 		}
 	}
 
 	if primaryProvider == nil {
-		primaryProvider, err = createSingleProvider(primaryModel, cfg)
+		primaryProvider, err = createSingleProvider(primaryProviderName, primaryModel, cfg)
 	}
 
 	fallback := &FallbackProvider{entries: make([]fallbackEntry, 0)}
@@ -376,13 +467,24 @@ func CreateProvider(cfg *config.Config) (LLMProvider, error) {
 
 	// Use configured fallback models if available
 	if len(cfg.Agents.Defaults.FallbackModels) > 0 {
-		for _, m := range cfg.Agents.Defaults.FallbackModels {
-			// Avoid adding the same model as primary
-			if strings.EqualFold(m, primaryModel) {
+		for _, entry := range cfg.Agents.Defaults.FallbackModels {
+			fallbackProviderName, fallbackModel, ok := splitProviderModelRef(entry)
+			if !ok {
+				// Backward compatibility for legacy model-only entries.
+				fallbackProviderName = ""
+				fallbackModel = entry
+			}
+
+			if fallbackProviderName != "" && !providerEnabled(fallbackProviderName, cfg) {
 				continue
 			}
-			if p, _ := createSingleProvider(m, cfg); p != nil {
-				fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: m})
+
+			// Avoid adding the same model as primary
+			if strings.EqualFold(fallbackModel, primaryModel) && strings.EqualFold(parseProviderOnly(fallbackProviderName), parseProviderOnly(primaryProviderName)) {
+				continue
+			}
+			if p, _ := createSingleProvider(fallbackProviderName, fallbackModel, cfg); p != nil {
+				fallback.entries = append(fallback.entries, fallbackEntry{provider: p, model: fallbackModel})
 			}
 		}
 	}

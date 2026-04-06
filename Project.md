@@ -1,6 +1,12 @@
 # 🦞 MaruBot (마루 미니봇) 프로젝트 이력 (History)
 
 ## 2026-04-06
+### 0.6.6
+- **Provider 활성화 스위치 추가**: 각 LLM provider와 Ollama 인스턴스를 개별적으로 enable/disable 할 수 있도록 설정 구조와 Web Admin UI를 확장.
+- **Fallback 모델 식별자 명확화**: `agents.defaults.fallback_models`를 `provider::model` 형식으로 저장하도록 변경하여 provider와 모델의 대응 관계를 명시.
+- **기본 모델 provider 저장 수정**: Settings에서 모델 선택 시 `agents.defaults.provider`와 `agents.defaults.model`이 함께 정확히 저장되도록 보강.
+- **Publish 규칙 강화**: `publish` 요청 시 version up, web-admin build, binary build, `../maru-bot` 동기화, 두 저장소 commit/push를 자동 수행하도록 규칙 문서에 명시.
+
 ### 0.6.5
 - **릴리스 경로 안정화**: `Makefile`의 `sync-ui`가 `web-admin/dist`를 잘못 참조하던 문제를 수정하여 `make public`이 UI 동기화 단계에서 중단되지 않도록 개선.
 - **macOS 서명 환경 자동 로드**: `scripts/build_dmg.sh`가 기본적으로 `.env.signing`을 읽어 `SIGNING_IDENTITY`, `AC_APPLE_ID`, `AC_PASSWORD`, `AC_TEAM_ID`를 자동으로 로드하도록 정리.

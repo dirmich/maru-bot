@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { authenticatedFetch } from "@/lib/auth";
 import { Language, useLanguageStore, useTranslation } from "@/lib/i18n";
 import { Cpu, ExternalLink, Globe, HelpCircle, Languages, MessageSquare, Monitor, Moon, Plus, RefreshCw, Send, Settings, ShieldCheck, Sun, Trash2, Wrench } from 'lucide-react';
@@ -95,6 +96,31 @@ export function SettingsPage() {
         setConfig(newConfig);
     };
 
+    const providerLabel = (provider: string) => provider.startsWith('ollama#') ? provider.replace('#', ' #') : provider;
+    const makeModelValue = (provider: string, model: string) => `${provider}::${model}`;
+    const parseModelValue = (value: string) => {
+        const [provider, model] = value.split('::');
+        return { provider, model };
+    };
+
+    const toggleProviderEnabled = (name: string, enabled: boolean, index?: number) => {
+        const newConfig = JSON.parse(JSON.stringify(config));
+        if (name === 'ollama' && index !== undefined) {
+            if (!newConfig.providers.ollama[index]) return;
+            newConfig.providers.ollama[index].enabled = enabled;
+        } else if (newConfig.providers[name]) {
+            newConfig.providers[name].enabled = enabled;
+        }
+
+        if (!enabled) {
+            const providerRef = index !== undefined ? `${name}#${index}` : name;
+            newConfig.agents.defaults.fallback_models = (newConfig.agents.defaults.fallback_models || [])
+                .filter((entry: string) => !entry.startsWith(`${providerRef}::`));
+        }
+
+        setConfig(newConfig);
+    };
+
     const openAddProvider = (name: string, index?: number) => {
         setAddingProvider({ name, index });
         if (name === 'ollama' && index !== undefined) {
@@ -103,6 +129,7 @@ export function SettingsPage() {
              setTempProvider(config.providers[name]);
         } else {
              setTempProvider({
+                enabled: true,
                 api_key: '',
                 api_base: name === 'ollama'
                     ? 'http://localhost:11434'
@@ -200,19 +227,62 @@ export function SettingsPage() {
                     if (p?.models?.length > 0) {
                         groups.push({
                             provider: `ollama#${idx}`,
-                            models: p.models.map((m: any) => m.model)
+                            label: providerLabel(`ollama#${idx}`),
+                            enabled: p.enabled !== false,
+                            models: p.models.map((m: any) => ({
+                                name: m.model,
+                                value: makeModelValue(`ollama#${idx}`, m.model),
+                            }))
                         });
                     }
                 });
             } else if (prov?.models?.length > 0) {
                 groups.push({
                     provider: name,
-                    models: prov.models.map((m: any) => m.model)
+                    label: providerLabel(name),
+                    enabled: prov.enabled !== false,
+                    models: prov.models.map((m: any) => ({
+                        name: m.model,
+                        value: makeModelValue(name, m.model),
+                    }))
                 });
             }
         });
         return groups;
     }, [config]);
+
+    const currentModelValue = useMemo(() => {
+        const provider = config?.agents?.defaults?.provider;
+        const model = config?.agents?.defaults?.model;
+        if (!provider || !model) return '';
+        return makeModelValue(provider, model);
+    }, [config]);
+
+    const fallbackOptions = useMemo(() => {
+        const primaryValue = currentModelValue;
+        return groupedModels
+            .filter((group) => group.enabled)
+            .flatMap((group) =>
+                group.models
+                    .filter((model: any) => model.value !== primaryValue)
+                    .map((model: any) => ({
+                        provider: group.provider,
+                        providerLabel: group.label,
+                        name: model.name,
+                        value: model.value,
+                    }))
+            );
+    }, [groupedModels, currentModelValue]);
+
+    const toggleFallbackModel = (value: string) => {
+        const selected = new Set(config.agents?.defaults?.fallback_models || []);
+        if (selected.has(value)) {
+            selected.delete(value);
+        } else {
+            selected.add(value);
+        }
+        updateConfig(['agents', 'defaults', 'fallback_models'], Array.from(selected));
+    };
 
     if (!config) return <div className="p-12 flex justify-center"><RefreshCw className="animate-spin text-blue-500" /></div>;
 
@@ -289,13 +359,22 @@ export function SettingsPage() {
                                                 <div className="w-2 h-6 bg-indigo-500 rounded-full"></div>
                                                 <span className="font-black uppercase text-sm tracking-widest">{name}</span>
                                             </div>
-                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-2 text-[10px] uppercase font-black tracking-widest text-slate-400">
+                                                    <span>{prov.enabled !== false ? 'Enabled' : 'Disabled'}</span>
+                                                    <Switch
+                                                        checked={prov.enabled !== false}
+                                                        onCheckedChange={(checked) => toggleProviderEnabled(name, checked)}
+                                                    />
+                                                </div>
+                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-indigo-400" onClick={() => openAddProvider(name)}>
                                                     <Settings className="w-4 h-4" />
                                                 </Button>
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-400" onClick={() => deleteProvider(name)}>
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="text-xs text-slate-400 space-y-1">
@@ -325,13 +404,22 @@ export function SettingsPage() {
                                             <div className="w-2 h-6 bg-orange-500 rounded-full"></div>
                                             <span className="font-black uppercase text-sm tracking-widest">Ollama #{idx}</span>
                                         </div>
-                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-2 text-[10px] uppercase font-black tracking-widest text-slate-400">
+                                                <span>{prov.enabled !== false ? 'Enabled' : 'Disabled'}</span>
+                                                <Switch
+                                                    checked={prov.enabled !== false}
+                                                    onCheckedChange={(checked) => toggleProviderEnabled('ollama', checked, idx)}
+                                                />
+                                            </div>
+                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-orange-400" onClick={() => openAddProvider('ollama', idx)}>
                                                 <Settings className="w-4 h-4" />
                                             </Button>
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-rose-400" onClick={() => deleteProvider('ollama', idx)}>
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="text-xs text-slate-400 space-y-1">
@@ -365,14 +453,15 @@ export function SettingsPage() {
                             <div className="space-y-3">
                                 <label className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">{t.settings_model}</label>
                                 <Select 
-                                    value={config.agents?.defaults?.model || ''} 
+                                    value={currentModelValue} 
                                     onValueChange={(v) => {
-                                        // Find provider for this model
-                                        const group = groupedModels.find(g => g.models.includes(v));
-                                        if (group) {
-                                            updateConfig(['agents', 'defaults', 'provider'], group.provider);
-                                        }
-                                        updateConfig(['agents', 'defaults', 'model'], v);
+                                        const parsed = parseModelValue(v);
+                                        updateConfig(['agents', 'defaults', 'provider'], parsed.provider);
+                                        updateConfig(['agents', 'defaults', 'model'], parsed.model);
+                                        updateConfig(
+                                            ['agents', 'defaults', 'fallback_models'],
+                                            (config.agents?.defaults?.fallback_models || []).filter((entry: string) => entry !== v)
+                                        );
                                     }}
                                 >
                                     <SelectTrigger className="h-11 shadow-inner bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
@@ -381,9 +470,9 @@ export function SettingsPage() {
                                     <SelectContent>
                                         {groupedModels.map((group) => (
                                             <SelectGroup key={group.provider}>
-                                                <SelectLabel className="uppercase text-[10px] font-black text-slate-400 tracking-widest px-2 py-1.5">{group.provider}</SelectLabel>
-                                                {group.models.map((m: string) => (
-                                                    <SelectItem key={m} value={m} className="font-medium">{m}</SelectItem>
+                                                <SelectLabel className="uppercase text-[10px] font-black text-slate-400 tracking-widest px-2 py-1.5">{group.label}</SelectLabel>
+                                                {group.models.map((m: any) => (
+                                                    <SelectItem key={m.value} value={m.value} className="font-medium">{m.name}</SelectItem>
                                                 ))}
                                             </SelectGroup>
                                         ))}
@@ -397,6 +486,41 @@ export function SettingsPage() {
                                     value={config.agents?.defaults?.workspace || ''}
                                     onChange={(e) => updateConfig(['agents', 'defaults', 'workspace'], e.target.value)}
                                 />
+                            </div>
+                        </div>
+
+                        <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-sm font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">Fallback Models</label>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                    Enabled provider만 fallback 대상으로 사용합니다. 저장 형식은 `provider::model`입니다.
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {fallbackOptions.map((option) => {
+                                    const selected = (config.agents?.defaults?.fallback_models || []).includes(option.value);
+                                    return (
+                                        <button
+                                            key={option.value}
+                                            type="button"
+                                            onClick={() => toggleFallbackModel(option.value)}
+                                            className={`rounded-2xl border p-4 text-left transition-all ${
+                                                selected
+                                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20 shadow-md'
+                                                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div>
+                                                    <div className="font-bold text-sm text-slate-900 dark:text-slate-100">{option.name}</div>
+                                                    <div className="text-[10px] uppercase tracking-widest text-slate-500">{option.providerLabel}</div>
+                                                    <div className="text-[11px] text-slate-400 mt-1 font-mono">{option.value}</div>
+                                                </div>
+                                                <Switch checked={selected} disabled />
+                                            </div>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
 
@@ -577,6 +701,16 @@ export function SettingsPage() {
                         </div>
 
                         <div className="space-y-4">
+                            <div className="flex items-center justify-between rounded-2xl bg-slate-100 dark:bg-slate-800/60 p-4">
+                                <div>
+                                    <div className="text-sm font-black uppercase tracking-widest text-slate-700 dark:text-slate-200">Provider Enabled</div>
+                                    <div className="text-xs text-slate-500">Disabled provider는 fallback 대상에서 제외됩니다.</div>
+                                </div>
+                                <Switch
+                                    checked={tempProvider.enabled !== false}
+                                    onCheckedChange={(checked) => setTempProvider({ ...tempProvider, enabled: checked })}
+                                />
+                            </div>
                             {addingProvider?.name !== 'ollama' && addingProvider?.name !== 'llamacpp' && (
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">API Key</label>
