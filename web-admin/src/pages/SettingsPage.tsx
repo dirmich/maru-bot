@@ -99,8 +99,34 @@ export function SettingsPage() {
     const providerLabel = (provider: string) => provider.startsWith('ollama#') ? provider.replace('#', ' #') : provider;
     const makeModelValue = (provider: string, model: string) => `${provider}::${model}`;
     const parseModelValue = (value: string) => {
-        const [provider, model] = value.split('::');
+        if (!value.includes('::')) {
+            return { provider: '', model: value };
+        }
+        const [provider, ...modelParts] = value.split('::');
+        const model = modelParts.join('::');
         return { provider, model };
+    };
+
+    const resetAgentProviderRefs = (cfg: any, predicate: (provider: string) => boolean, mapper?: (provider: string) => string) => {
+        const currentProvider = cfg.agents?.defaults?.provider || '';
+        if (predicate(currentProvider)) {
+            const mapped = mapper ? mapper(currentProvider) : '';
+            if (mapped) {
+                cfg.agents.defaults.provider = mapped;
+            } else {
+                cfg.agents.defaults.provider = '';
+                cfg.agents.defaults.model = '';
+            }
+        }
+
+        cfg.agents.defaults.fallback_models = (cfg.agents?.defaults?.fallback_models || [])
+            .map((entry: string) => {
+                const parsed = parseModelValue(entry);
+                if (!predicate(parsed.provider)) return entry;
+                const mapped = mapper ? mapper(parsed.provider) : '';
+                return mapped ? makeModelValue(mapped, parsed.model) : '';
+            })
+            .filter(Boolean);
     };
 
     const toggleProviderEnabled = (name: string, enabled: boolean, index?: number) => {
@@ -143,7 +169,7 @@ export function SettingsPage() {
     };
 
     const confirmAddProvider = () => {
-        const newConfig = { ...config };
+        const newConfig = JSON.parse(JSON.stringify(config));
         if (addingProvider?.name === 'ollama') {
             if (addingProvider.index !== undefined) {
                 newConfig.providers.ollama[addingProvider.index] = tempProvider;
@@ -159,15 +185,28 @@ export function SettingsPage() {
     };
 
     const deleteProvider = (name: string, index?: number) => {
-        const newConfig = { ...config };
+        const newConfig = JSON.parse(JSON.stringify(config));
         if (name === 'ollama') {
             if (Array.isArray(newConfig.providers.ollama) && newConfig.providers.ollama.length > 1) {
                 newConfig.providers.ollama = newConfig.providers.ollama.filter((_: any, i: number) => i !== index);
+                if (index !== undefined) {
+                    resetAgentProviderRefs(
+                        newConfig,
+                        (provider) => provider === `ollama#${index}` || /^ollama#\d+$/.test(provider) && Number(provider.split('#')[1]) > index,
+                        (provider) => {
+                            if (provider === `ollama#${index}`) return '';
+                            const currentIndex = Number(provider.split('#')[1]);
+                            return `ollama#${currentIndex - 1}`;
+                        }
+                    );
+                }
             } else {
-                newConfig.providers.ollama = [{ api_key: '', api_base: '', models: [] }];
+                newConfig.providers.ollama = [{ enabled: false, api_key: '', api_base: '', models: [] }];
+                resetAgentProviderRefs(newConfig, (provider) => provider.startsWith('ollama'));
             }
         } else {
-            newConfig.providers[name] = { api_key: '', api_base: '', models: [] };
+            newConfig.providers[name] = { enabled: false, api_key: '', api_base: '', models: [] };
+            resetAgentProviderRefs(newConfig, (provider) => provider === name);
         }
         setConfig(newConfig);
     };
@@ -456,12 +495,12 @@ export function SettingsPage() {
                                     value={currentModelValue} 
                                     onValueChange={(v) => {
                                         const parsed = parseModelValue(v);
-                                        updateConfig(['agents', 'defaults', 'provider'], parsed.provider);
-                                        updateConfig(['agents', 'defaults', 'model'], parsed.model);
-                                        updateConfig(
-                                            ['agents', 'defaults', 'fallback_models'],
-                                            (config.agents?.defaults?.fallback_models || []).filter((entry: string) => entry !== v)
-                                        );
+                                        const newConfig = JSON.parse(JSON.stringify(config));
+                                        newConfig.agents.defaults.provider = parsed.provider;
+                                        newConfig.agents.defaults.model = parsed.model;
+                                        newConfig.agents.defaults.fallback_models = (newConfig.agents.defaults.fallback_models || [])
+                                            .filter((entry: string) => entry !== v);
+                                        setConfig(newConfig);
                                     }}
                                 >
                                     <SelectTrigger className="h-11 shadow-inner bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
