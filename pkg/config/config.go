@@ -37,10 +37,10 @@ type AgentsConfig struct {
 }
 
 type AgentDefaults struct {
-	Workspace         string   `json:"workspace" env:"MARUBOT_AGENTS_DEFAULTS_WORKSPACE"`
-	Provider          string   `json:"provider" env:"MARUBOT_AGENTS_DEFAULTS_PROVIDER"`
-	Model             string   `json:"model" env:"MARUBOT_AGENTS_DEFAULTS_MODEL"`
-	FallbackModels    []string `json:"fallback_models" env:"MARUBOT_AGENTS_DEFAULTS_FALLBACK_MODELS"`
+	Workspace      string   `json:"workspace" env:"MARUBOT_AGENTS_DEFAULTS_WORKSPACE"`
+	Provider       string   `json:"provider" env:"MARUBOT_AGENTS_DEFAULTS_PROVIDER"`
+	Model          string   `json:"model" env:"MARUBOT_AGENTS_DEFAULTS_MODEL"`
+	FallbackModels []string `json:"fallback_models" env:"MARUBOT_AGENTS_DEFAULTS_FALLBACK_MODELS"`
 }
 
 type ChannelsConfig struct {
@@ -72,7 +72,6 @@ type TelegramConfig struct {
 	AllowFrom []string `json:"allow_from" env:"MARUBOT_CHANNELS_TELEGRAM_ALLOW_FROM"`
 }
 
-
 type DiscordConfig struct {
 	Enabled   bool     `json:"enabled" env:"MARUBOT_CHANNELS_DISCORD_ENABLED"`
 	Token     string   `json:"token" env:"MARUBOT_CHANNELS_DISCORD_TOKEN"`
@@ -87,13 +86,12 @@ type SlackConfig struct {
 	AllowFrom        []string `json:"allow_from" env:"MARUBOT_CHANNELS_SLACK_ALLOW_FROM"`
 }
 
-
 type ProvidersConfig struct {
-	Anthropic  ProviderConfig `json:"anthropic"`
-	OpenAI     ProviderConfig `json:"openai"`
-	OpenRouter ProviderConfig `json:"openrouter"`
-	Groq       ProviderConfig `json:"groq"`
-	Zhipu      ProviderConfig `json:"zhipu"`
+	Anthropic  ProviderConfig   `json:"anthropic"`
+	OpenAI     ProviderConfig   `json:"openai"`
+	OpenRouter ProviderConfig   `json:"openrouter"`
+	Groq       ProviderConfig   `json:"groq"`
+	Zhipu      ProviderConfig   `json:"zhipu"`
 	VLLM       ProviderConfig   `json:"vllm"`
 	Gemini     ProviderConfig   `json:"gemini"`
 	LlamaCPP   ProviderConfig   `json:"llamacpp"`
@@ -101,6 +99,7 @@ type ProvidersConfig struct {
 }
 
 type ProviderConfig struct {
+	Enabled bool          `json:"enabled"`
 	APIKey  string        `json:"api_key,omitempty"`
 	APIBase string        `json:"api_base,omitempty"`
 	Models  []ModelConfig `json:"models"`
@@ -166,7 +165,7 @@ func DefaultConfig() *Config {
 				Workspace:      "~/.marubot/workspace",
 				Provider:       "vllm",
 				Model:          "openai/gpt-oss-20b",
-				FallbackModels: []string{"gpt-4o", "claude-3-5-sonnet-20241022", "gemini-2.0-flash"},
+				FallbackModels: []string{"openai::gpt-4o", "anthropic::claude-3-5-sonnet-20241022", "gemini::gemini-2.0-flash"},
 			},
 		},
 		Channels: ChannelsConfig{
@@ -197,21 +196,27 @@ func DefaultConfig() *Config {
 		},
 		Providers: ProvidersConfig{
 			Anthropic: ProviderConfig{
-				Models: []ModelConfig{},
+				Enabled: true,
+				Models:  []ModelConfig{},
 			},
 			OpenAI: ProviderConfig{
-				Models: []ModelConfig{},
+				Enabled: true,
+				Models:  []ModelConfig{},
 			},
 			OpenRouter: ProviderConfig{
-				Models: []ModelConfig{},
+				Enabled: true,
+				Models:  []ModelConfig{},
 			},
 			Groq: ProviderConfig{
-				Models: []ModelConfig{},
+				Enabled: true,
+				Models:  []ModelConfig{},
 			},
 			Zhipu: ProviderConfig{
-				Models: []ModelConfig{},
+				Enabled: true,
+				Models:  []ModelConfig{},
 			},
 			VLLM: ProviderConfig{
+				Enabled: true,
 				Models: []ModelConfig{
 					{
 						Model:             "openai/gpt-oss-20b",
@@ -224,11 +229,14 @@ func DefaultConfig() *Config {
 				},
 			},
 			Gemini: ProviderConfig{
-				Models: []ModelConfig{},
+				Enabled: true,
+				Models:  []ModelConfig{},
 			},
 			LlamaCPP: ProviderConfig{
-				Models: []ModelConfig{},
+				Enabled: true,
+				Models:  []ModelConfig{},
 			},
+			Ollama: []ProviderConfig{},
 		},
 		Gateway: GatewayConfig{
 			Host: "0.0.0.0",
@@ -469,20 +477,9 @@ func (c *Config) Update(newCfg *Config) {
 	if newCfg.AdminPassword != "" {
 		c.AdminPassword = newCfg.AdminPassword
 	}
-	
-	// Selective Agents update
-	if newCfg.Agents.Defaults.Model != "" {
-		c.Agents.Defaults.Model = newCfg.Agents.Defaults.Model
-	}
-	if newCfg.Agents.Defaults.Provider != "" {
-		c.Agents.Defaults.Provider = newCfg.Agents.Defaults.Provider
-	}
-	if newCfg.Agents.Defaults.Workspace != "" {
-		c.Agents.Defaults.Workspace = newCfg.Agents.Defaults.Workspace
-	}
-	if len(newCfg.Agents.Defaults.FallbackModels) > 0 {
-		c.Agents.Defaults.FallbackModels = newCfg.Agents.Defaults.FallbackModels
-	}
+
+	// The settings UI posts the full agents block, so replace it directly.
+	c.Agents = newCfg.Agents
 
 	// Merge Channels config
 	c.Channels.WhatsApp = newCfg.Channels.WhatsApp
@@ -491,15 +488,8 @@ func (c *Config) Update(newCfg *Config) {
 	c.Channels.Slack = newCfg.Channels.Slack
 	c.Channels.Webhook = newCfg.Channels.Webhook
 
-	// Merge Providers (assuming the UI sends the full provider model list it wants to update)
-	if len(newCfg.Providers.OpenAI.Models) > 0 || newCfg.Providers.OpenAI.APIKey != "" { c.Providers.OpenAI = newCfg.Providers.OpenAI }
-	if len(newCfg.Providers.Anthropic.Models) > 0 || newCfg.Providers.Anthropic.APIKey != "" { c.Providers.Anthropic = newCfg.Providers.Anthropic }
-	if len(newCfg.Providers.Gemini.Models) > 0 || newCfg.Providers.Gemini.APIKey != "" { c.Providers.Gemini = newCfg.Providers.Gemini }
-	if len(newCfg.Providers.Zhipu.Models) > 0 || newCfg.Providers.Zhipu.APIKey != "" { c.Providers.Zhipu = newCfg.Providers.Zhipu }
-	if len(newCfg.Providers.Groq.Models) > 0 || newCfg.Providers.Groq.APIKey != "" { c.Providers.Groq = newCfg.Providers.Groq }
-	if len(newCfg.Providers.VLLM.Models) > 0 || newCfg.Providers.VLLM.APIKey != "" { c.Providers.VLLM = newCfg.Providers.VLLM }
-	if len(newCfg.Providers.LlamaCPP.Models) > 0 || newCfg.Providers.LlamaCPP.APIKey != "" { c.Providers.LlamaCPP = newCfg.Providers.LlamaCPP }
-	if len(newCfg.Providers.Ollama) > 0 { c.Providers.Ollama = newCfg.Providers.Ollama }
+	// The settings UI posts the full providers block, including enabled flags.
+	c.Providers = newCfg.Providers
 
 	c.Gateway = newCfg.Gateway
 	c.Tools = newCfg.Tools
@@ -536,18 +526,18 @@ func (c *Config) WorkspacePath() string {
 func (c *Config) GetAPIKey() string {
 	c.Mu.RLock()
 	defer c.Mu.RUnlock()
-	
+
 	// Use default model from defaults if configured
 	model := c.Agents.Defaults.Model
 	provider := c.Agents.Defaults.Provider
-	
+
 	if provider != "" {
 		mCfg := c.findModelConfig(provider, model)
 		if mCfg != nil {
 			return mCfg.APIKey
 		}
 	}
-	
+
 	for _, p := range []struct {
 		name string
 		cfg  ProviderConfig
@@ -581,14 +571,22 @@ func (c *Config) GetAPIKey() string {
 func (c *Config) findModelConfig(providerName, modelName string) *ModelConfig {
 	var provider ProviderConfig
 	switch strings.ToLower(providerName) {
-	case "anthropic": provider = c.Providers.Anthropic
-	case "openai": provider = c.Providers.OpenAI
-	case "openrouter": provider = c.Providers.OpenRouter
-	case "groq": provider = c.Providers.Groq
-	case "zhipu": provider = c.Providers.Zhipu
-	case "vllm": provider = c.Providers.VLLM
-	case "gemini": provider = c.Providers.Gemini
-	case "llamacpp": provider = c.Providers.LlamaCPP
+	case "anthropic":
+		provider = c.Providers.Anthropic
+	case "openai":
+		provider = c.Providers.OpenAI
+	case "openrouter":
+		provider = c.Providers.OpenRouter
+	case "groq":
+		provider = c.Providers.Groq
+	case "zhipu":
+		provider = c.Providers.Zhipu
+	case "vllm":
+		provider = c.Providers.VLLM
+	case "gemini":
+		provider = c.Providers.Gemini
+	case "llamacpp":
+		provider = c.Providers.LlamaCPP
 	case "ollama":
 		// For Ollama, we search through the slice of providers
 		for _, p := range c.Providers.Ollama {
@@ -599,7 +597,8 @@ func (c *Config) findModelConfig(providerName, modelName string) *ModelConfig {
 			}
 		}
 		return nil
-	default: return nil
+	default:
+		return nil
 	}
 	for _, m := range provider.Models {
 		if strings.EqualFold(m.Model, modelName) {
@@ -609,14 +608,13 @@ func (c *Config) findModelConfig(providerName, modelName string) *ModelConfig {
 	return nil
 }
 
-
 func (c *Config) GetAPIBase() string {
 	c.Mu.RLock()
 	defer c.Mu.RUnlock()
-	
+
 	model := c.Agents.Defaults.Model
 	provider := c.Agents.Defaults.Provider
-	
+
 	if provider != "" {
 		mCfg := c.findModelConfig(provider, model)
 		if mCfg != nil && mCfg.APIBase != "" {
@@ -655,7 +653,7 @@ func (c *Config) GetAPIBase() string {
 func (c *Config) IsAIConfigured() bool {
 	c.Mu.RLock()
 	defer c.Mu.RUnlock()
-	
+
 	allProviders := []ProviderConfig{
 		c.Providers.Anthropic,
 		c.Providers.OpenAI,
