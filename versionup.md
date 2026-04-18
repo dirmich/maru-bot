@@ -36,35 +36,29 @@ mkdir -p cmd/marubot/dashboard/dist
 cp -r web-admin/dist/* cmd/marubot/dashboard/dist/
 ```
 
-## 5. 내부 저장소 (`maruminibot`) 동기화 및 릴리즈
-1.  빌드 캐시 정리: `go clean -cache`
-2.  커밋 및 푸시:
+## 5. 내부 저장소 (`maruminibot`) 관리
+1.  커밋 및 푸시:
     ```bash
     git add .
-    git commit -m "Release v0.6.2"
+    git commit -m "Release v0.6.2" # 커밋 메시지는 기록용으로 유지
     git push
     ```
-3.  **태그 지정 (중요)**:
-    ```bash
-    git tag v0.6.2
-    git push origin v0.6.2
-    ```
+2.  **주의**: 비공개 저장소에는 릴리스용 태그를 생성하지 않습니다. 태그는 공개 저장소 관리에만 사용합니다.
 
 ## 6. 공개 저장소 (`maru-bot`) 동기화 및 GitHub 릴리즈
-1.  동기화 스크립트 실행: `bash scripts/publish.sh`
-2.  공개 저장소 소스 커밋:
+1.  **전체 플랫폼 빌드 (필수)**: `publish.sh` 실행 전 반드시 바이너리를 최신화합니다.
+    ```bash
+    make build-all
+    ```
+2.  **동기화**: `bash scripts/publish.sh` 실행
+3.  **공개 저장소 태그 및 릴리즈**:
+    *   **태그 형식**: `v` 접두사 없이 숫자만 사용합니다. (예: `0.6.2`)
     ```bash
     cd ../maru-bot
-    git add .
-    git commit -m "Sync with latest maruminibot (v0.6.2)"
-    git push
+    git tag 0.6.2
+    git push origin 0.6.2
     ```
-3.  **공개 태그 및 릴리즈**:
-    ```bash
-    git tag v0.6.2
-    git push origin v0.6.2
-    # gh CLI가 설치된 경우 publish.sh가 자동으로 수행하나 태그 푸시는 별도로 확인 요망
-    ```
+4.  **자산 업로드**: `publish.sh`가 자동으로 수행하거나, 필요한 경우 `gh release upload`를 통해 수동으로 바이너리를 업데이트합니다.
 
 ## 7. 최종 확인
 1.  **로컬 버전**: `marubot version` 명령으로 확인.
