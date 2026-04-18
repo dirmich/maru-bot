@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -290,15 +291,37 @@ func uninstallCmd() {
 				s.Uninstall()
 			}
 
-			// 4. Verify removal
+			// 4. Robust wait for deletion
+			for i := 0; i < 5; i++ {
+				out, _ := exec.Command("sc", "query", svcName).Output()
+				if strings.Contains(string(out), "1060") {
+					break
+				}
+				fmt.Printf("  Waiting for service '%s' to be removed... (%d/5)\n", svcName, i+1)
+				time.Sleep(1 * time.Second)
+			}
+
+			// Verify removal
 			out, _ := exec.Command("sc", "query", svcName).Output()
-			if !strings.Contains(string(out), "1060") { // 1060 means service does not exist
+			if !strings.Contains(string(out), "1060") {
 				fmt.Printf("! Warning: Service '%s' might still be present or marked for deletion.\n", svcName)
+				fmt.Println("  Please close services.msc or Task Manager if they are open.")
 				// Try killing by name if sc failed
 				exec.Command("taskkill", "/F", "/T", "/IM", svcName+".exe").Run()
 			} else {
 				fmt.Printf("✓ Service '%s' removed successfully.\n", svcName)
 			}
+		}
+
+		// Always ensure bin folder is cleaned on Windows uninstallation
+		resourceDir := getResourceDir()
+		binDir := filepath.Join(resourceDir, "bin")
+		if _, err := os.Stat(binDir); err == nil {
+			fmt.Println("Cleaning binary files...")
+			// Kill any remaining marubot processes that might lock files in bin
+			exec.Command("taskkill", "/F", "/T", "/IM", "marubot.exe").Run()
+			time.Sleep(1 * time.Second)
+			os.RemoveAll(binDir)
 		}
 	} else if runtime.GOOS == "linux" {
 		// Stop and disable systemd service if exists
@@ -2083,13 +2106,72 @@ func upgradeCmd() {
 	// Stop existing process if running
 	stopCmd()
 
+	if runtime.GOOS == "windows" {
+		fmt.Println("🚀 Windows native upgrade in progress...")
+		latest, err := config.CheckLatestVersion()
+		if err != nil {
+			fmt.Printf("❌ Failed to get latest Version: %v\n", err)
+			return
+		}
+
+		// Use the correct public repo maru-bot
+		downloadUrl := fmt.Sprintf("https://github.com/dirmich/maru-bot/releases/download/v%s/marubot.exe", latest)
+		fmt.Printf("📥 Downloading from: %s\n", downloadUrl)
+
+		resp, err := http.Get(downloadUrl)
+		if err != nil {
+			fmt.Printf("❌ Download failed: %v\n", err)
+			return
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("❌ Download failed: HTTP %s\n", resp.Status)
+			return
+		}
+
+		exePath, _ := os.Executable()
+		oldExePath := exePath + ".old"
+		newExePath := exePath + ".new"
+
+		// Download to .new file first
+		out, err := os.Create(newExePath)
+		if err != nil {
+			fmt.Printf("❌ Failed to create temp file: %v\n", err)
+			return
+		}
+		_, err = io.Copy(out, resp.Body)
+		out.Close()
+		if err != nil {
+			fmt.Printf("❌ Download failed during copy: %v\n", err)
+			return
+		}
+
+		// Rename current to .old and .new to current
+		os.Remove(oldExePath) // Clean up any previous failed attempt
+		err = os.Rename(exePath, oldExePath)
+		if err != nil {
+			fmt.Printf("❌ Failed to rename current binary: %v\n", err)
+			os.Remove(newExePath)
+			return
+		}
+
+		err = os.Rename(newExePath, exePath)
+		if err != nil {
+			fmt.Printf("❌ Failed to install new binary: %v\n", err)
+			// Try to restore old one
+			os.Rename(oldExePath, exePath)
+			return
+		}
+
+		fmt.Println("✨ Upgrade complete! Please restart MaruBot.")
+		// If running as service, it might be better to let the user or SCM restart it
+		return
+	}
+
+	// For UNIX-like systems, keep using the install.sh bash script
 	fmt.Println("🚀 Upgrading MaruBot to the latest Version...")
-
-	// Use curl to download and run the install script
-	// We use the same install script as it handles updates gracefully (git pull if exists)
 	cmd := exec.Command("bash", "-c", "curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash")
-
-	// Connect pipes to let user interact (for language selection, sudo password, etc.)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -2097,7 +2179,6 @@ func upgradeCmd() {
 		fmt.Printf("❌ Upgrade failed: %v\n", err)
 		os.Exit(1)
 	}
-
 	fmt.Println("✨ Upgrade complete! Restarting MaruBot...")
 	reloadCmd()
 }
@@ -2246,6 +2327,13 @@ func serviceCmd() {
 
 	switch sub {
 	case "install":
+		if runtime.GOOS == "windows" {
+			targetPath, err := installBinary()
+			if err == nil {
+				svcConfig.Executable = targetPath
+				fmt.Printf("Installing service pointing to: %s\n", targetPath)
+			}
+		}
 		err = s.Install()
 		if err == nil {
 			fmt.Println("Service installed successfully. (Autostart enabled)")
@@ -2353,34 +2441,72 @@ func checkAndFixPort(cfg *config.Config) bool {
 	}
 
 	if runtime.GOOS == "windows" {
-		// Ask for a new port via PowerShell
-		script := `
+		// Identify the process owning the port
+		detectScript := fmt.Sprintf(`$conn = Get-NetTCPConnection -LocalPort %d -ErrorAction SilentlyContinue | Select-Object -First 1; if ($conn) { $proc = Get-Process -Id $conn.OwningProcess -ErrorAction SilentlyContinue; if ($proc) { $proc.ProcessName } else { "unknown" } } else { "none" }`, port)
+		cmd := exec.Command("powershell", "-NoProfile", "-Command", detectScript)
+		out, _ := cmd.Output()
+		ownerName := strings.TrimSpace(strings.ToLower(string(out)))
+		isMarubot := strings.Contains(ownerName, "marubot")
+
+		var promptScript string
+		if isMarubot {
+			promptScript = fmt.Sprintf(`
 Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName Microsoft.VisualBasic
 $title = "MaruBot Port Conflict"
-$msg = "Port 8080 is already in use. Would you like to use a different port?"
+$msg = "MaruBot is already running on port %d.` + "`n" + `Would you like to terminate the existing process and continue?"
 $result = [System.Windows.Forms.MessageBox]::Show($msg, $title, "YesNo", "Warning")
-if ($result -eq "Yes") {
-    $newPort = [Microsoft.VisualBasic.Interaction]::InputBox("Enter a new port number:", $title, "8081")
-    if ($newPort) { $newPort } else { exit 1 }
-} else { exit 1 }
-`
-		cmd := exec.Command("powershell", "-Command", script)
-		out, err := cmd.Output()
-		if err != nil {
-			return false
+if ($result -eq "Yes") { "kill" } else { "exit" }
+`, port)
+		} else {
+			promptScript = fmt.Sprintf(`
+Add-Type -AssemblyName System.Windows.Forms
+$title = "MaruBot Port Conflict"
+$msg = "Port %d is being used by '%s'.` + "`n" + `Would you like to use a different port?"
+$result = [System.Windows.Forms.MessageBox]::Show($msg, $title, "YesNo", "Question")
+if ($result -eq "Yes") { "newport" } else { "exit" }
+`, port, ownerName)
 		}
 
-		var newPort int
-		fmt.Sscanf(strings.TrimSpace(string(out)), "%d", &newPort)
-		if newPort > 0 {
-			cfg.Gateway.Port = newPort
-			// Save directly to config.json
-			if err := config.SaveConfig(getConfigPath(), cfg); err != nil {
-				fmt.Printf("Error saving config: %v\n", err)
+		cmd = exec.Command("powershell", "-NoProfile", "-Command", promptScript)
+		out, _ = cmd.Output()
+		action := strings.TrimSpace(string(out))
+
+		if action == "kill" {
+			killScript := fmt.Sprintf(`
+$conn = Get-NetTCPConnection -LocalPort %d -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($conn) {
+    Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue
+    "ok"
+} else { "notfound" }
+`, port)
+			exec.Command("powershell", "-NoProfile", "-Command", killScript).Run()
+			time.Sleep(1 * time.Second)
+			if isPortAvailable(port) {
+				return true
 			}
-			return true
 		}
+
+		if action == "newport" {
+			inputScript := fmt.Sprintf(`
+Add-Type -AssemblyName Microsoft.VisualBasic
+$newPort = [Microsoft.VisualBasic.Interaction]::InputBox("Enter a new port number for MaruBot:", "MaruBot", "8081")
+if ($newPort) { $newPort } else { exit 1 }
+`)
+			cmd = exec.Command("powershell", "-NoProfile", "-Command", inputScript)
+			out, err := cmd.Output()
+			if err == nil {
+				var newPort int
+				fmt.Sscanf(strings.TrimSpace(string(out)), "%d", &newPort)
+				if newPort > 0 {
+					cfg.Gateway.Port = newPort
+					if err := config.SaveConfig(getConfigPath(), cfg); err != nil {
+						fmt.Printf("Error saving config: %%v\n", err)
+					}
+					return true
+				}
+			}
+		}
+		return false
 	} else if runtime.GOOS == "darwin" {
 		// Ask for a new port via AppleScript (osascript)
 		title := "MaruBot Port Conflict"
