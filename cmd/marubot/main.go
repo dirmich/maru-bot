@@ -191,7 +191,7 @@ func main() {
 			skillsHelp()
 		}
 	case "version", "--version", "-v":
-		fmt.Printf("%s marubot v%s\n", logo, Version)
+		fmt.Printf("%s marubot v%s\n", logo, strings.TrimPrefix(Version, "v"))
 	case "uninstall":
 		uninstallCmd()
 	case "stop":
