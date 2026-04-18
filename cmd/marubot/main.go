@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -2105,13 +2106,72 @@ func upgradeCmd() {
 	// Stop existing process if running
 	stopCmd()
 
+	if runtime.GOOS == "windows" {
+		fmt.Println("🚀 Windows native upgrade in progress...")
+		latest, err := config.CheckLatestVersion()
+		if err != nil {
+			fmt.Printf("❌ Failed to get latest Version: %v\n", err)
+			return
+		}
+
+		// Use the correct public repo maru-bot
+		downloadUrl := fmt.Sprintf("https://github.com/dirmich/maru-bot/releases/download/v%s/marubot.exe", latest)
+		fmt.Printf("📥 Downloading from: %s\n", downloadUrl)
+
+		resp, err := http.Get(downloadUrl)
+		if err != nil {
+			fmt.Printf("❌ Download failed: %v\n", err)
+			return
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("❌ Download failed: HTTP %s\n", resp.Status)
+			return
+		}
+
+		exePath, _ := os.Executable()
+		oldExePath := exePath + ".old"
+		newExePath := exePath + ".new"
+
+		// Download to .new file first
+		out, err := os.Create(newExePath)
+		if err != nil {
+			fmt.Printf("❌ Failed to create temp file: %v\n", err)
+			return
+		}
+		_, err = io.Copy(out, resp.Body)
+		out.Close()
+		if err != nil {
+			fmt.Printf("❌ Download failed during copy: %v\n", err)
+			return
+		}
+
+		// Rename current to .old and .new to current
+		os.Remove(oldExePath) // Clean up any previous failed attempt
+		err = os.Rename(exePath, oldExePath)
+		if err != nil {
+			fmt.Printf("❌ Failed to rename current binary: %v\n", err)
+			os.Remove(newExePath)
+			return
+		}
+
+		err = os.Rename(newExePath, exePath)
+		if err != nil {
+			fmt.Printf("❌ Failed to install new binary: %v\n", err)
+			// Try to restore old one
+			os.Rename(oldExePath, exePath)
+			return
+		}
+
+		fmt.Println("✨ Upgrade complete! Please restart MaruBot.")
+		// If running as service, it might be better to let the user or SCM restart it
+		return
+	}
+
+	// For UNIX-like systems, keep using the install.sh bash script
 	fmt.Println("🚀 Upgrading MaruBot to the latest Version...")
-
-	// Use curl to download and run the install script
-	// We use the same install script as it handles updates gracefully (git pull if exists)
 	cmd := exec.Command("bash", "-c", "curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash")
-
-	// Connect pipes to let user interact (for language selection, sudo password, etc.)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -2119,7 +2179,6 @@ func upgradeCmd() {
 		fmt.Printf("❌ Upgrade failed: %v\n", err)
 		os.Exit(1)
 	}
-
 	fmt.Println("✨ Upgrade complete! Restarting MaruBot...")
 	reloadCmd()
 }
