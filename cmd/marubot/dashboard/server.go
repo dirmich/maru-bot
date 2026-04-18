@@ -10,7 +10,6 @@ import (
 	"mime"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -478,26 +477,11 @@ func (s *Server) handleUpgrade(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-
-	// Trigger upgrade in background
-	go func() {
-		// Wait 1 second to let response finish
-		time.Sleep(1 * time.Second)
-
-		exe, _ := os.Executable()
-		// Use --yes for non-interactive upgrade
-		cmd := exec.Command(exe, "upgrade", "--yes")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			fmt.Printf("Dashboard-triggered upgrade failed: %v\n", err)
-			return
-		}
-	}()
+	w.WriteHeader(http.StatusBadRequest)
 
 	json.NewEncoder(w).Encode(map[string]string{
-		"status":  "ok",
-		"message": "Upgrade started. The system will restart automatically.",
+		"status":  "error",
+		"message": "Upgrading from the web admin is disabled for stability. Please use the CLI command instead: 'marubot upgrade'",
 	})
 }
 func (s *Server) handleFetchModels(w http.ResponseWriter, r *http.Request) {

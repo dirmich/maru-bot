@@ -2382,24 +2382,39 @@ func checkAndFixPort(cfg *config.Config) bool {
 	}
 
 	if runtime.GOOS == "windows" {
-		// Port is in use. On Windows, we offer to kill the existing process or use a new port.
-		promptScript := fmt.Sprintf(`
+		// Identify the process owning the port
+		detectScript := fmt.Sprintf(`$conn = Get-NetTCPConnection -LocalPort %d -ErrorAction SilentlyContinue | Select-Object -First 1; if ($conn) { $proc = Get-Process -Id $conn.OwningProcess -ErrorAction SilentlyContinue; if ($proc) { $proc.ProcessName } else { "unknown" } } else { "none" }`, port)
+		cmd := exec.Command("powershell", "-NoProfile", "-Command", detectScript)
+		out, _ := cmd.Output()
+		ownerName := strings.TrimSpace(strings.ToLower(string(out)))
+		isMarubot := strings.Contains(ownerName, "marubot")
+
+		var promptScript string
+		if isMarubot {
+			promptScript = fmt.Sprintf(`
 Add-Type -AssemblyName System.Windows.Forms
 $title = "MaruBot Port Conflict"
-$msg = "Port %%d is already in use.` + "`n" + `Would you like to terminate the existing process and use this port?"
-$result = [System.Windows.Forms.MessageBox]::Show($msg, $title, "YesNoCancel", "Warning")
-if ($result -eq "Yes") { "kill" }
-elseif ($result -eq "No") { "newport" }
-else { "exit" }
+$msg = "MaruBot is already running on port %d.` + "`n" + `Would you like to terminate the existing process and continue?"
+$result = [System.Windows.Forms.MessageBox]::Show($msg, $title, "YesNo", "Warning")
+if ($result -eq "Yes") { "kill" } else { "exit" }
 `, port)
-		cmd := exec.Command("powershell", "-NoProfile", "-Command", promptScript)
-		out, _ := cmd.Output()
+		} else {
+			promptScript = fmt.Sprintf(`
+Add-Type -AssemblyName System.Windows.Forms
+$title = "MaruBot Port Conflict"
+$msg = "Port %d is being used by '%s'.` + "`n" + `Would you like to use a different port?"
+$result = [System.Windows.Forms.MessageBox]::Show($msg, $title, "YesNo", "Question")
+if ($result -eq "Yes") { "newport" } else { "exit" }
+`, port, ownerName)
+		}
+
+		cmd = exec.Command("powershell", "-NoProfile", "-Command", promptScript)
+		out, _ = cmd.Output()
 		action := strings.TrimSpace(string(out))
 
 		if action == "kill" {
-			// Find PID and kill using Get-NetTCPConnection
 			killScript := fmt.Sprintf(`
-$conn = Get-NetTCPConnection -LocalPort %%d -ErrorAction SilentlyContinue | Select-Object -First 1
+$conn = Get-NetTCPConnection -LocalPort %d -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($conn) {
     Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue
     "ok"
@@ -2415,14 +2430,14 @@ if ($conn) {
 		if action == "newport" {
 			inputScript := fmt.Sprintf(`
 Add-Type -AssemblyName Microsoft.VisualBasic
-$newPort = [Microsoft.VisualBasic.Interaction]::InputBox("Port %%d is already in use. Enter a new port number:", "MaruBot", "8081")
+$newPort = [Microsoft.VisualBasic.Interaction]::InputBox("Enter a new port number for MaruBot:", "MaruBot", "8081")
 if ($newPort) { $newPort } else { exit 1 }
-`, port)
+`)
 			cmd = exec.Command("powershell", "-NoProfile", "-Command", inputScript)
 			out, err := cmd.Output()
 			if err == nil {
 				var newPort int
-				fmt.Sscanf(strings.TrimSpace(string(out)), "%%d", &newPort)
+				fmt.Sscanf(strings.TrimSpace(string(out)), "%d", &newPort)
 				if newPort > 0 {
 					cfg.Gateway.Port = newPort
 					if err := config.SaveConfig(getConfigPath(), cfg); err != nil {
