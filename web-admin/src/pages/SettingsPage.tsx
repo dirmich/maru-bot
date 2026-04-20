@@ -1105,31 +1105,32 @@ export function SettingsPage() {
 
             {/* Save Result Dialog */}
             <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
-                <DialogContent className="sm:max-w-md border-none shadow-2xl rounded-3xl p-0 overflow-hidden">
-                    <div className={cn(
-                        "p-8 flex flex-col items-center text-center gap-4",
-                        saveResult?.success ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-red-50 dark:bg-red-900/20"
-                    )}>
-                        <div className={cn(
-                            "w-20 h-20 rounded-full flex items-center justify-center mb-2 animate-in zoom-in duration-500",
-                            saveResult?.success ? "bg-emerald-100 dark:bg-emerald-900 text-emerald-600 shadow-lg shadow-emerald-200" : "bg-red-100 dark:bg-red-900 text-red-600 shadow-lg shadow-red-200"
-                        )}>
-                            {saveResult?.success ? <ShieldCheck size={40} /> : <Trash2 size={40} />}
-                        </div>
-                        <div className="space-y-2">
-                            <DialogTitle className="text-3xl font-black tracking-tight">
-                                {saveResult?.success ? t.settings_save_success_title : t.settings_save_error_title}
-                            </DialogTitle>
-                            <DialogDescription className="text-slate-600 dark:text-slate-400 font-bold text-lg leading-tight uppercase tracking-tighter italic">
-                                {saveResult?.success ? t.settings_save_success_desc : saveResult?.message}
-                            </DialogDescription>
+                <DialogContent className="sm:max-w-md border-none shadow-2xl p-0 overflow-hidden rounded-2xl">
+                    <div className="p-8 space-y-6">
+                        <div className="flex flex-col items-center text-center space-y-4">
+                            <div className={cn(
+                                "w-16 h-16 rounded-2xl flex items-center justify-center animate-in zoom-in duration-300",
+                                saveResult?.success 
+                                    ? "bg-emerald-500/10 text-emerald-500" 
+                                    : "bg-rose-500/10 text-rose-500"
+                            )}>
+                                {saveResult?.success ? <ShieldCheck size={32} /> : <Trash2 size={32} />}
+                            </div>
+                            <div className="space-y-2">
+                                <DialogTitle className="text-2xl font-black tracking-tight">
+                                    {saveResult?.success ? t.settings_save_success_title : t.settings_save_error_title}
+                                </DialogTitle>
+                                <DialogDescription className="text-slate-500 dark:text-slate-400 font-medium">
+                                    {saveResult?.success ? t.settings_save_success_desc : saveResult?.message}
+                                </DialogDescription>
+                            </div>
                         </div>
                     </div>
-                    <DialogFooter className="p-6 bg-white dark:bg-slate-900 flex justify-center sm:justify-center border-t border-slate-100 dark:border-slate-800">
+                    <DialogFooter className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800">
                         <Button 
                             className={cn(
-                                "w-full sm:w-48 rounded-2xl font-black h-14 text-lg shadow-xl uppercase tracking-widest",
-                                saveResult?.success ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200" : "bg-red-600 hover:bg-red-700 shadow-red-200"
+                                "w-full rounded-xl font-bold h-12 shadow-lg",
+                                saveResult?.success ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"
                             )}
                             onClick={() => setShowResultDialog(false)}
                         >

@@ -209,12 +209,15 @@ func main() {
 
 func logUninstall(message string) {
 	home, _ := os.UserHomeDir()
-	logPath := filepath.Join(home, ".marubot", "uninstall.log")
+	logDir := filepath.Join(home, ".marubot", "log")
+	os.MkdirAll(logDir, 0755)
+	logPath := filepath.Join(logDir, time.Now().Format("2006-01-02")+".log")
+	
 	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err == nil {
 		defer f.Close()
 		timestamp := time.Now().Format("2006-01-02 15:04:05")
-		f.WriteString(fmt.Sprintf("[%s] %s\n", timestamp, message))
+		f.WriteString(fmt.Sprintf("[%s] [UNINSTALL] %s\n", timestamp, message))
 	}
 	fmt.Println(message)
 }
@@ -463,8 +466,6 @@ for ($i=1; $i -le 10; $i++) {
 					fmt.Println("✓ Executable removed")
 				}
 			}
-		} else {
-			fmt.Println("✓ Executable preserved.")
 		}
 	} else {
 		fmt.Println("Could not determine executable path. Please remove it manually.")
@@ -1953,8 +1954,11 @@ func startCmd() {
 
 	bus := bus.NewMessageBus()
 
-	// Enable logging to file for background service
-	logFile := filepath.Join(getResourceDir(), "dashboard.log")
+	// Enable logging to file for background service with daily rotation logic
+	logDir := filepath.Join(getResourceDir(), "log")
+	os.MkdirAll(logDir, 0755)
+	logFile := filepath.Join(logDir, time.Now().Format("2006-01-02")+".log")
+	
 	if err := logger.EnableFileLogging(logFile); err != nil {
 		if runForeground {
 			fmt.Printf("Warning: Failed to enable file logging: %v\n", err)
