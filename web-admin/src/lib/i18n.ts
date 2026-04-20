@@ -32,6 +32,14 @@ export const translations = {
         settings: "Settings",
         logs: "System Logs",
         logs_desc: "View background activity and diagnostic records.",
+        dashboard_title: "System Dashboard",
+        dashboard_desc: "Real-time system status and resource monitoring",
+        os_version: "System OS",
+        uptime: "Uptime",
+        ai_status: "AI Service",
+        channel_status: "Channels",
+        active: "Active",
+        inactive: "Inactive",
 
         // Chat Page
         chat_title: "AI Assistant",
@@ -45,6 +53,7 @@ export const translations = {
         chat_send_error: "Failed to send message. (Check if offline)",
         chat_clear_success: "Chat history cleared.",
         chat_welcome: "Hello! I am MaruBot AI Assistant. How can I help you?",
+        chat_new: "New Chat",
 
         // GPIO Page
         gpio_title: "GPIO Control & Settings",
@@ -179,6 +188,14 @@ export const translations = {
         settings: "환경 설정",
         logs: "시스템 로그",
         logs_desc: "백그라운드 활동 및 진단 기록을 확인합니다.",
+        dashboard_title: "시스템 대시보드",
+        dashboard_desc: "실시간 시스템 상태 및 자원 모니터링",
+        os_version: "시스템 OS",
+        uptime: "구동 시간",
+        ai_status: "AI 서비스",
+        channel_status: "연동 채널",
+        active: "활성화",
+        inactive: "비활성화",
 
         // Chat Page
         chat_title: "AI 어시스턴트",
@@ -192,6 +209,7 @@ export const translations = {
         chat_send_error: "메시지 전송에 실패했습니다. (오프라인 모드일 수 있습니다)",
         chat_clear_success: "채팅 내역이 초기화되었습니다.",
         chat_welcome: "안녕하세요! MaruBot AI 어시스턴트입니다. 무엇을 도와드릴까요?",
+        chat_new: "새 대화",
 
         // GPIO Page
         gpio_title: "GPIO 제어 및 설정",
@@ -326,6 +344,14 @@ export const translations = {
         settings: "構成設定",
         logs: "システムログ",
         logs_desc: "バックグラウンド活動と診断記録を確認します。",
+        dashboard_title: "システムダッシュボード",
+        dashboard_desc: "リアルタイムのシステム状態とリソース監視",
+        os_version: "システムOS",
+        uptime: "稼働時間",
+        ai_status: "AIサービス",
+        channel_status: "連携チャンネル",
+        active: "有効",
+        inactive: "無効",
 
         // Chat Page
         chat_title: "AIアシスタント",
@@ -335,10 +361,11 @@ export const translations = {
         chat_clear_confirm_desc: "すべてのチャット履歴が削除されます。続行しますか？",
         chat_input_placeholder: "メッセージを入力...",
         chat_empty_msg: "メッセージを入力して会話を開始します。",
-        chat_thinking: "考え中...",
-        chat_send_error: "メッセージの送信に失敗しました。（オフラインの可能性があります）",
+        chat_thinking: "考え중...",
+        chat_send_error: "メッセージの送信에 失敗しました。（オフラインの可能性があります）",
         chat_clear_success: "チャット履歴がクリアされました。",
-        chat_welcome: "こんにちは！MaruBot AIアシスタントです。何かお手伝いしましょうか？",
+        chat_welcome: "こんにちは！MaruBot AIアシスタントです。何かお手伝이しましょうか？",
+        chat_new: "新規チャット",
 
         // GPIO Page
         gpio_title: "GPIO制御と設定",
@@ -417,9 +444,9 @@ export const translations = {
         settings_theme_dark: "ダークモード",
         settings_theme_system: "システム設定",
         settings_how_to_get: "取得方法",
-        settings_how_to_get_telegram: "1. Telegramで@BotFatherを検索して対話を開始します。\n2. /newbotコマンドを入力し、指示に従ってボットを作成します。\n3. 生成されたAPIトークンをコピーしてここに入力してください。",
+        settings_how_to_get_telegram: "1. Telegramで@BotFather를 検索して対話を開始します。\n2. /newbotコマンドを入力し、指示に従ってボットを作成します。\n3. 生成されたAPIトークンをコピーしてここに入力してください。",
         settings_how_to_get_discord: "1. Discord Developer Portalにアクセスします。\n2. 'New Application'を作成します。\n3. 'Bot'セクションでトークンをコピーします。\n4. 'Message Content Intent'を有効にする必要があります。",
-        settings_how_to_get_slack: "1. Slack APIにアクセスします。\n2. 新しいアプリを作成し、Socket Modeを有効にします。\n3. OAuthスコープを設定し、ワークスペースにインストールしてトークンをコピーします。\n4. App-level Tokenを生成してコピーします。",
+        settings_how_to_get_slack: "1. Slack API에 アクセスします。\n2. 新しいアプリを作成し、Socket Modeを有効にします。\n3. OAuthスコープを設定し、ワークスペースにインストールしてトークンをコピーします。\n4. App-level Tokenを生成してコピーします。",
         settings_how_to_get_whatsapp: "1. WhatsApp HTTP Bridgeが必要です。\n2. Bridge URLを入力してください。",
         settings_how_to_get_webhook: "1. Webhookエンドポイントを提供します。\n2. ポートとパスを設定してください。",
         settings_system_language: "システム言語設定",

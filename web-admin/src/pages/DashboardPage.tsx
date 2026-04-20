@@ -5,7 +5,6 @@ import { Progress } from "@/components/ui/progress";
 import { 
     Cpu, 
     HardDrive, 
-    Zap, 
     Activity, 
     RefreshCcw, 
     AlertTriangle, 
@@ -17,7 +16,6 @@ import {
     Layout,
     Clock
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { useTranslation } from "@/lib/i18n";
 import { authenticatedFetch } from "@/lib/auth";
 import {

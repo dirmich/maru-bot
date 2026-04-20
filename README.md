@@ -1,4 +1,4 @@
-# MaruBot (마루봇) - Ultra-light AI Agent (0.6.8)
+# MaruBot (마루봇) - Ultra-light AI Agent (0.7.2)
  🦞
 
 **MaruBot**은 극강의 효율성을 추구하며, 단 **10MB의 메모리(RAM)** 환경에서도 구동 가능한 초경량 Physical AI 에이전트입니다. Raspberry Pi부터 일반 Linux 서버, Windows PC까지 지원하며, 스스로 능력을 확장하는 '자기 진화' 능력을 갖춘 가장 똑똑한 개인용 비서입니다.

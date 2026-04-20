@@ -216,18 +216,38 @@ export function ChatPage() {
                             Conversation History
                         </div>
                         {days.map(day => (
-                            <button
+                            <div 
                                 key={day}
-                                onClick={() => loadHistoryForDate(day)}
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all text-left ${
+                                className={`group relative w-full flex items-center rounded-xl transition-all ${
                                     selectedDate === day 
-                                    ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 font-bold" 
-                                    : "text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                    ? "bg-blue-50 dark:bg-blue-900/20" 
+                                    : "hover:bg-slate-50 dark:hover:bg-slate-800"
                                 }`}
                             >
-                                <Calendar size={16} className={selectedDate === day ? "text-blue-500" : "text-slate-400"} />
-                                <span className="flex-1 truncate">{day}</span>
-                            </button>
+                                <button
+                                    onClick={() => loadHistoryForDate(day)}
+                                    className={`flex-1 flex items-center gap-3 px-3 py-2.5 text-sm text-left ${
+                                        selectedDate === day 
+                                        ? "text-blue-600 dark:text-blue-400 font-bold" 
+                                        : "text-slate-500"
+                                    }`}
+                                >
+                                    <Calendar size={16} className={selectedDate === day ? "text-blue-500" : "text-slate-400"} />
+                                    <span className="flex-1 truncate">{day}</span>
+                                </button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedDate(day);
+                                        setShowClearConfirm(true);
+                                    }}
+                                    className="h-8 w-8 mr-1 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-opacity"
+                                >
+                                    <Trash2 size={14} />
+                                </Button>
+                            </div>
                         ))}
                     </div>
                 </ScrollArea>
