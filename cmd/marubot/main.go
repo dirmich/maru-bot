@@ -259,57 +259,63 @@ func uninstallCmd() {
 		exeName := filepath.Base(exeCurrent)
 
 		// Try to kill any marubot processes first to unlock files.
-		// Use /T to kill child processes as well.
+		fmt.Println("Stopping existing processes...")
 		exec.Command("taskkill", "/F", "/T", "/IM", "marubot.exe").Run()
 		exec.Command("taskkill", "/F", "/T", "/IM", "marubot-*.exe").Run()
 		exec.Command("taskkill", "/F", "/T", "/IM", exeName).Run()
 		exec.Command("taskkill", "/F", "/T", "/FI", "IMAGENAME eq marubot*").Run()
+		exec.Command("taskkill", "//F", "//T", "//IM", "marubot.exe").Run() // msys2 fallback
 
-		// msys2/bash compatible
-		exec.Command("taskkill", "//F", "//T", "//IM", "marubot.exe").Run()
-
-		fmt.Println("Waiting for processes to exit and release file locks...")
-		time.Sleep(2 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		for _, svcName := range svcNames {
-			fmt.Printf("Deep cleaning service '%s'...\n", svcName)
-			// 1. Force kill processes that are hosting this service if any
+			fmt.Printf("Removing service '%s'...\n", svcName)
+
+			// 1. Force kill processes hosting this service
 			exec.Command("taskkill", "/F", "/T", "/FI", fmt.Sprintf("SERVICES eq %s", svcName)).Run()
 
-			// 2. Robust fallback via sc.exe stop/delete
+			// 2. Stop service via sc.exe and wait
 			exec.Command("sc", "stop", svcName).Run()
-			time.Sleep(1 * time.Second)
+			for i := 0; i < 10; i++ {
+				out, _ := exec.Command("sc", "query", svcName).Output()
+				outStr := string(out)
+				if strings.Contains(outStr, "1060") || strings.Contains(outStr, "STOPPED") {
+					break
+				}
+				fmt.Printf("  Waiting for service '%s' to stop... (%d/10)\n", svcName, i+1)
+				time.Sleep(1 * time.Second)
+			}
+
+			// 3. Delete service via sc.exe
 			exec.Command("sc", "delete", svcName).Run()
 
-			// 3. Backup via service library
-			svcConfig := &service.Config{
-				Name: svcName,
-			}
+			// 4. Backup: also try via service library
+			svcConfig := &service.Config{Name: svcName}
 			s, err := service.New(nil, svcConfig)
 			if err == nil {
 				s.Stop()
 				s.Uninstall()
 			}
 
-			// 4. Robust wait for deletion
-			for i := 0; i < 5; i++ {
+			// 5. Robust wait for deletion
+			isRemoved := false
+			for i := 0; i < 10; i++ {
 				out, _ := exec.Command("sc", "query", svcName).Output()
 				if strings.Contains(string(out), "1060") {
+					isRemoved = true
 					break
 				}
-				fmt.Printf("  Waiting for service '%s' to be removed... (%d/5)\n", svcName, i+1)
+				fmt.Printf("  Waiting for service '%s' to be removed from system... (%d/10)\n", svcName, i+1)
 				time.Sleep(1 * time.Second)
 			}
 
-			// Verify removal
-			out, _ := exec.Command("sc", "query", svcName).Output()
-			if !strings.Contains(string(out), "1060") {
-				fmt.Printf("! Warning: Service '%s' might still be present or marked for deletion.\n", svcName)
-				fmt.Println("  Please close services.msc or Task Manager if they are open.")
-				// Try killing by name if sc failed
-				exec.Command("taskkill", "/F", "/T", "/IM", svcName+".exe").Run()
-			} else {
+			if isRemoved {
 				fmt.Printf("✓ Service '%s' removed successfully.\n", svcName)
+			} else {
+				fmt.Printf("! Warning: Service '%s' is still present in the system.\n", svcName)
+				fmt.Println("  It may be marked for deletion. Please close 'services.msc' or Task Manager if they are open.")
+				// Last ditch effort: kill by name
+				exec.Command("taskkill", "/F", "/T", "/IM", svcName+".exe").Run()
 			}
 		}
 
@@ -2340,6 +2346,11 @@ func serviceCmd() {
 		}
 	case "uninstall":
 		err = s.Uninstall()
+		if runtime.GOOS == "windows" {
+			// Extra cleanup for Windows to ensure it's removed from SCM immediately if possible
+			exec.Command("sc", "stop", svcConfig.Name).Run()
+			exec.Command("sc", "delete", svcConfig.Name).Run()
+		}
 		if err == nil {
 			fmt.Println("Service uninstalled successfully.")
 		}
