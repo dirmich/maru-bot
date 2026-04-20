@@ -1,4 +1,4 @@
-.PHONY: all build install uninstall clean help test
+﻿.PHONY: all build install uninstall clean help test
 
 # Build variables
 BINARY_NAME=marubot

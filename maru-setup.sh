@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 # MaruBot RPi Hardware Setup Script
 # Version: 1.0.0

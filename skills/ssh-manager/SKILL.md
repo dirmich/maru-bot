@@ -1,4 +1,4 @@
-# SSH Connection Automation Guide
+﻿# SSH Connection Automation Guide
 
 This skill helps the bot seamlessly establish a secure **SSH Public Key Authentication** connection when a user requests executing system commands (e.g., `df -h`, `free -m`) on a remote machine, thereby bypassing password prompts.
 

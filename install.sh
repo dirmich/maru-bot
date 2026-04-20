@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 # MaruBot One-Line Installer for Raspberry Pi
 # Usage: curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash

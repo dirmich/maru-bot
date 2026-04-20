@@ -1,4 +1,4 @@
-# tmux Skill
+﻿# tmux Skill
 
 Use tmux only when you need an interactive TTY. Prefer exec background mode for long-running, non-interactive tasks.
 

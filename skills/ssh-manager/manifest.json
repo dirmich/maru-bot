@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "ssh-manager",
   "version": "1.0.0",
   "description": "Automated SSH connection and public key authentication management.",

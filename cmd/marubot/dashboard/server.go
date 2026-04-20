@@ -1,4 +1,4 @@
-package dashboard
+﻿package dashboard
 
 import (
 	"context"
@@ -17,6 +17,7 @@ import (
 
 	"github.com/dirmich/marubot/pkg/agent"
 	"github.com/dirmich/marubot/pkg/config"
+	"github.com/dirmich/marubot/pkg/history"
 	"github.com/dirmich/marubot/pkg/providers"
 	"github.com/dirmich/marubot/pkg/skills"
 	"github.com/dirmich/marubot/pkg/utils"
@@ -33,6 +34,7 @@ type Server struct {
 	configPath string
 	skillMgr   *skills.SkillInstaller
 	skillLoad  *skills.SkillsLoader
+	historyMgr *history.ChatHistoryManager
 	version    string
 	onRestart  func()
 }
@@ -46,6 +48,7 @@ func NewServer(addr string, agent *agent.AgentLoop, cfg *config.Config, configPa
 		configPath: configPath,
 		skillMgr:   skills.NewSkillInstaller(cfg.WorkspacePath()),
 		skillLoad:  skills.NewSkillsLoader(cfg.WorkspacePath(), ""),
+		historyMgr: history.NewChatHistoryManager(filepath.Dir(configPath)), // ~/.marubot base
 		version:    version,
 		onRestart:  onRestart,
 	}
@@ -73,6 +76,11 @@ func (s *Server) Start() error {
 	s.registerGPIORoutes(mux)
 	mux.Handle("/api/logs", s.authMiddleware(http.HandlerFunc(s.handleLogs)))
 	mux.Handle("/api/logs/list", s.authMiddleware(http.HandlerFunc(s.handleLogList)))
+	
+	// Chat History
+	mux.Handle("/api/history/chat/days", s.authMiddleware(http.HandlerFunc(s.handleChatHistoryDays)))
+	mux.Handle("/api/history/chat/day", s.authMiddleware(http.HandlerFunc(s.handleChatHistoryDay)))
+	
 	mux.Handle("/api/system/stats", s.authMiddleware(http.HandlerFunc(s.handleSystemStats)))
 	mux.Handle("/api/upgrade", s.authMiddleware(http.HandlerFunc(s.handleUpgrade)))
 
@@ -316,6 +324,22 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 		}
 
 		fmt.Println("[Debug] Chat successful, sending response.")
+		
+		// Save to history
+		timestamp := time.Now().Format(time.RFC3339)
+		s.historyMgr.SaveMessage(history.Message{
+			ID:        fmt.Sprintf("u-%d", time.Now().UnixNano()),
+			Role:      "user",
+			Content:   req.Message,
+			Timestamp: timestamp,
+		})
+		s.historyMgr.SaveMessage(history.Message{
+			ID:        fmt.Sprintf("a-%d", time.Now().UnixNano()),
+			Role:      "assistant",
+			Content:   resp,
+			Timestamp: timestamp,
+		})
+
 		json.NewEncoder(w).Encode(map[string]string{"response": resp})
 	}
 }
@@ -615,6 +639,45 @@ func (s *Server) handleFetchModels(w http.ResponseWriter, r *http.Request) {
 		"status": "ok",
 		"models": models,
 	})
+}
+
+func (s *Server) handleChatHistoryDays(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	days, err := s.historyMgr.ListDays()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(map[string][]string{"days": days})
+}
+
+func (s *Server) handleChatHistoryDay(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	date := r.URL.Query().Get("date")
+	if date == "" {
+		http.Error(w, "Date is required", http.StatusBadRequest)
+		return
+	}
+
+	if r.Method == "DELETE" {
+		if err := s.historyMgr.DeleteHistory(date); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+		return
+	}
+
+	messages, err := s.historyMgr.GetHistory(date)
+	if err != nil {
+		if os.IsNotExist(err) {
+			json.NewEncoder(w).Encode(map[string]any{"messages": []any{}})
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]any{"messages": messages})
 }
 
 func (s *Server) fetchOpenAIModels(ctx context.Context, apiKey, apiBase, provider string) ([]string, error) {

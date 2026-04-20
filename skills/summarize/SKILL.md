@@ -1,4 +1,4 @@
-# Summarize
+﻿# Summarize
 
 Fast CLI to summarize URLs, local files, and YouTube links.
 
