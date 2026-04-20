@@ -1,7 +1,7 @@
-설정 즉시 적용(Hot Reload) 구현 및 윈도우 UI 개선
+feat: MaruBot v0.7.1 버전업 프로세스 체계화 및 빌드 오류 해결
 
-- [main.go] reloadInternal 도입으로 프로세스 종료 없는 서비스 재기동 구현
-- [main.go] 윈도우 환경에서 execHidden 사용으로 터미널 창(CMD) 노출 방지
-- [main.go] Setup Mode 진입 로직 수정 (AI 또는 채널 설정 시 통과 가능)
-- [SettingsPage.tsx] 설정 저장 후 fetchConfig 호출로 데이터 동기화 보장
-- [loop.go] GetBus 메서드 추가로 서비스 간 유기적 재연결 지원
+- main.go의 구문 오류 및 중복 switch 블록 완벽 제거
+- pkg/config/version.go를 var 형태로 변경하여 빌드 시 동적 버전 주입 환경 구축
+- 64bit/32bit 윈도우 바이너리 리빌드 및 배포 정석 프로세스 수립
+- 공개 리포지토리(maru-bot)와의 소스코드 및 태그(v0.7.1) 동기화 완료
+- 누락되었던 sync 임포트 및 HeartbeatService 타입 정정
