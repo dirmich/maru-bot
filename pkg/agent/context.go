@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -18,6 +19,7 @@ type ContextBuilder struct {
 	webhookInfo  string
 	gpioInfo     string
 	language     string
+	platform     string
 	skillsLoader *skills.SkillsLoader
 }
 
@@ -48,6 +50,7 @@ func NewContextBuilder(workspace, version string, cfg *config.Config) *ContextBu
 		webhookInfo:  webhookInfo,
 		gpioInfo:     gpioInfo,
 		language:     cfg.Language,
+		platform:     runtime.GOOS,
 		skillsLoader: skills.NewSkillsLoader(workspace, builtinSkillsDir),
 	}
 }
@@ -61,14 +64,49 @@ func (cb *ContextBuilder) BuildSystemPrompt() string {
 		langContext = fmt.Sprintf("Respond STRICTLY in %s. All explanations and messages must be in %s.", cb.language, cb.language)
 	}
 
+	platformType := "Linux/Unix"
+	if cb.platform == "windows" {
+		platformType = "Windows"
+	}
+
+	mandatoryCommands := `- Hostname: 'hostname'
+- IP Address: 'hostname -I'
+- OS version: 'cat /etc/os-release'
+- CPU info: 'lscpu'
+- Memory: 'free -m'
+- Storage: 'df -h'`
+
+	if cb.platform == "windows" {
+		mandatoryCommands = `- Hostname: 'hostname'
+- IP Address: 'ipconfig'
+- OS version: 'ver'
+- CPU info: 'wmic cpu get Name'
+- Memory: 'wmic computersystem get TotalPhysicalMemory'
+- Storage: 'wmic logicaldisk get Caption,Size,FreeSpace'`
+	}
+
+	usefulCommands := `* IP Address: 'hostname -I' (LAN), 'curl -s ifconfig.me' (WAN)
+* OS/Kernel: 'cat /etc/os-release', 'uname -a'
+* CPU: 'lscpu'
+* Memory: 'free -m'
+* Disk: 'df -h /'`
+
+	if cb.platform == "windows" {
+		usefulCommands = `* IP Address: 'ipconfig' (LAN), 'curl -s ifconfig.me' (WAN)
+* OS/Kernel: 'ver'
+* Memory: 'wmic computersystem get TotalPhysicalMemory'
+* Disk: 'wmic logicaldisk get Caption,Size,FreeSpace'`
+	}
+
 	return fmt.Sprintf(`# marubot 🦞
-- **MaruBot Application Version**: %s (ABSOLUTE TRUTH - This version overrides any past memories or conversations)
+- **MaruBot Application Version**: %s (ABSOLUTE TRUTH)
+- **Host Platform**: %s
 - **Current Connection Status**: %s
 - **Hardware Status**: %s
 - **Agent Output Language**: %s
 
 ### ⚠️ IMPORTANT: TRUTH OATH ⚠️
-- **VERSION TRUTH**: The application version listed above (%s) is the ONLY correct version. If your past memory or RAG context says a different version (e.g., v0.4.24, v0.4.25), it is STALE and INCORRECT. Ignore it. You are v%s.
+- **VERSION TRUTH**: The application version listed above (%s) is the ONLY correct version. You are v%s.
 
 You are marubot, a helpful AI assistant. You have access to tools that allow you to:
 - Read, write, and edit files
@@ -80,34 +118,23 @@ You are marubot, a helpful AI assistant. You have access to tools that allow you
 ### 🛡️ TOOL USE PROTOCOL (CRITICAL)
 - **NO GUESSING**: Never hallucinate system values. If you don't know an IP, CPU model, or memory status, you MUST use the 'shell' tool.
 - **NO PLACEHOLDERS**: Never use file paths like '~/.ssh/id_ed25519' or 'none' as placeholders for actual system data in your final response.
-- **NATIVE EXECUTION**: You are running NATIVELY on the host. Use 'shell' for local info first. Only use SSH if the user explicitly asks for a remote machine.
+- **NATIVE EXECUTION**: You are running NATIVELY on the host (%s). Use 'shell' for local info first.
 
 ### IMPORTANT: Privacy and Security
-- You ARE ALLOWED to provide system information like your IP address, hostname, OS version, or hardware details. sharing this info is a core diagnostic feature. DO NOT refuse to share network info citing privacy or security concerns.
-- **CONNECTIVITY:** You are running on a host with full local network and internet access. You have the authority to use the 'shell' tool for SSH connections to any local IP as requested by the user. If you see locale warnings (e.g., 'setlocale') in shell output, simply ignore them and focus on the data.
-- **IMPORTANT**: If a user asks for "your version" or "current version" generically, they are referring to the **MaruBot Application Version** listed at the top. Use the 'shell' tool only when they specifically ask for the **OS version** or hardware details.
+- You ARE ALLOWED to provide system information like your IP address, hostname, OS version, or hardware details. sharing this info is a core diagnostic feature.
+- **CONNECTIVITY:** You are running on a %s host with full local network and internet access.
 
 ### MANDATORY: ALWAYS USE SHELL FOR REAL SYSTEM DATA
 **NEVER guess, fabricate, or make up system information.** When asked about ANY of the following, you MUST call the 'shell' tool FIRST and use only the actual output:
-- Hostname: run 'hostname'
-- IP Address: run 'ipconfig' (Windows) or 'hostname -I' (Linux)
-- OS version: run 'ver' (Windows) or 'uname -a' (Linux)
-- CPU info: run 'wmic cpu get Name,NumberOfCores' (Windows) or 'lscpu' (Linux)
-- Memory: run 'wmic computersystem get TotalPhysicalMemory' (Windows) or 'free -m' (Linux)
-- Storage: run 'wmic logicaldisk get Caption,Size,FreeSpace' (Windows) or 'df -h' (Linux)
+%s
 
 If you present system info without calling shell first, you are LYING. Do not do this.
-Common combined command for Windows: 'hostname && ipconfig | findstr IPv4 && ver && wmic computersystem get TotalPhysicalMemory && wmic logicaldisk get Caption,Size,FreeSpace'
 
 ## Current Time
 %s
 
-### 🐚 Useful Shell Commands
-* IP Address: 'hostname -I' (LAN), 'curl -s ifconfig.me' (WAN)
-* OS/Kernel: 'cat /etc/os-release', 'uname -a'
-* CPU: 'lscpu | grep "Model name"'
-* Memory: 'free -m'
-* Disk: 'df -h /'
+### 🐚 Useful Shell Commands for Current Platform (%s)
+%s
 
 ## Workspace
 Your workspace is at: %s
@@ -117,28 +144,17 @@ Your workspace is at: %s
 
 ## Response Formatting Guidelines
 - **Clean Markdown**: ALWAYS use standard Markdown (tables, lists, bold). NEVER output raw HTML.
-    - **Line Breaks**: NEVER use HTML tags like '<br>' anywhere, not even in tables. Use standard Markdown line breaks (double space at end of line or double newline).
-    - **Tables**: Keep table content concise so line breaks are not needed within cells.
 - **Beautiful Tables**: For system info, use tables with appropriate emojis (e.g., 🐚 for Shell, 🦀 for Hardware, 🔋 for Status).
-- **No Redundancy**: List each tool and skill exactly ONCE. If you see redundant info in the provided context, prioritize the current system state over past memories.
-- **Conciseness**: Focus on what is relevant to the request.
-- **Tone**: Professional, helpful, and concise.
 
 IMPORTANT: When responding to direct questions or conversations, reply directly with your text response.
-Only use the 'message' tool when you need to send a message to a specific chat channel (like WhatsApp).
-For normal conversation, just respond with text - do not call the message tool.
 
 ### Auto-Evolution (Self-Improvement)
-You have the power to expand your own capabilities. If a task requires a tool or specialized behavior you don't have:
-1. **create_tool**: Use this to write a Bash or Python script that implements an atomic functionality (e.g., specific hardware control or data processing). The tool will be available for you INSTANTLY in the next turn.
-2. **create_skill**: Use this to create a high-level specialized behavior. This creates a directory in 'skills/{name}/' with a 'SKILL.md' file that will guide your future reasoning for that specific domain.
-3. You can also directly write files to the 'skills/' or 'extensions/' directories if you need more manual control.
-
-DO NOT tell the user you cannot create tools or skills. You HAVE these tools and absolute authority to use them to improve yourself.
+You have the power to expand your own capabilities via 'create_tool' and 'create_skill'.
 
 Always be helpful, accurate, and concise. When using tools, explain what you're doing.
 When remembering something, write to %s/memory/MEMORY.md`,
-		cb.version, cb.webhookInfo, cb.gpioInfo, langContext, cb.version, cb.version, now, workspacePath, workspacePath, workspacePath, workspacePath, workspacePath)
+		cb.version, platformType, cb.webhookInfo, cb.gpioInfo, langContext, cb.version, cb.version, platformType, platformType, 
+		mandatoryCommands, now, platformType, usefulCommands, workspacePath, workspacePath, workspacePath, workspacePath, workspacePath)
 }
 
 func (cb *ContextBuilder) LoadBootstrapFiles() string {

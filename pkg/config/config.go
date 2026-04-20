@@ -159,7 +159,8 @@ type GPSConfig struct {
 
 func DefaultConfig() *Config {
 	return &Config{
-		Language: "ko",
+		Language:      "ko",
+		AdminPassword: "admin",
 		Agents: AgentsConfig{
 			Defaults: AgentDefaults{
 				Workspace:      "~/.marubot/workspace",

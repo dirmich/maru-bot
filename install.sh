@@ -86,7 +86,7 @@ if [ -z "$MARUBOT_PWD" ]; then
         echo "Keeping existing password."
     else
         MARUBOT_PWD="admin"
-        echo "Defaulting to 'admin'."
+        echo "Defaulting to 'admin'. (Initial login requires 'admin')"
     fi
 fi
 
@@ -384,7 +384,7 @@ RESOURCE_DIR="$HOME/.marubot"
 mkdir -p "$RESOURCE_DIR"
 mkdir -p "$RESOURCE_DIR/config"
 if [ ! -f "$RESOURCE_DIR/config.json" ]; then
-    cp config/maru-config.json "$RESOURCE_DIR/config.json"
+    cp config/maru-config.json.example "$RESOURCE_DIR/config.json"
 fi
 
 # Set selected language in config
