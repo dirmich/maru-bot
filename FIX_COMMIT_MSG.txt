@@ -1,5 +1,6 @@
-fix: cmd/marubot 빌드 에러 수정 및 v0.4.63 릴리즈
+Windows 서비스 삭제 및 언인스톨 로직 강화
 
-- ProviderConfig 구조 변경에 따른 cmd/marubot/main.go 컴파일 에러 해결
-- Groq 음성 인식 및 상태 출력(status) 로직을 새로운 모델 리스트 구조에 맞춰 수정
-- 버전 업데이트: v0.4.63
+- sc.exe stop 명령 후 서비스가 완전히 중지될 때까지 대기 루프 추가
+- sc.exe delete 처리가 완료되었는지 확인하고 실패 시 안내 메시지 보강
+- 프로세스 종료(taskkill) 시 서비스 기반 타겟팅 및 트리 종료 옵션 강화
+- serviceCmd의 uninstall 명령에도 동일한 정리 로직 적용
