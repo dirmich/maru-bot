@@ -118,7 +118,7 @@ var trayLocales = map[string]TrayLabels{
 		Uninstall:      "プログラムの削除",
 		Exit:           "トレイを終了 (サービス維持)",
 		StatusInstall:  "インストール完了",
-		StatusRun:      "MaruBotサービスがインストールされ、開始されました。",
+		StatusRun:      "MaruBot서비스가インストールされ、開始されました。",
 		ServiceStarted: "MaruBotサーバーが開始されました。",
 		ServiceStopped: "MaruBotサーバーが停止されました。",
 		NotifyTitle:    "MaruBot通知",
@@ -206,7 +206,21 @@ func onTrayReady(targetExe string) {
 		s, _ := service.New(&program{}, svcConfig)
 		status, _ := s.Status()
 
+		shouldInstall := false
 		if status == service.StatusUnknown {
+			shouldInstall = true
+		} else {
+			// Service exists. Check if user wants to update
+			if showNativeConfirmDialog("MaruBot Installer", "MaruBot is already installed. Do you want to reinstall and update it to the latest version?") {
+				fmt.Println("User opted for reinstallation.")
+				serviceCmdInternalPath("uninstall", targetExe)
+				time.Sleep(2 * time.Second)
+				shouldInstall = true
+			}
+		}
+
+		if shouldInstall {
+			fmt.Println("Installing MaruBot service...")
 			serviceCmdInternalPath("install", targetExe)
 			time.Sleep(1 * time.Second)
 			serviceCmdInternalPath("start", targetExe)
