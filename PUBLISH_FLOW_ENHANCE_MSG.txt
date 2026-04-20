@@ -1,0 +1,5 @@
+배포 워크플로우 강화: Backend와 Web Admin 버전 일치성 검사 추가
+
+- scripts/publish.sh에 버전 정합성 체크 단계 추가
+- pkg/config/version.go와 web-admin/package.json의 버전이 다를 경우 배포 중단
+- RULES.md의 6단계 배포 절차를 코드로 강제화하여 실수 방지

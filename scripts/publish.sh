@@ -18,6 +18,21 @@ fi
 
 echo "🚀 공개 배포용 파일을 $TARGET_DIR 로 동기화합니다..."
 
+# 0. 버전 정합성 체크
+echo "🔎 버전 정합성 확인 중..."
+BACKEND_VER=$(grep '^const Version =' "$SOURCE_DIR/pkg/config/version.go" | cut -d '"' -f 2)
+if [ -f "$SOURCE_DIR/web-admin/package.json" ]; then
+    WEB_VER=$(grep '"version":' "$SOURCE_DIR/web-admin/package.json" | head -n 1 | cut -d '"' -f 4)
+    if [ "$BACKEND_VER" != "$WEB_VER" ]; then
+        echo "❌ 버전 불일치 감지!"
+        echo "  - Backend Version: $BACKEND_VER"
+        echo "  - Web Admin Version: $WEB_VER"
+        echo "  'web-admin/package.json' 의 버전을 백엔드와 동일하게 업데이트하고 다시 빌드하세요."
+        exit 1
+    fi
+    echo "  ✓ 버전 일치 확인 ($BACKEND_VER)"
+fi
+
 # 1. 대상 디렉토리 생성
 mkdir -p "$TARGET_DIR"
 
