@@ -44,6 +44,7 @@ import (
 
 	"github.com/chzyer/readline"
 	"github.com/kardianos/service"
+	"sync"
 )
 
 // 0.4.59: Fix tray icon visibility with ICO and elevated uninstall via RunAs
@@ -150,11 +151,19 @@ func main() {
 	case "skills":
 		skillsCmd()
 	case "voice":
-		voiceCmd()
+		// Reserved for future use
+		fmt.Println("Voice command is not yet implemented.")
 	case "stop":
 		stopCmd()
+	case "upgrade":
+		upgradeCmd()
+	case "uninstall":
+		uninstallCmd()
+	case "version", "--version", "-v":
+		fmt.Printf("%s marubot v%s\n", logo, strings.TrimPrefix(Version, "v"))
 	case "admin-user":
-		adminUserCmd()
+		// Reserved for future use
+		fmt.Println("Admin-user command is not yet implemented.")
 	default:
 		printHelp()
 		os.Exit(1)
@@ -168,88 +177,14 @@ var (
 	currentAgentLoop   *agent.AgentLoop
 	currentChanManager *channels.Manager
 	currentCron        *cron.CronService
-	currentHeartbeat   *heartbeat.Service
+	currentHeartbeat   *heartbeat.HeartbeatService
 	backgroundMu       sync.Mutex
 )
-
-func getSysProcAttr() *syscall.SysProcAttr {
-	if runtime.GOOS == "windows" {
-		return &syscall.SysProcAttr{HideWindow: true}
-	}
-	return nil
-}
 
 func execHidden(name string, arg ...string) *exec.Cmd {
 	cmd := exec.Command(name, arg...)
 	cmd.SysProcAttr = getSysProcAttr()
 	return cmd
-}
-	case "cron":
-		cronCmd()
-	case "migrate-paths":
-		migratePathsCmd()
-	case "start":
-		startCmd()
-	case "reload":
-		reloadCmd()
-	case "skills":
-		if len(os.Args) < 3 {
-			skillsHelp()
-			return
-		}
-
-		subcommand := os.Args[2]
-
-		cfg, err := loadConfig()
-		if err != nil {
-			fmt.Printf("Error loading config: %v\n", err)
-			os.Exit(1)
-		}
-
-		workspace := cfg.WorkspacePath()
-		installer := skills.NewSkillInstaller(workspace)
-		skillsLoader := skills.NewSkillsLoader(workspace, "")
-
-		switch subcommand {
-		case "list":
-			skillsListCmd(skillsLoader)
-		case "install":
-			skillsInstallCmd(installer)
-		case "remove", "uninstall":
-			if len(os.Args) < 4 {
-				fmt.Println("Usage: marubot skills remove <skill-name>")
-				return
-			}
-			skillsRemoveCmd(installer, os.Args[3])
-		case "install-builtin":
-			skillsInstallBuiltinCmd(workspace)
-		case "list-builtin":
-			skillsListBuiltinCmd()
-		case "search":
-			skillsSearchCmd(installer)
-		case "show":
-			if len(os.Args) < 4 {
-				fmt.Println("Usage: marubot skills show <skill-name>")
-				return
-			}
-			skillsShowCmd(skillsLoader, os.Args[3])
-		default:
-			fmt.Printf("Unknown skills command: %s\n", subcommand)
-			skillsHelp()
-		}
-	case "version", "--version", "-v":
-		fmt.Printf("%s marubot v%s\n", logo, strings.TrimPrefix(Version, "v"))
-	case "uninstall":
-		uninstallCmd()
-	case "stop":
-		stopCmd()
-	case "upgrade":
-		upgradeCmd()
-	default:
-		fmt.Printf("Unknown command: %s\n", command)
-		printHelp()
-		os.Exit(1)
-	}
 }
 
 func logUninstall(message string) {
