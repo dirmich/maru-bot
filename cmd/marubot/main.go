@@ -269,35 +269,27 @@ func uninstallCmd() {
 		time.Sleep(1 * time.Second)
 
 		for _, svcName := range svcNames {
-			fmt.Printf("Removing service '%s'...\n", svcName)
+			fmt.Printf("Deep cleaning service '%s'...\n", svcName)
 
 			// 1. Force kill processes hosting this service
 			exec.Command("taskkill", "/F", "/T", "/FI", fmt.Sprintf("SERVICES eq %s", svcName)).Run()
 
 			// 2. Stop service via sc.exe and wait
 			exec.Command("sc", "stop", svcName).Run()
-			for i := 0; i < 10; i++ {
+			for i := 0; i < 5; i++ {
 				out, _ := exec.Command("sc", "query", svcName).Output()
 				outStr := string(out)
 				if strings.Contains(outStr, "1060") || strings.Contains(outStr, "STOPPED") {
 					break
 				}
-				fmt.Printf("  Waiting for service '%s' to stop... (%d/10)\n", svcName, i+1)
+				fmt.Printf("  Waiting for service '%s' to stop... (%d/5)\n", svcName, i+1)
 				time.Sleep(1 * time.Second)
 			}
 
 			// 3. Delete service via sc.exe
 			exec.Command("sc", "delete", svcName).Run()
 
-			// 4. Backup: also try via service library
-			svcConfig := &service.Config{Name: svcName}
-			s, err := service.New(nil, svcConfig)
-			if err == nil {
-				s.Stop()
-				s.Uninstall()
-			}
-
-			// 5. Robust wait for deletion
+			// 4. Robust wait for deletion
 			isRemoved := false
 			for i := 0; i < 10; i++ {
 				out, _ := exec.Command("sc", "query", svcName).Output()
@@ -312,10 +304,8 @@ func uninstallCmd() {
 			if isRemoved {
 				fmt.Printf("✓ Service '%s' removed successfully.\n", svcName)
 			} else {
-				fmt.Printf("! Warning: Service '%s' is still present in the system.\n", svcName)
-				fmt.Println("  It may be marked for deletion. Please close 'services.msc' or Task Manager if they are open.")
-				// Last ditch effort: kill by name
-				exec.Command("taskkill", "/F", "/T", "/IM", svcName+".exe").Run()
+				fmt.Printf("! Warning: Service '%s' is still present. It might be marked for deletion.\n", svcName)
+				fmt.Println("  Action: Please close 'services.msc' or Task Manager if they are open.")
 			}
 		}
 
@@ -350,11 +340,11 @@ func uninstallCmd() {
 		exec.Command("pkill", "-9", "marubot").Run()
 	}
 
-	fmt.Print("Do you want to keep your user data (config, memory, workspace)? (Y/n): ")
-	var keepData string
-	fmt.Scanln(&keepData)
+	fmt.Print("Do you want to PERMANENTLY DELETE all user data (config, memory, workspace)? (y/N): ")
+	var deleteChoice string
+	fmt.Scanln(&deleteChoice)
 	keep := true
-	if strings.ToLower(keepData) == "n" {
+	if strings.ToLower(deleteChoice) == "y" {
 		keep = false
 	}
 
@@ -366,13 +356,19 @@ func uninstallCmd() {
 			os.RemoveAll(filepath.Join(resourceDir, "skills"))
 			os.RemoveAll(filepath.Join(resourceDir, "tools"))
 			os.RemoveAll(filepath.Join(resourceDir, "web-admin"))
-			fmt.Printf("✓ System resources removed. User data kept in %s\n", resourceDir)
+			os.RemoveAll(filepath.Join(resourceDir, "bin"))
+			fmt.Printf("✓ System resources and binaries removed. User data kept in %s\n", resourceDir)
 		} else {
-			fmt.Println("Removing all data...")
+			fmt.Println("Removing ALL MaruBot data including configuration...")
+			// Make sure we kill processes again just in case
+			if runtime.GOOS == "windows" {
+				exec.Command("taskkill", "/F", "/T", "/IM", "marubot.exe").Run()
+				time.Sleep(500 * time.Millisecond)
+			}
 			if err := os.RemoveAll(resourceDir); err != nil {
 				fmt.Printf("Error removing %s: %v\n", resourceDir, err)
 			} else {
-				fmt.Printf("✓ %s removed\n", resourceDir)
+				fmt.Printf("✓ %s and all subdirectories removed successfully.\n", resourceDir)
 			}
 		}
 	}
@@ -2044,10 +2040,17 @@ func stopCmd() {
 		}
 	}
 
+	if runtime.GOOS == "windows" {
+		fmt.Println("Stopping MaruBot processes...")
+		// Use taskkill to ensure all tray and background processes are killed
+		exec.Command("taskkill", "/F", "/T", "/IM", "marubot.exe").Run()
+		exec.Command("taskkill", "/F", "/T", "/IM", "marubot-*.exe").Run()
+	}
+
 	pidFile := getPidFilePath()
 	data, err := os.ReadFile(pidFile)
 	if err != nil {
-		if !stoppedViaSystemd {
+		if !stoppedViaSystemd && runtime.GOOS != "windows" {
 			fmt.Println("No running marubot process found (pid file missing).")
 		}
 		return
@@ -2066,7 +2069,7 @@ func stopCmd() {
 		return
 	}
 
-	fmt.Printf("Stopping marubot daemon (PID: %d)...\n", pid)
+	fmt.Printf("Stopping marubot (PID: %d)...\n", pid)
 	if err := proc.Signal(os.Interrupt); err != nil {
 		proc.Kill()
 	}
