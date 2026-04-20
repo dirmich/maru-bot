@@ -340,35 +340,42 @@ func uninstallCmd() {
 		exec.Command("pkill", "-9", "marubot").Run()
 	}
 
-	fmt.Print("Do you want to PERMANENTLY DELETE all user data (config, memory, workspace)? (y/N): ")
-	var deleteChoice string
-	fmt.Scanln(&deleteChoice)
-	keep := true
-	if strings.ToLower(deleteChoice) == "y" {
-		keep = false
+	// Ask for data deletion using native dialog on GUI-capable platforms
+	var deleteAll bool
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+		deleteAll = showNativeConfirmDialog("Cleanup MaruBot Data?", "Do you want to PERMANENTLY DELETE all your MaruBot data (configuration, logs, memory, and workspace)?\n\nSelect 'No' if you want to keep them for a future reinstallation.")
+	} else {
+		fmt.Print("Do you want to PERMANENTLY DELETE all user data (config, memory, workspace)? (y/N): ")
+		var deleteChoice string
+		fmt.Scanln(&deleteChoice)
+		deleteAll = strings.ToLower(deleteChoice) == "y"
 	}
+	keep := !deleteAll
 
 	// 1. Remove resources
 	resourceDir := getResourceDir()
 	if _, err := os.Stat(resourceDir); err == nil {
 		if keep {
 			fmt.Println("Cleaning system resources (keeping user data)...")
+			// Carefully only remove binary and system assets
 			os.RemoveAll(filepath.Join(resourceDir, "skills"))
 			os.RemoveAll(filepath.Join(resourceDir, "tools"))
 			os.RemoveAll(filepath.Join(resourceDir, "web-admin"))
 			os.RemoveAll(filepath.Join(resourceDir, "bin"))
-			fmt.Printf("✓ System resources and binaries removed. User data kept in %s\n", resourceDir)
+			fmt.Printf("✓ System binaries and assets removed. User data (config, workspace, memory) preserved in: %s\n", resourceDir)
 		} else {
-			fmt.Println("Removing ALL MaruBot data including configuration...")
-			// Make sure we kill processes again just in case
+			fmt.Println("Removing ALL MaruBot data including configuration and workspace...")
+			// Make sure we kill processes again just in case a lock is holding the folder
 			if runtime.GOOS == "windows" {
 				exec.Command("taskkill", "/F", "/T", "/IM", "marubot.exe").Run()
-				time.Sleep(500 * time.Millisecond)
+				exec.Command("taskkill", "/F", "/T", "/IM", "marubot-*.exe").Run()
+				time.Sleep(1 * time.Second)
 			}
 			if err := os.RemoveAll(resourceDir); err != nil {
 				fmt.Printf("Error removing %s: %v\n", resourceDir, err)
+				fmt.Println("  Please manually delete the folder after closing any related applications.")
 			} else {
-				fmt.Printf("✓ %s and all subdirectories removed successfully.\n", resourceDir)
+				fmt.Printf("✓ Entire MaruBot home directory (%s) removed successfully.\n", resourceDir)
 			}
 		}
 	}
