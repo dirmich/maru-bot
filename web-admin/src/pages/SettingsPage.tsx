@@ -68,6 +68,8 @@ export function SettingsPage() {
                 setSaveResult({ success: true });
                 setShowResultDialog(true);
                 toast.success(t.settings_save_success);
+                // Refresh local state with updated config from server
+                fetchConfig();
             } else if (!silent) {
                 const errText = await res.text();
                 setSaveResult({ success: false, message: errText || 'Unknown error' });

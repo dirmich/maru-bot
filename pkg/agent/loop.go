@@ -140,6 +140,10 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	return al
 }
 
+func (al *AgentLoop) GetBus() *bus.MessageBus {
+	return al.bus
+}
+
 func (al *AgentLoop) SetProvider(p providers.LLMProvider) {
 	al.mu.Lock()
 	defer al.mu.Unlock()

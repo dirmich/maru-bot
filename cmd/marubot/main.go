@@ -148,6 +148,51 @@ func main() {
 	case "reload":
 		reloadCmd()
 	case "skills":
+		skillsCmd()
+	case "voice":
+		voiceCmd()
+	case "stop":
+		stopCmd()
+	case "admin-user":
+		adminUserCmd()
+	default:
+		printHelp()
+		os.Exit(1)
+	}
+}
+
+// Global state for background services to support Hot Reload
+var (
+	backgroundCtx      context.Context
+	backgroundCancel   context.CancelFunc
+	currentAgentLoop   *agent.AgentLoop
+	currentChanManager *channels.Manager
+	currentCron        *cron.CronService
+	currentHeartbeat   *heartbeat.Service
+	backgroundMu       sync.Mutex
+)
+
+func getSysProcAttr() *syscall.SysProcAttr {
+	if runtime.GOOS == "windows" {
+		return &syscall.SysProcAttr{HideWindow: true}
+	}
+	return nil
+}
+
+func execHidden(name string, arg ...string) *exec.Cmd {
+	cmd := exec.Command(name, arg...)
+	cmd.SysProcAttr = getSysProcAttr()
+	return cmd
+}
+	case "cron":
+		cronCmd()
+	case "migrate-paths":
+		migratePathsCmd()
+	case "start":
+		startCmd()
+	case "reload":
+		reloadCmd()
+	case "skills":
 		if len(os.Args) < 3 {
 			skillsHelp()
 			return
@@ -1756,8 +1801,8 @@ func reloadCmd() {
 			}
 			servicePath := filepath.Join(serviceDir, "marubot.service")
 			if _, err := os.Stat(servicePath); err == nil {
-				daemonReload := exec.Command("systemctl", "--user", "daemon-reload")
-				restart := exec.Command("systemctl", "--user", "restart", "marubot.service")
+				daemonReload := execHidden("systemctl", "--user", "daemon-reload")
+				restart := execHidden("systemctl", "--user", "restart", "marubot.service")
 
 				if os.Getenv("XDG_RUNTIME_DIR") == "" && uid != "" {
 					daemonReload.Env = append(os.Environ(), fmt.Sprintf("XDG_RUNTIME_DIR=/run/user/%s", uid))
@@ -1776,9 +1821,7 @@ func reloadCmd() {
 		}
 	}
 
-	// For macOS/Windows or if systemd failed:
-	// We always call stopCmd() to kill the existing PID before spawning a new one.
-	// But first, we need to clear the MARUBOT_DAEMON env var to ensure startCmd() calls stopCmd().
+	// For macOS/Windows:
 	os.Unsetenv("MARUBOT_DAEMON")
 
 	exe, err := os.Executable()
@@ -1787,14 +1830,76 @@ func reloadCmd() {
 		return
 	}
 
-	// Spawn 'marubot start' without the DAEMON env var.
-	// This process will then stop the old one and daemonize itself.
-	cmd := exec.Command(exe, "start")
+	cmd := execHidden(exe, "start")
 	if err := cmd.Start(); err != nil {
 		fmt.Printf("✗ Failed to start during reload: %v\n", err)
 		return
 	}
 	fmt.Println("✓ Reload trigger sent.")
+}
+
+func reloadInternal() {
+	backgroundMu.Lock()
+	defer backgroundMu.Unlock()
+
+	logger.InfoC("system", "Starting internal hot-reload...")
+
+	// 1. Stop existing services
+	if backgroundCancel != nil {
+		backgroundCancel()
+	}
+	if currentCron != nil {
+		currentCron.Stop()
+	}
+	if currentHeartbeat != nil {
+		currentHeartbeat.Stop()
+	}
+
+	// Wait a bit for sockets/connections to clear
+	time.Sleep(1 * time.Second)
+
+	// 2. Refresh config
+	cfg, err := config.LoadConfig(getConfigPath())
+	if err != nil {
+		logger.ErrorCF("system", "Failed to reload config during hot-reload", map[string]interface{}{"error": err.Error()})
+		return
+	}
+
+	// 3. Re-initialize provider
+	provider, err := providers.CreateProvider(cfg)
+	if err != nil {
+		logger.ErrorCF("system", "Failed to recreate provider during hot-reload", map[string]interface{}{"error": err.Error()})
+		return
+	}
+
+	// 4. Update Agent Loop with new provider
+	if currentAgentLoop != nil {
+		currentAgentLoop.SetProvider(provider)
+	}
+
+	// 5. Restart services
+	backgroundCtx, backgroundCancel = context.WithCancel(context.Background())
+	
+	// Re-init channels with new config
+	if currentAgentLoop != nil {
+		newChanManager, err := channels.NewManager(cfg, currentAgentLoop.GetBus())
+		if err == nil {
+			currentChanManager = newChanManager
+			currentAgentLoop.SetChannelManager(newChanManager)
+			currentChanManager.StartAll(backgroundCtx)
+		}
+	}
+
+	if currentCron != nil {
+		currentCron.Start()
+	}
+	if currentHeartbeat != nil {
+		currentHeartbeat.Start()
+	}
+
+	go currentAgentLoop.Run(backgroundCtx)
+
+	logger.InfoC("system", "Internal hot-reload completed successfully")
 }
 
 func startCmd() {
@@ -1829,7 +1934,7 @@ func startCmd() {
 		}
 
 		// Re-run with special env var
-		cmd := exec.Command(exe, "start")
+		cmd := execHidden(exe, "start")
 		// Clean up inherited DAEMON env var if any
 		newEnv := make([]string, 0)
 		for _, e := range os.Environ() {
@@ -1898,15 +2003,12 @@ func startCmd() {
 		ensureAdminPassword(cfg)
 	}
 
-	// Validate configuration: At least one AI provider must be enabled
+	// Validate configuration: At least one AI provider must be enabled OR one channel must be enabled.
 	// If password is also missing, we prioritize security setup.
-	// We no longer require a channel to be enabled to leave setup mode,
-	// because web-admin chat is always available.
-	if !cfg.IsAIConfigured() {
+	if !cfg.IsAIConfigured() && !cfg.IsChannelEnabled() {
 		showGuideMessage(cfg)
 
 		// Allow all platforms to enter Setup Mode so the user can finish configuration via Web-Admin.
-		// Previously this was restricted to GUI environments, but RPi/Linux users also need this.
 		fmt.Println("Entering Setup Mode... (Server remains active for web configuration)")
 
 		// Start dashboard server in a goroutine so user can configure
@@ -1920,7 +2022,7 @@ func startCmd() {
 		// even in Setup Mode.
 		bus := bus.NewMessageBus()
 		dummyAgent := agent.NewAgentLoop(cfg, bus, nil, Version)
-		dashServer := dashboard.NewServer(dashAddr, dummyAgent, cfg, getConfigPath(), Version, reloadCmd)
+		dashServer := dashboard.NewServer(dashAddr, dummyAgent, cfg, getConfigPath(), Version, reloadInternal)
 
 		if runForeground {
 			fmt.Printf("✓ Dashboard available at http://localhost:%d\n", port)
@@ -1963,6 +2065,7 @@ func startCmd() {
 	}
 
 	agentLoop := agent.NewAgentLoop(cfg, bus, provider, Version)
+	currentAgentLoop = agentLoop
 
 	gpioService := gpio.NewGPIOService(cfg, bus)
 	gpioService.Start(context.Background())
@@ -1973,6 +2076,7 @@ func startCmd() {
 	cronService := cron.NewCronService(cronStorePath, func(job *cron.CronJob) (string, error) {
 		return agentLoop.ProcessDirect(context.Background(), job.Payload.Message, "cron:"+job.ID)
 	})
+	currentCron = cronService
 
 	heartbeatService := heartbeat.NewHeartbeatService(
 		cfg.WorkspacePath(),
@@ -1982,9 +2086,10 @@ func startCmd() {
 		30*60,
 		true,
 	)
+	currentHeartbeat = heartbeatService
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	backgroundCtx, backgroundCancel = context.WithCancel(context.Background())
+	defer backgroundCancel()
 
 	if err := cronService.Start(); err != nil && runForeground {
 		fmt.Printf("Error starting cron service: %v\n", err)
@@ -1992,12 +2097,13 @@ func startCmd() {
 	if err := heartbeatService.Start(); err != nil && runForeground {
 		fmt.Printf("Error starting heartbeat service: %v\n", err)
 	}
-	go agentLoop.Run(ctx)
+	go agentLoop.Run(backgroundCtx)
 
 	channelManager, err := channels.NewManager(cfg, bus)
 	if err == nil {
+		currentChanManager = channelManager
 		agentLoop.SetChannelManager(channelManager)
-		if err := channelManager.StartAll(ctx); err != nil && runForeground {
+		if err := channelManager.StartAll(backgroundCtx); err != nil && runForeground {
 			fmt.Printf("Error starting channels: %v\n", err)
 		}
 		if runForeground {
@@ -2012,7 +2118,7 @@ func startCmd() {
 
 	// Initialize Dashboard Server
 	port := "8080"
-	server := dashboard.NewServer(":"+port, agentLoop, cfg, getConfigPath(), Version, reloadCmd)
+	server := dashboard.NewServer(":"+port, agentLoop, cfg, getConfigPath(), Version, reloadInternal)
 
 	if runForeground {
 		go func() {
@@ -2091,8 +2197,8 @@ func stopCmd() {
 	if runtime.GOOS == "windows" {
 		fmt.Println("Stopping MaruBot processes...")
 		// Use taskkill to ensure all tray and background processes are killed
-		exec.Command("taskkill", "/F", "/T", "/IM", "marubot.exe").Run()
-		exec.Command("taskkill", "/F", "/T", "/IM", "marubot-*.exe").Run()
+		execHidden("taskkill", "/F", "/T", "/IM", "marubot.exe").Run()
+		execHidden("taskkill", "/F", "/T", "/IM", "marubot-*.exe").Run()
 	}
 
 	pidFile := getPidFilePath()
@@ -2245,7 +2351,7 @@ func openBrowser(url string) {
 	case "linux":
 		err = exec.Command("xdg-open", url).Start()
 	case "windows":
-		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+		err = execHidden("rundll32", "url.dll,FileProtocolHandler", url).Start()
 	case "darwin":
 		err = exec.Command("open", url).Start()
 	default:
@@ -2399,8 +2505,8 @@ func serviceCmd() {
 		err = s.Uninstall()
 		if runtime.GOOS == "windows" {
 			// Extra cleanup for Windows to ensure it's removed from SCM immediately if possible
-			exec.Command("sc", "stop", svcConfig.Name).Run()
-			exec.Command("sc", "delete", svcConfig.Name).Run()
+			execHidden("sc", "stop", svcConfig.Name).Run()
+			execHidden("sc", "delete", svcConfig.Name).Run()
 		}
 		if err == nil {
 			fmt.Println("Service uninstalled successfully.")
@@ -2441,7 +2547,7 @@ func serviceCmd() {
 func isAdmin() bool {
 	if runtime.GOOS == "windows" {
 		// 'net session' command returns 0 if admin, 1 otherwise
-		cmd := exec.Command("net", "session")
+		cmd := execHidden("net", "session")
 		err := cmd.Run()
 		return err == nil
 	}
@@ -2463,10 +2569,9 @@ func runAsAdmin() {
 	exe, _ := os.Executable()
 	args := strings.Join(append(os.Args[1:], "--elevated"), " ")
 
-	// PowerShell way with better quoting and arguments support
 	// We use ' to wrap the path to handle spaces in exe path
 	command := fmt.Sprintf("Start-Process -FilePath '%s' -ArgumentList '%s' -Verb RunAs", exe, args)
-	cmd := exec.Command("powershell", "-Command", command)
+	cmd := execHidden("powershell", "-Command", command)
 	err := cmd.Run()
 	if err != nil {
 		fmt.Printf("Failed to elevate: %v\n", err)
@@ -2523,7 +2628,7 @@ func checkAndFixPort(cfg *config.Config) bool {
 	if runtime.GOOS == "windows" {
 		// Identify the process owning the port
 		detectScript := fmt.Sprintf(`$conn = Get-NetTCPConnection -LocalPort %d -ErrorAction SilentlyContinue | Select-Object -First 1; if ($conn) { $proc = Get-Process -Id $conn.OwningProcess -ErrorAction SilentlyContinue; if ($proc) { $proc.ProcessName } else { "unknown" } } else { "none" }`, port)
-		cmd := exec.Command("powershell", "-NoProfile", "-Command", detectScript)
+		cmd := execHidden("powershell", "-NoProfile", "-Command", detectScript)
 		out, _ := cmd.Output()
 		ownerName := strings.TrimSpace(strings.ToLower(string(out)))
 		isMarubot := strings.Contains(ownerName, "marubot")

@@ -1,0 +1,7 @@
+설정 즉시 적용(Hot Reload) 구현 및 윈도우 UI 개선
+
+- [main.go] reloadInternal 도입으로 프로세스 종료 없는 서비스 재기동 구현
+- [main.go] 윈도우 환경에서 execHidden 사용으로 터미널 창(CMD) 노출 방지
+- [main.go] Setup Mode 진입 로직 수정 (AI 또는 채널 설정 시 통과 가능)
+- [SettingsPage.tsx] 설정 저장 후 fetchConfig 호출로 데이터 동기화 보장
+- [loop.go] GetBus 메서드 추가로 서비스 간 유기적 재연결 지원
