@@ -25,6 +25,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unsafe"
 
 	"github.com/dirmich/marubot/cmd/marubot/dashboard"
 	"github.com/dirmich/marubot/pkg/admin"
@@ -206,6 +207,18 @@ func main() {
 	}
 }
 
+func logUninstall(message string) {
+	home, _ := os.UserHomeDir()
+	logPath := filepath.Join(home, ".marubot", "uninstall.log")
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err == nil {
+		defer f.Close()
+		timestamp := time.Now().Format("2006-01-02 15:04:05")
+		f.WriteString(fmt.Sprintf("[%s] %s\n", timestamp, message))
+	}
+	fmt.Println(message)
+}
+
 func uninstallCmd() {
 	autoConfirm := false
 	for _, arg := range os.Args {
@@ -249,60 +262,64 @@ func uninstallCmd() {
 
 	// 0. Remove Services and Kill Processes (Cross-platform)
 	if runtime.GOOS == "windows" {
+		logUninstall("--- Windows 언인스톨 시작 ---")
 		// Clean up shortcuts
 		removeWindowsShortcuts()
 
-		svcNames := []string{"MaruBot", "marubot"}
+		// 1. Force kill all processes with 'marubot' in their path, EXCLUDING current PID
+		currentPid := os.Getpid()
+		logUninstall(fmt.Sprintf("관련 프로세스 종료 중 (현재 PID 제외: %d)...", currentPid))
+		killScript := fmt.Sprintf(`Get-Process | Where-Object { ($_.Path -like "*marubot*" -or $_.Name -like "*marubot*") -and ($_.Id -ne %d) } | ForEach-Object { try { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue; "Killed: $($_.Name) ($($_.Id))" } catch { "Failed to kill: $($_.Name) ($($_.Id))" } }`, currentPid)
+		killOut, _ := exec.Command("powershell", "-NoProfile", "-Command", killScript).CombinedOutput()
+		logUninstall(string(killOut))
 
-		// Get current exe name to ensure we kill it too if another instance is running
-		exeCurrent, _ := os.Executable()
-		exeName := filepath.Base(exeCurrent)
-
-		// Try to kill any marubot processes first to unlock files.
-		fmt.Println("Stopping existing processes...")
-		exec.Command("taskkill", "/F", "/T", "/IM", "marubot.exe").Run()
-		exec.Command("taskkill", "/F", "/T", "/IM", "marubot-*.exe").Run()
-		exec.Command("taskkill", "/F", "/T", "/IM", exeName).Run()
-		exec.Command("taskkill", "/F", "/T", "/FI", "IMAGENAME eq marubot*").Run()
-		exec.Command("taskkill", "//F", "//T", "//IM", "marubot.exe").Run() // msys2 fallback
-
-		time.Sleep(1 * time.Second)
-
-		for _, svcName := range svcNames {
-			fmt.Printf("Deep cleaning service '%s'...\n", svcName)
-
-			// 1. Force kill processes hosting this service
-			exec.Command("taskkill", "/F", "/T", "/FI", fmt.Sprintf("SERVICES eq %s", svcName)).Run()
-
-			// 2. Stop service via sc.exe and wait
-			exec.Command("sc", "stop", svcName).Run()
-			for i := 0; i < 5; i++ {
-				out, _ := exec.Command("sc", "query", svcName).Output()
-				outStr := string(out)
-				if strings.Contains(outStr, "1060") || strings.Contains(outStr, "STOPPED") {
-					break
-				}
-				fmt.Printf("  Waiting for service '%s' to stop... (%d/5)\n", svcName, i+1)
-				time.Sleep(1 * time.Second)
+		logUninstall("Step: Discovering services...")
+		findSvcScript := `Get-Service *marubot* | Select-Object -ExpandProperty Name`
+		svcOut, _ := exec.Command("powershell", "-NoProfile", "-Command", findSvcScript).Output()
+		svcNamesStr := strings.TrimSpace(string(svcOut))
+		var svcNames []string
+		if svcNamesStr != "" {
+			svcNames = strings.Split(svcNamesStr, "\r\n")
+			// handle both line endings
+			if len(svcNames) == 1 {
+				svcNames = strings.Split(svcNamesStr, "\n")
 			}
+		}
+		// Fallback to defaults if discovery fails or is empty
+		if len(svcNames) == 0 {
+			svcNames = []string{"MaruBot", "marubot"}
+		}
+		logUninstall(fmt.Sprintf("Target services: %v", svcNames))
 
-			// 3. Delete service via sc.exe
-			exec.Command("sc", "delete", svcName).Run()
+		scPath := `C:\Windows\System32\sc.exe`
+		for _, svcName := range svcNames {
+			svcName = strings.TrimSpace(svcName)
+			if svcName == "" {
+				continue
+			}
+			logUninstall(fmt.Sprintf("Deep cleaning service '%s'...", svcName))
+
+			// Force stop
+			stopOut, _ := exec.Command(scPath, "stop", svcName).CombinedOutput()
+			logUninstall(fmt.Sprintf("Stop result: %s", string(stopOut)))
+
+			// Wait and delete
+			time.Sleep(1 * time.Second)
+			delOut, _ := exec.Command(scPath, "delete", svcName).CombinedOutput()
+			logUninstall(fmt.Sprintf("Delete result: %s", string(delOut)))
 
 			// 4. Robust wait for deletion
 			isRemoved := false
-			for i := 0; i < 10; i++ {
-				out, _ := exec.Command("sc", "query", svcName).Output()
+			for i := 0; i < 15; i++ {
+				out, _ := exec.Command(scPath, "query", svcName).Output()
 				if strings.Contains(string(out), "1060") {
 					isRemoved = true
 					break
 				}
-				fmt.Printf("  Waiting for service '%s' to be removed from system... (%d/10)\n", svcName, i+1)
+				logUninstall(fmt.Sprintf("  Waiting for service '%s' to be removed... (%d/15)", svcName, i+1))
 				time.Sleep(1 * time.Second)
-
 				if i == 5 {
-					hint := "Service deletion is taking longer than expected. Please close 'Service Manager (services.msc)' or Task Manager if they are open."
-					fmt.Printf("! %s\n", hint)
+					hint := "Service deletion is taking longer than expected. Please close 'Service Manager (services.msc)' or Task Manager."
 					if autoConfirm {
 						go showNativeMessageDialog("Action Required", hint)
 					}
@@ -310,11 +327,9 @@ func uninstallCmd() {
 			}
 
 			if isRemoved {
-				fmt.Printf("✓ Service '%s' removed successfully.\n", svcName)
+				logUninstall(fmt.Sprintf("✓ 서비스 '%s'가 성공적으로 제거되었습니다.", svcName))
 			} else {
-				msg := fmt.Sprintf("Service '%s' is still present. It is likely 'Marked for Deletion'.\n\nPlease CLOSE 'services.msc' and Task Manager to complete the process.", svcName)
-				fmt.Printf("! %s\n", msg)
-				showNativeMessageDialog("Uninstallation Notice", msg)
+				logUninstall(fmt.Sprintf("! 서비스 '%s' 제거 시간 초과.", svcName))
 			}
 		}
 
@@ -322,11 +337,23 @@ func uninstallCmd() {
 		resourceDir := getResourceDir()
 		binDir := filepath.Join(resourceDir, "bin")
 		if _, err := os.Stat(binDir); err == nil {
-			fmt.Println("Cleaning binary files...")
-			// Kill any remaining marubot processes that might lock files in bin
-			exec.Command("taskkill", "/F", "/T", "/IM", "marubot.exe").Run()
-			time.Sleep(1 * time.Second)
-			os.RemoveAll(binDir)
+			logUninstall("바이너리 폴더 정리 중: " + binDir)
+
+			// Get current executable path to avoid deleting self here
+			currentExe, _ := os.Executable()
+
+			files, _ := os.ReadDir(binDir)
+			for _, file := range files {
+				filePath := filepath.Join(binDir, file.Name())
+				if strings.EqualFold(filePath, currentExe) {
+					continue // Skip self, will be deleted by post-exit script
+				}
+				err := os.RemoveAll(filePath)
+				if err != nil {
+					logUninstall(fmt.Sprintf("! 파일 삭제 실패: %s (%v)", file.Name(), err))
+				}
+			}
+			logUninstall("✓ 바이너리 폴더 정리 완료 (현재 실행 파일 제외)")
 		}
 	} else if runtime.GOOS == "linux" {
 		// Stop and disable systemd service if exists
@@ -390,44 +417,48 @@ func uninstallCmd() {
 	}
 
 	// 2. Remove binary
-	// Try to remove self using os.Executable
 	exePath, err := os.Executable()
 	if err == nil {
 		home, _ := os.UserHomeDir()
 		installBinDir := filepath.Join(home, ".marubot", "bin")
-		isInstalledBin := strings.HasPrefix(filepath.Clean(exePath), filepath.Clean(installBinDir))
+		// Clean paths for reliable comparison
+		cleanExePath := filepath.Clean(exePath)
+		cleanInstallDir := filepath.Clean(installBinDir)
+		isInstalledBin := strings.HasPrefix(cleanExePath, cleanInstallDir)
 
-		shouldRemove := isInstalledBin
 		if !isInstalledBin {
-			fmt.Printf("\nExecutable is located at: %s\n", exePath)
-			if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
-				shouldRemove = showNativeConfirmDialog("Remove Executable?", "This executable is not in the standard install path.\nDo you also want to remove this file?")
-			} else {
-				fmt.Print("This executable is not in the standard install path. Remove it? (y/N): ")
-				var confirm string
-				fmt.Scanln(&confirm)
-				shouldRemove = strings.ToLower(confirm) == "y"
-			}
-		}
-
-		if shouldRemove {
-			fmt.Printf("Removing executable: %s\n", exePath)
+			logUninstall("알림: 현재 실행 파일이 설치 경로에 있지 않으므로 삭제를 건너뜁니다 (설치 파일 보존).")
+		} else {
+			fmt.Printf("설치 환경의 실행 파일을 제거합니다: %s\n", exePath)
 			if runtime.GOOS == "windows" {
 				// Windows cannot delete a running executable.
-				// Use a PowerShell trick to delete after exit with better path handling.
+				// Use a PowerShell trick to delete after exit with better path handling and retry.
 				destDir := filepath.Dir(exePath)
-				// Quote the path correctly for PowerShell
-				script := fmt.Sprintf("Start-Sleep -Seconds 2; if (Test-Path '%s') { Remove-Item -Path '%s' -Force }", exePath, exePath)
-				cmd := exec.Command("powershell", "-Command", fmt.Sprintf("Start-Process powershell -ArgumentList \"-NoProfile -WindowStyle Hidden -Command \\\"%s\\\"\" -WindowStyle Hidden -WorkingDirectory '%s'", script, destDir))
+				// Revised PowerShell script for robust deletion with retry
+				script := fmt.Sprintf(`
+Start-Sleep -Seconds 3
+for ($i=1; $i -le 10; $i++) {
+    if (Test-Path '%s') {
+        try {
+            Remove-Item -Path '%s' -Force -ErrorAction Stop
+            break
+        } catch {
+            Start-Sleep -Seconds 2
+        }
+    } else {
+        break
+    }
+}
+`, exePath, exePath)
+				cmd := exec.Command("powershell", "-NoProfile", "-Command", fmt.Sprintf("Start-Process powershell -ArgumentList \"-NoProfile -WindowStyle Hidden -Command \\\"%s\\\"\" -WindowStyle Hidden -WorkingDirectory '%s'", script, destDir))
 				if err := cmd.Start(); err != nil {
-					fmt.Printf("Error scheduling self-deletion: %v\n", err)
+					logUninstall(fmt.Sprintf("! 자가 삭제 예약 실패: %v", err))
 				} else {
-					fmt.Println("✓ Executable scheduled for deletion after exit.")
+					logUninstall("✓ 종료 후 실행 파일 삭제가 예약되었습니다.")
 				}
 			} else {
 				if err := os.Remove(exePath); err != nil {
-					fmt.Printf("Error removing executable: %v\n", err)
-					fmt.Println("Hint: You may need to run this command with sudo: 'sudo marubot uninstall'")
+					logUninstall(fmt.Sprintf("! 실행 파일 삭제 실패: %v", err))
 				} else {
 					fmt.Println("✓ Executable removed")
 				}
@@ -2454,9 +2485,27 @@ func isPortAvailable(port int) bool {
 
 func runAsAdminAction(action string) {
 	exe, _ := os.Executable()
+	// Split action into individual quoted arguments for PowerShell
+	fields := strings.Fields(action)
+	quotedArgs := make([]string, len(fields))
+	isUninstall := false
+	for i, f := range fields {
+		quotedArgs[i] = fmt.Sprintf("'%s'", f)
+		if strings.ToLower(f) == "uninstall" {
+			isUninstall = true
+		}
+	}
+	argList := strings.Join(quotedArgs, ", ")
+
+	// For uninstallation, we want the window to be visible so the user can answer questions
+	windowStyle := "Hidden"
+	if isUninstall {
+		windowStyle = "Normal"
+	}
+
 	// Use PowerShell Start-Process with -Verb RunAs to request elevation for the uninstall action
-	psCmd := fmt.Sprintf("Start-Process -FilePath '%s' -ArgumentList '%s' -Verb RunAs", exe, action)
-	exec.Command("powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", psCmd).Start()
+	psCmd := fmt.Sprintf("Start-Process -FilePath '%s' -ArgumentList %s -Verb RunAs -WindowStyle %s", exe, argList, windowStyle)
+	exec.Command("powershell", "-NoProfile", "-WindowStyle", windowStyle, "-Command", psCmd).Start()
 }
 
 func checkAndFixPort(cfg *config.Config) bool {
@@ -2747,10 +2796,6 @@ func checkServiceUpgrade(s service.Service) bool {
 	return svcVer != currentVer && svcVer != ""
 }
 
-func confirmUpgrade() bool {
-	return showNativeConfirmDialog("MaruBot Upgrade", "A newer version of MaruBot is available. Would you like to upgrade the background service?")
-}
-
 func showNativeConfirmDialog(title, message string) bool {
 	if runtime.GOOS == "darwin" {
 		// Escape double quotes in message
@@ -2760,19 +2805,28 @@ func showNativeConfirmDialog(title, message string) bool {
 		err := cmd.Run()
 		return err == nil
 	} else if runtime.GOOS == "windows" {
-		// Create PowerShell script for MessageBox
-		msg := strings.ReplaceAll(message, `'`, `''`)
-		psScript := fmt.Sprintf(`Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('%s', '%s', 'YesNo', 'Question')`, msg, title)
-
-		cmd := exec.Command("powershell", "-Command", psScript)
-		cmd.SysProcAttr = getSysProcAttr()
-		out, err := cmd.Output()
-		if err != nil {
-			return false
-		}
-		return strings.TrimSpace(string(out)) == "Yes"
+		// Use native Win32 MessageBoxW for maximum reliability
+		// 0x00000004 = MB_YESNO, 0x00000020 = MB_ICONQUESTION, 0x00000100 = MB_DEFBUTTON1
+		ret := win32MessageBox(message, title, 0x00000004|0x00000020|0x00000100)
+		return ret == 6 // 6 = IDYES
 	}
 	return true
+}
+
+func showNativeMessageDialog(title, message string) {
+	if runtime.GOOS == "windows" {
+		// 0x00000000 = MB_OK, 0x00000040 = MB_ICONINFORMATION
+		win32MessageBox(message, title, 0x00000000|0x00000040)
+	}
+}
+
+func win32MessageBox(message, title string, style uint32) int {
+	user32 := syscall.NewLazyDLL("user32.dll")
+	proc := user32.NewProc("MessageBoxW")
+	lpCaption, _ := syscall.UTF16PtrFromString(title)
+	lpText, _ := syscall.UTF16PtrFromString(message)
+	ret, _, _ := proc.Call(0, uintptr(unsafe.Pointer(lpText)), uintptr(unsafe.Pointer(lpCaption)), uintptr(style))
+	return int(ret)
 }
 
 func removeWindowsShortcuts() {
