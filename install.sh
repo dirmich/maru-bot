@@ -7,6 +7,7 @@ set -e
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
 NC='\033[0m'
 
 # 0. Parse Arguments
@@ -21,12 +22,12 @@ echo -e "${BLUE}🤖 Starting MaruBot One-Click Installer...${NC}"
 if [ "$FORCE_RPI" = true ]; then
     echo -e "${BLUE}ℹ️ Raspberry Pi mode forced via parameter.${NC}"
 fi
+
 # 0. Language Selection
-# 0. Language Selection
-echo "Language / 언어 / 言語:"
+echo "Select Application Language:"
 echo "1) English (en)"
-echo "2) 한국어 (ko)"
-echo "3) 日本語 (ja)"
+echo "2) Korean (ko)"
+echo "3) Japanese (ja)"
 
 # Check if running interactively or verify /dev/tty availability
 if [ -c /dev/tty ]; then
@@ -62,13 +63,7 @@ if [ ! -z "$EXISTING_PWD" ]; then
     PROMPT_PWD_SUFFIX=" [Default: (Current)]"
 fi
 
-if [ "$MARUBOT_LANG" = "ko" ]; then
-    PROMPT_PWD="웹 대시보드 관리자 암호를 설정하세요$PROMPT_PWD_SUFFIX: "
-elif [ "$MARUBOT_LANG" = "ja" ]; then
-    PROMPT_PWD="Webダッシュボードの管理パスワードを設定してください$PROMPT_PWD_SUFFIX: "
-else
-    PROMPT_PWD="Set Admin Password for Web Dashboard$PROMPT_PWD_SUFFIX: "
-fi
+PROMPT_PWD="Set Admin Password for Web Dashboard$PROMPT_PWD_SUFFIX: "
 
 if [ -c /dev/tty ]; then
     read -p "$PROMPT_PWD" MARUBOT_PWD < /dev/tty
@@ -90,38 +85,16 @@ if [ -z "$MARUBOT_PWD" ]; then
     fi
 fi
 
-# Translations
-if [ "$MARUBOT_LANG" = "ko" ]; then
-    MSG_ARCH_ERR="❌ 이 스크립트는 라즈베리 파이(ARM) 환경 전용입니다."
-    MSG_PKG_INST="📦 필수 패키지 설치 중..."
-    MSG_GO_INST="🐹 최신 Go 설치 중..."
-    MSG_CLONE="📂 MaruBot 소스 코드 클론 중..."
-    MSG_WEB_BUILD="🏗️ 웹 관리자 페이지(Vite) 빌드 중..."
-    MSG_GO_BUILD="🛠️ MaruBot 엔진 빌드 중..."
-    MSG_SUCCESS="🎉 MaruBot 설치가 완료되었습니다!"
-    MSG_DASHBOARD="대시보드 실행: marubot start"
-    MSG_UPGRADE="🚀 MaruBot 업그레이드 시도 중..."
-elif [ "$MARUBOT_LANG" = "ja" ]; then
-    MSG_ARCH_ERR="❌ このスクリプトはRaspberry Pi(ARM)環境専用です。"
-    MSG_PKG_INST="📦 必須パッケージをインストール中..."
-    MSG_GO_INST="🐹 最新のGoをインストール中..."
-    MSG_CLONE="📂 MaruBotソースコードをクローン中..."
-    MSG_WEB_BUILD="🏗️ Web管理画面(Vite)をビルド中..."
-    MSG_GO_BUILD="🛠️ MaruBotエンジンをビルド中..."
-    MSG_SUCCESS="🎉 MaruBotのインストールが完了しました！"
-    MSG_DASHBOARD="ダッシュボードの実行: marubot start"
-    MSG_UPGRADE="🚀 MaruBotアップグレードを試行中..."
-else
-    MSG_ARCH_ERR="❌ This script is only for Raspberry Pi (ARM) environments."
-    MSG_PKG_INST="📦 Installing required packages..."
-    MSG_GO_INST="🐹 Installing latest Go..."
-    MSG_CLONE="📂 Cloning MaruBot source from GitHub..."
-    MSG_WEB_BUILD="🏗️ Building Web Admin (Vite)..."
-    MSG_GO_BUILD="🛠️ Building MaruBot engine..."
-    MSG_SUCCESS="🎉 MaruBot installation complete!"
-    MSG_DASHBOARD="Run dashboard: marubot start"
-    MSG_UPGRADE="🚀 Attempting MaruBot upgrade..."
-fi
+# Messages (English Only for Shell Stability)
+MSG_ARCH_ERR="❌ This script is only for Raspberry Pi (ARM) environments."
+MSG_PKG_INST="📦 Installing required packages..."
+MSG_GO_INST="🐹 Installing latest Go..."
+MSG_CLONE="📂 Cloning MaruBot source from GitHub..."
+MSG_WEB_BUILD="🏗️ Building Web Admin (Vite)..."
+MSG_GO_BUILD="🛠️ Building MaruBot engine..."
+MSG_SUCCESS="🎉 MaruBot installation complete!"
+MSG_DASHBOARD="Run dashboard: marubot start"
+MSG_UPGRADE="🚀 Attempting MaruBot upgrade..."
 
 # 1. Check Architecture and OS
 IS_PI=false
