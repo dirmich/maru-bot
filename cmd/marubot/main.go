@@ -209,7 +209,7 @@ func main() {
 
 func logUninstall(message string) {
 	home, _ := os.UserHomeDir()
-	logDir := filepath.Join(home, ".marubot", "log")
+	logDir := filepath.Join(home, ".marubot", "logs")
 	os.MkdirAll(logDir, 0755)
 	logPath := filepath.Join(logDir, time.Now().Format("2006-01-02")+".log")
 	
@@ -1955,13 +1955,10 @@ func startCmd() {
 	bus := bus.NewMessageBus()
 
 	// Enable logging to file for background service with daily rotation logic
-	logDir := filepath.Join(getResourceDir(), "log")
-	os.MkdirAll(logDir, 0755)
-	logFile := filepath.Join(logDir, time.Now().Format("2006-01-02")+".log")
-	
-	if err := logger.EnableFileLogging(logFile); err != nil {
+	logDir := filepath.Join(getResourceDir(), "logs")
+	if err := logger.EnableDailyRotation(logDir); err != nil {
 		if runForeground {
-			fmt.Printf("Warning: Failed to enable file logging: %v\n", err)
+			fmt.Printf("Warning: Failed to enable daily log rotation: %v\n", err)
 		}
 	}
 

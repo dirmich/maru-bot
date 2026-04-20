@@ -421,9 +421,27 @@ func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 	if home == "" {
 		home, _ = os.UserHomeDir()
 	}
-	logFile := filepath.Join(home, ".marubot", "dashboard.log")
+	logDir := filepath.Join(home, ".marubot", "logs")
+	todayLog := filepath.Join(logDir, time.Now().Format("2006-01-02")+".log")
 
-	data, err := os.ReadFile(logFile)
+	data, err := os.ReadFile(todayLog)
+	if err != nil {
+		// Fallback: search for latest log in the directory
+		files, readErr := os.ReadDir(logDir)
+		if readErr == nil && len(files) > 0 {
+			var latestFile string
+			for i := len(files) - 1; i >= 0; i-- {
+				if !files[i].IsDir() && strings.HasSuffix(files[i].Name(), ".log") {
+					latestFile = filepath.Join(logDir, files[i].Name())
+					break
+				}
+			}
+			if latestFile != "" {
+				data, err = os.ReadFile(latestFile)
+			}
+		}
+	}
+
 	if err != nil {
 		if os.IsNotExist(err) {
 			json.NewEncoder(w).Encode(map[string]string{"logs": "No logs found yet."})
