@@ -17,9 +17,10 @@ var (
 	simMu         sync.RWMutex
 )
 
-// isRPi returns true if GPIOTestMode is enabled or it's an actual RPi
+// isRPi returns false on non-Pi platforms (Windows, macOS).
+// GPIO features are hidden in the UI by default on these platforms.
 func (s *Server) isRPi() bool {
-	return s.config.Hardware.GPIOTestMode
+	return false
 }
 
 func (s *Server) registerGPIORoutes(mux *http.ServeMux) {
