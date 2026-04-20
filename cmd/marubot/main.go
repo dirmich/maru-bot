@@ -207,10 +207,10 @@ func main() {
 }
 
 func uninstallCmd() {
-	skipConfirm := false
+	autoConfirm := false
 	for _, arg := range os.Args {
 		if arg == "--yes" || arg == "-y" {
-			skipConfirm = true
+			autoConfirm = true
 			break
 		}
 	}
@@ -218,25 +218,25 @@ func uninstallCmd() {
 	if runtime.GOOS == "windows" {
 		if !isAdmin() {
 			fmt.Println("Elevation required for uninstallation. Requesting administrator privileges...")
-			runAsAdmin()
-			return
+			if autoConfirm {
+				runAsAdminAction("uninstall --yes")
+			} else {
+				runAsAdminAction("uninstall")
+			}
+			os.Exit(0)
 		}
 	}
 
-	// Ensure all processes are stopped before uninstallation
-	stopCmd()
-
-	fmt.Printf("%s MaruBot Uninstaller\n", logo)
-	fmt.Println("WARNING: This will remove MaruBot and its resources from your system.")
-
-	// Show native dialog if on macOS or Windows to ensure confirmation in GUI mode
-	if !skipConfirm {
+	// 0. Initial confirmation (Skip if autoConfirm is true)
+	if !autoConfirm {
 		if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
-			if !showNativeConfirmDialog("Uninstall MaruBot", "Are you sure you want to uninstall MaruBot?") {
+			if !showNativeConfirmDialog("Uninstall MaruBot", "Are you sure you want to uninstall MaruBot and all its services?") {
 				fmt.Println("Aborted by user.")
 				return
 			}
 		} else {
+			fmt.Printf("%s MaruBot Uninstaller\n", logo)
+			fmt.Println("WARNING: This will remove MaruBot and its resources from your system.")
 			fmt.Print("Are you sure you want to continue? (y/N): ")
 			var confirm string
 			fmt.Scanln(&confirm)
@@ -299,13 +299,22 @@ func uninstallCmd() {
 				}
 				fmt.Printf("  Waiting for service '%s' to be removed from system... (%d/10)\n", svcName, i+1)
 				time.Sleep(1 * time.Second)
+
+				if i == 5 {
+					hint := "Service deletion is taking longer than expected. Please close 'Service Manager (services.msc)' or Task Manager if they are open."
+					fmt.Printf("! %s\n", hint)
+					if autoConfirm {
+						go showNativeMessageDialog("Action Required", hint)
+					}
+				}
 			}
 
 			if isRemoved {
 				fmt.Printf("✓ Service '%s' removed successfully.\n", svcName)
 			} else {
-				fmt.Printf("! Warning: Service '%s' is still present. It might be marked for deletion.\n", svcName)
-				fmt.Println("  Action: Please close 'services.msc' or Task Manager if they are open.")
+				msg := fmt.Sprintf("Service '%s' is still present. It is likely 'Marked for Deletion'.\n\nPlease CLOSE 'services.msc' and Task Manager to complete the process.", svcName)
+				fmt.Printf("! %s\n", msg)
+				showNativeMessageDialog("Uninstallation Notice", msg)
 			}
 		}
 
@@ -2739,15 +2748,7 @@ func checkServiceUpgrade(s service.Service) bool {
 }
 
 func confirmUpgrade() bool {
-	// Use PowerShell to show a Yes/No MessageBox
-	script := `
-Add-Type -AssemblyName System.Windows.Forms
-$result = [System.Windows.Forms.MessageBox]::Show("A newer version of MaruBot is available. Would you like to upgrade the background service?", "MaruBot Upgrade", "YesNo", "Question")
-if ($result -eq "Yes") { exit 0 } else { exit 1 }
-`
-	cmd := exec.Command("powershell", "-Command", script)
-	err := cmd.Run()
-	return err == nil
+	return showNativeConfirmDialog("MaruBot Upgrade", "A newer version of MaruBot is available. Would you like to upgrade the background service?")
 }
 
 func showNativeConfirmDialog(title, message string) bool {
