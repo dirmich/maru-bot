@@ -37,7 +37,9 @@ var (
 )
 
 type Logger struct {
-	file *os.File
+	file     *os.File
+	logDir   string
+	lastDate string
 }
 
 type LogEntry struct {
@@ -71,6 +73,10 @@ func EnableFileLogging(filePath string) error {
 	mu.Lock()
 	defer mu.Unlock()
 
+	return enableFileLoggingLocked(filePath)
+}
+
+func enableFileLoggingLocked(filePath string) error {
 	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to open log file: %w", err)
@@ -83,6 +89,27 @@ func EnableFileLogging(filePath string) error {
 	logger.file = file
 	log.Println("File logging enabled:", filePath)
 	return nil
+}
+
+func EnableDailyRotation(dirPath string) error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	logger.logDir = dirPath
+	if err := os.MkdirAll(dirPath, 0755); err != nil {
+		return fmt.Errorf("failed to create log directory: %w", err)
+	}
+
+	return rotateLogFileLocked()
+}
+
+func rotateLogFileLocked() error {
+	now := time.Now()
+	dateStr := now.Format("2006-01-02")
+	logger.lastDate = dateStr
+
+	logPath := fmt.Sprintf("%s/%s.log", strings.TrimSuffix(logger.logDir, "/"), dateStr)
+	return enableFileLoggingLocked(logPath)
 }
 
 func DisableFileLogging() {
@@ -117,6 +144,14 @@ func logMessage(level LogLevel, component string, message string, fields map[str
 	}
 
 	if logger.file != nil {
+		// Check for date rotation
+		if logger.logDir != "" {
+			currentDate := time.Now().Format("2006-01-02")
+			if currentDate != logger.lastDate {
+				rotateLogFileLocked()
+			}
+		}
+
 		jsonData, err := json.Marshal(entry)
 		if err == nil {
 			logger.file.WriteString(string(jsonData) + "\n")

@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/dirmich/marubot/pkg/config"
@@ -290,12 +289,10 @@ func onTrayReady(targetExe string) {
 					showNativeMessageDialog("Error", "Failed to check for updates: "+err.Error())
 				} else {
 					if config.IsNewVersionAvailable(latest) {
-						msg := fmt.Sprintf("New version v%s is available.\n(Current: v%s)\n\nDo you want to upgrade now?", latest, config.Version)
-						if showNativeConfirmDialog("Update Available", msg) {
-							showWindowsNotification(l.Upgrade, "Upgrading to v"+latest+"... Please wait.")
-
-							// Run upgrade in background
+						msg := fmt.Sprintf("New version v%s is available. Would you like to upgrade now?", latest)
+						if showNativeConfirmDialog(l.Upgrade, msg) {
 							go func() {
+								showWindowsNotification(l.Upgrade, "Upgrade started in background...")
 								exe, _ := os.Executable()
 								cmd := exec.Command(exe, "upgrade", "--yes")
 								// Hide console window on Windows
@@ -349,21 +346,7 @@ foreach ($t in $targets) {
 	}
 }
 
-func showNativeMessageDialog(title, message string) {
-	if runtime.GOOS != "windows" {
-		return
-	}
-
-	// 64 = Information icon
-	psScript := fmt.Sprintf(`
-Add-Type -AssemblyName PresentationFramework
-[System.Windows.MessageBox]::Show('%s', '%s', 'OK', 'Information')
-`, message, title)
-
-	cmd := exec.Command("powershell", "-Command", psScript)
-	cmd.SysProcAttr = getSysProcAttr()
-	cmd.Run()
-}
+// Deleted: showNativeMessageDialog (Moved to main.go as native Win32)
 
 func showWindowsNotification(title, message string) {
 	if runtime.GOOS != "windows" {
@@ -384,26 +367,7 @@ func onTrayExit() {
 	// Cleanup on exit
 }
 
-func showConfirmDialog(title, message string) bool {
-	if runtime.GOOS == "darwin" {
-		script := fmt.Sprintf("display dialog %q with title %q buttons {\"Cancel\", \"OK\"} default button \"Cancel\" with icon caution", message, title)
-		cmd := exec.Command("osascript", "-e", script)
-		err := cmd.Run()
-		return err == nil
-	} else if runtime.GOOS == "windows" {
-		// Use PowerShell for a modern message box using PresentationFramework
-		msg := strings.ReplaceAll(message, `'`, `''`)
-		ps := fmt.Sprintf(`Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('%s', '%s', 'OKCancel', 'Warning')`, msg, title)
-		cmd := exec.Command("powershell", "-Command", ps)
-		cmd.SysProcAttr = getSysProcAttr()
-		out, err := cmd.Output()
-		if err != nil {
-			return false
-		}
-		return strings.TrimSpace(string(out)) == "OK"
-	}
-	return true // Fallback for other OS
-}
+// Deleted: showConfirmDialog (Replaced by showNativeConfirmDialog in main.go)
 
 func showAboutDialog() {
 	title := "About MaruBot"
