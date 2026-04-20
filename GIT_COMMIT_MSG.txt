@@ -1,7 +1,0 @@
-feat: MaruBot v0.7.1 버전업 프로세스 체계화 및 빌드 오류 해결
-
-- main.go의 구문 오류 및 중복 switch 블록 완벽 제거
-- pkg/config/version.go를 var 형태로 변경하여 빌드 시 동적 버전 주입 환경 구축
-- 64bit/32bit 윈도우 바이너리 리빌드 및 배포 정석 프로세스 수립
-- 공개 리포지토리(maru-bot)와의 소스코드 및 태그(v0.7.1) 동기화 완료
-- 누락되었던 sync 임포트 및 HeartbeatService 타입 정정
