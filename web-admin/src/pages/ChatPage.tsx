@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -19,24 +19,50 @@ interface Message {
     id: string;
     role: 'user' | 'assistant';
     content: string;
-    timestamp: Date;
+    timestamp: string; // Store as string for JSON
 }
+
+const CHAT_STORAGE_KEY = 'marubot_chat_history';
 
 export function ChatPage() {
     const t = useTranslation();
-    const [messages, setMessages] = useState<Message[]>([
-        {
-            id: '1',
-            role: 'assistant',
-            content: t.chat_welcome,
-            timestamp: new Date()
-        }
-    ]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const scrollViewportRef = useRef<HTMLDivElement>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    // Initial load
+    useEffect(() => {
+        const saved = localStorage.getItem(CHAT_STORAGE_KEY);
+        if (saved) {
+            try {
+                setMessages(JSON.parse(saved));
+            } catch (e) {
+                console.error('Failed to parse chat history:', e);
+            }
+        } else {
+            // Default welcome message
+            setMessages([
+                {
+                    id: '1',
+                    role: 'assistant',
+                    content: t.chat_welcome,
+                    timestamp: new Date().toISOString()
+                }
+            ]);
+        }
+        setIsLoaded(true);
+    }, []);
+
+    // Save on change
+    useEffect(() => {
+        if (isLoaded) {
+            localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+        }
+    }, [messages, isLoaded]);
 
     const scrollToBottom = () => {
         setTimeout(() => {
@@ -53,7 +79,7 @@ export function ChatPage() {
             id: generateId(),
             role: 'user',
             content: input,
-            timestamp: new Date()
+            timestamp: new Date().toISOString()
         };
 
         setMessages(prev => [...prev, userMsg]);
@@ -77,7 +103,7 @@ export function ChatPage() {
                     id: generateId(),
                     role: 'assistant',
                     content: data.response,
-                    timestamp: new Date()
+                    timestamp: new Date().toISOString()
                 };
                 setMessages(prev => [...prev, assistantMsg]);
             }
@@ -91,7 +117,7 @@ export function ChatPage() {
                     id: generateId(),
                     role: 'assistant',
                     content: `현재 서버와 연결할 수 없습니다. 입력하신 내용: "${userMsg.content}"`,
-                    timestamp: new Date()
+                    timestamp: new Date().toISOString()
                 };
                 setMessages(prev => [...prev, mockResponse]);
                 setIsLoading(false);
@@ -106,6 +132,7 @@ export function ChatPage() {
 
     const handleClearChat = () => {
         setMessages([]);
+        localStorage.removeItem(CHAT_STORAGE_KEY);
         toast.success(t.chat_clear_success);
         setShowClearConfirm(false);
     };
@@ -169,7 +196,7 @@ export function ChatPage() {
                                             <p className="whitespace-pre-wrap leading-relaxed break-words">{m.content}</p>
                                         )}
                                         <span className={`text-[10px] block mt-1 ${m.role === 'user' ? 'text-blue-100' : 'text-slate-400'}`}>
-                                            {m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
                                 </div>

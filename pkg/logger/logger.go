@@ -40,6 +40,7 @@ type Logger struct {
 	file     *os.File
 	logDir   string
 	lastDate string
+	prefix   string
 }
 
 type LogEntry struct {
@@ -91,11 +92,12 @@ func enableFileLoggingLocked(filePath string) error {
 	return nil
 }
 
-func EnableDailyRotation(dirPath string) error {
+func EnableDailyRotation(dirPath string, prefix string) error {
 	mu.Lock()
 	defer mu.Unlock()
 
 	logger.logDir = dirPath
+	logger.prefix = prefix
 	if err := os.MkdirAll(dirPath, 0755); err != nil {
 		return fmt.Errorf("failed to create log directory: %w", err)
 	}
@@ -108,7 +110,12 @@ func rotateLogFileLocked() error {
 	dateStr := now.Format("2006-01-02")
 	logger.lastDate = dateStr
 
-	logPath := fmt.Sprintf("%s/%s.log", strings.TrimSuffix(logger.logDir, "/"), dateStr)
+	fileName := fmt.Sprintf("%s.log", dateStr)
+	if logger.prefix != "" {
+		fileName = fmt.Sprintf("%s-%s.log", logger.prefix, dateStr)
+	}
+
+	logPath := fmt.Sprintf("%s/%s", strings.TrimSuffix(logger.logDir, "/"), fileName)
 	return enableFileLoggingLocked(logPath)
 }
 
