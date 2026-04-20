@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/dirmich/marubot/pkg/config"
@@ -268,7 +269,7 @@ func onTrayReady(targetExe string) {
 				time.Sleep(1 * time.Second)
 			case <-mUninstall.ClickedCh:
 				if runtime.GOOS == "windows" {
-					runAsAdminAction("uninstall")
+					runAsAdminAction("uninstall --yes")
 				} else {
 					fmt.Println("Uninstall aborted by user.")
 				}
@@ -390,14 +391,16 @@ func showConfirmDialog(title, message string) bool {
 		err := cmd.Run()
 		return err == nil
 	} else if runtime.GOOS == "windows" {
-		// Use PowerShell for a simple message box
-		vbs := fmt.Sprintf("res = MsgBox(\"%s\", 1+48, \"%s\"): If res = 1 Then WScript.Quit(0) Else WScript.Quit(1)", message, title)
-		cmd := exec.Command("wscript", "-e", "vbscript", "-e", vbs)
-		// Or simpler with PowerShell:
-		ps := fmt.Sprintf("[System.Windows.Forms.MessageBox]::Show('%s', '%s', 'OKCancel', 'Warning')", message, title)
-		cmd = exec.Command("powershell", "-Command", "Add-Type -AssemblyName System.Windows.Forms;", "if ("+ps+" -eq 'OK') { exit 0 } else { exit 1 }")
-		err := cmd.Run()
-		return err == nil
+		// Use PowerShell for a modern message box using PresentationFramework
+		msg := strings.ReplaceAll(message, `'`, `''`)
+		ps := fmt.Sprintf(`Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('%s', '%s', 'OKCancel', 'Warning')`, msg, title)
+		cmd := exec.Command("powershell", "-Command", ps)
+		cmd.SysProcAttr = getSysProcAttr()
+		out, err := cmd.Output()
+		if err != nil {
+			return false
+		}
+		return strings.TrimSpace(string(out)) == "OK"
 	}
 	return true // Fallback for other OS
 }
@@ -410,8 +413,7 @@ func showAboutDialog() {
 		script := fmt.Sprintf("display alert %q message %q as informational buttons {\"OK\"} default button \"OK\"", title, message)
 		exec.Command("osascript", "-e", script).Run()
 	} else if runtime.GOOS == "windows" {
-		ps := fmt.Sprintf("[System.Windows.Forms.MessageBox]::Show('%s', '%s', 'OK', 'Information')", message, title)
-		exec.Command("powershell", "-Command", "Add-Type -AssemblyName System.Windows.Forms;", ps).Run()
+		showNativeMessageDialog(title, message)
 	} else {
 		fmt.Printf("--- %s ---\n%s\n", title, message)
 	}
