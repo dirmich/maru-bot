@@ -72,6 +72,7 @@ func (s *Server) Start() error {
 	mux.Handle("/api/skills", s.authMiddleware(http.HandlerFunc(s.handleSkills)))
 	s.registerGPIORoutes(mux)
 	mux.Handle("/api/logs", s.authMiddleware(http.HandlerFunc(s.handleLogs)))
+	mux.Handle("/api/logs/list", s.authMiddleware(http.HandlerFunc(s.handleLogList)))
 	mux.Handle("/api/system/stats", s.authMiddleware(http.HandlerFunc(s.handleSystemStats)))
 	mux.Handle("/api/upgrade", s.authMiddleware(http.HandlerFunc(s.handleUpgrade)))
 
@@ -422,11 +423,22 @@ func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 		home, _ = os.UserHomeDir()
 	}
 	logDir := filepath.Join(home, ".marubot", "logs")
-	todayLog := filepath.Join(logDir, time.Now().Format("2006-01-02")+".log")
+	
+	// Check if specific file is requested
+	requestedFile := r.URL.Query().Get("file")
+	targetLog := ""
 
-	data, err := os.ReadFile(todayLog)
-	if err != nil {
-		// Fallback: search for latest log in the directory
+	if requestedFile != "" {
+		// Secure path to prevent directory traversal
+		safeName := filepath.Base(requestedFile)
+		targetLog = filepath.Join(logDir, safeName)
+	} else {
+		targetLog = filepath.Join(logDir, "marubot-"+time.Now().Format("2006-01-02")+".log")
+	}
+
+	data, err := os.ReadFile(targetLog)
+	if err != nil && requestedFile == "" {
+		// Fallback for default request: search for latest log in the directory
 		files, readErr := os.ReadDir(logDir)
 		if readErr == nil && len(files) > 0 {
 			var latestFile string
@@ -458,6 +470,40 @@ func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(map[string]string{"logs": logs})
+}
+
+func (s *Server) handleLogList(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	home := os.Getenv("MARUBOT_HOME")
+	if home == "" {
+		home, _ = os.UserHomeDir()
+	}
+	logDir := filepath.Join(home, ".marubot", "logs")
+
+	files, err := os.ReadDir(logDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			json.NewEncoder(w).Encode(map[string][]string{"files": {}})
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var filenames []string
+	for _, f := range files {
+		if !f.IsDir() && strings.HasSuffix(f.Name(), ".log") {
+			filenames = append(filenames, f.Name())
+		}
+	}
+
+	// Sort latest first
+	for i, j := 0, len(filenames)-1; i < j; i, j = i+1, j-1 {
+		filenames[i], filenames[j] = filenames[j], filenames[i]
+	}
+
+	json.NewEncoder(w).Encode(map[string][]string{"files": filenames})
 }
 
 func (s *Server) handleSystemStats(w http.ResponseWriter, r *http.Request) {

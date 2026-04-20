@@ -1,0 +1,5 @@
+Sync from maruminibot: Hot Reload and Window UI improvements
+
+- Internal hot-reload implementation
+- Hidden console windows for Windows child processes
+- UI state persistence and refresh improvements
