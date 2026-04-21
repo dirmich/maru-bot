@@ -81,3 +81,5 @@ func IsNewVersionAvailable(latest string) bool {
 
 	return len(lParts) > len(vParts)
 }
+
+// Final Cache Purge: 20260421113916-ONCE-AND-FOR-ALL
