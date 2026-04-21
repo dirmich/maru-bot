@@ -297,8 +297,7 @@ if [ "$TOTAL_MEM_KB" -gt 0 ] && [ "$TOTAL_MEM_KB" -lt 1500000 ]; then
     EXTRA_GOFLAGS="-p=1"
 fi
 
-$GO_CMD mod tidy
-$GO_CMD clean -cache
+# skip tidy to use vendor
 
 BUILD_TMPDIR="$HOME/.marubot/tmp"
 mkdir -p "$BUILD_TMPDIR"
