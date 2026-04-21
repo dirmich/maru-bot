@@ -6,7 +6,7 @@ bin/
 *.dylib
 *.test
 *.out
-.maruminibot/
+.marubot/
 .marubot/
 config.json
 usersetting.json
