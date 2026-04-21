@@ -300,13 +300,13 @@ export function DashboardPage() {
                         <div className="divide-y dark:divide-slate-800">
                             {[
                                 { label: 'Platform', value: stats?.os || 'Unknown' },
-                                { label: 'Raspberry Pi', value: stats?.is_rpi ? 'Yes' : 'No' },
-                                { label: 'Architecture', value: stats?.os.includes('Windows') ? 'AMD64/x86' : 'ARM/Linux' },
+                                { label: 'Hardware', value: stats?.hw_model || (stats?.is_rpi ? 'Raspberry Pi' : 'Generic Device') },
+                                { label: 'Architecture', value: stats?.os?.includes('Windows') ? 'AMD64/x86' : 'ARM/Linux' },
                                 { label: 'Service Version', value: stats?.version || '0.0.0' }
                             ].map((item, i) => (
                                 <div key={i} className="px-4 py-3 flex justify-between text-sm">
                                     <span className="text-slate-500">{item.label}</span>
-                                    <span className="font-semibold">{item.value}</span>
+                                    <span className="font-semibold text-right">{item.value}</span>
                                 </div>
                             ))}
                         </div>

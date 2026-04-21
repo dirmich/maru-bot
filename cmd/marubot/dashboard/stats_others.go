@@ -16,6 +16,7 @@ func getPlatformStats() map[string]interface{} {
 
 	return map[string]interface{}{
 		"os":              osName,
+		"hw_model":        runtime.GOARCH + " " + osName + " Device",
 		"is_raspberry_pi": false,
 	}
 }

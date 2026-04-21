@@ -3,6 +3,7 @@ import { create } from 'zustand';
 interface SystemState {
     version: string;
     latest_version: string;
+    hw_model: string;
     is_update_available: boolean;
     is_raspberry_pi: boolean;
     is_ai_configured: boolean;
@@ -15,6 +16,7 @@ interface SystemState {
 export const useSystemStore = create<SystemState>((set) => ({
     version: "v0.0.0",
     latest_version: "",
+    hw_model: "",
     is_update_available: false,
     is_raspberry_pi: false,
     is_ai_configured: true, // Default to true to avoid flash of notice
@@ -29,6 +31,7 @@ export const useSystemStore = create<SystemState>((set) => ({
                 set({
                     version: data.version || "v0.0.0",
                     latest_version: data.latest_version || "",
+                    hw_model: data.hw_model || "",
                     is_update_available: !!data.is_update_available,
                     is_raspberry_pi: !!data.is_raspberry_pi,
                     is_ai_configured: !!data.is_ai_configured,
