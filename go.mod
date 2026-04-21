@@ -1,6 +1,6 @@
 module github.com/dirmich/marubot
 
-go 1.22
+go 1.25
 
 // 미래 버전(Go 1.25+ 요구) 유입을 원천 차단하기 위한 강제 교체 지시어
 replace (
