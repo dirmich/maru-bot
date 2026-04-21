@@ -346,18 +346,28 @@ export function GpioPage() {
                                             const globalIdx = configuredPins.findIndex(p => p === item);
                                             const isError = isInvalidPin(item.pin);
                                             const isConflict = conflictingPins.has(item.pin);
+                                            const pinInfo = pinData.find(p => p.number === item.pin);
+                                            const isReserved = pinInfo?.isSystemReserved;
+                                            
+                                            // Inversion Detection: User set HIGH but hardware reports LOW (flickering)
+                                            const isInverted = !isInput(item.label) && item.level === 1 && pinLevels[item.pin] === 0;
                                             
                                             if (selectedPin !== undefined && item.pin !== selectedPin) return null;
                                             
                                             return (
-                                                <TableRow key={`${groupName}-${localIdx}`} className={`border-b last:border-0 transition-all ${isConflict ? 'bg-red-50/50 dark:bg-red-900/10 ring-1 ring-inset ring-red-200 dark:ring-red-900/50' : isError ? 'bg-red-50 dark:bg-red-900/20' : 'hover:bg-white dark:hover:bg-slate-800'}`}>
+                                                <TableRow key={`${groupName}-${localIdx}`} className={`border-b last:border-0 transition-all ${isConflict ? 'bg-red-50/50 dark:bg-red-900/10 ring-1 ring-inset ring-red-200 dark:ring-red-900/50' : isError ? 'bg-red-50 dark:bg-red-900/20' : isReserved ? 'bg-orange-50/30 dark:bg-orange-950/10' : 'hover:bg-white dark:hover:bg-slate-800'}`}>
                                                     <TableCell className="w-12 px-3 py-2 text-center">
                                                         {item.mode === 'OUT' ? (
-                                                            <Switch
-                                                                checked={item.level === 1}
-                                                                onCheckedChange={() => handleToggle(item.pin, item.label, item.group)}
-                                                                className="data-[state=checked]:bg-emerald-500"
-                                                            />
+                                                            <div className="relative">
+                                                                <Switch
+                                                                    checked={item.level === 1}
+                                                                    onCheckedChange={() => handleToggle(item.pin, item.label, item.group)}
+                                                                    className="data-[state=checked]:bg-emerald-500"
+                                                                />
+                                                                {isInverted && (
+                                                                    <div className="absolute -top-1 -right-1 animate-ping w-2 h-2 bg-orange-500 rounded-full" title="State Inversion Detected" />
+                                                                )}
+                                                            </div>
                                                         ) : (
                                                             <div className="flex items-center justify-center">
                                                                 <span className={`w-3.5 h-3.5 rounded-full transition-all duration-300 ${item.level === 1 ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)] scale-110' : 'bg-slate-300 dark:bg-slate-700'}`} />
@@ -369,21 +379,22 @@ export function GpioPage() {
                                                             value={item.pin.toString()}
                                                             onValueChange={(v) => handleUpdatePin(globalIdx, 'pin', parseInt(v))}
                                                         >
-                                                            <SelectTrigger className={`h-8 text-xs font-mono border-none shadow-none bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 ${isError || isConflict ? 'text-red-500 font-bold' : ''}`}>
+                                                            <SelectTrigger className={`h-8 text-xs font-mono border-none shadow-none bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 ${isError || isConflict ? 'text-red-500 font-bold' : isReserved ? 'text-orange-600 dark:text-orange-400' : ''}`}>
                                                                 <SelectValue />
                                                             </SelectTrigger>
                                                             <SelectContent className="max-h-[300px]">
                                                                 {pinData.sort((a, b) => a.number - b.number).map(p => {
                                                                     const usage = getPinUsage(p.number);
                                                                     const isVccGnd = p.type === 'power' || p.type === 'ground';
+                                                                    const reserved = p.isSystemReserved;
                                                                     return (
                                                                         <SelectItem 
                                                                             key={p.number} 
                                                                             value={p.number.toString()}
-                                                                            className={`${isVccGnd ? 'text-red-400 italic' : ''} ${usage && p.number !== item.pin ? 'bg-slate-50 dark:bg-slate-800/50' : ''}`}
+                                                                            className={`${isVccGnd ? 'text-red-400 italic' : ''} ${reserved ? 'text-orange-500 bg-orange-50/30' : ''} ${usage && p.number !== item.pin ? 'bg-slate-50 dark:bg-slate-800/50' : ''}`}
                                                                         >
                                                                             <span className="flex items-center justify-between w-full gap-4">
-                                                                                <span>{p.number} {p.type === 'power' ? '(VCC)' : p.type === 'ground' ? '(GND)' : ''}</span>
+                                                                                <span>{p.number} {p.type === 'power' ? '(VCC)' : p.type === 'ground' ? '(GND)' : reserved ? `(⚠️ ${p.reservedFunction})` : ''}</span>
                                                                                 {usage && <span className="text-[10px] text-slate-400 font-normal">Used by: {usage}</span>}
                                                                             </span>
                                                                         </SelectItem>
@@ -392,15 +403,23 @@ export function GpioPage() {
                                                             </SelectContent>
                                                         </Select>
                                                         {isConflict && <div className="text-[8px] text-red-500 font-bold mt-0.5 ml-1 animate-pulse">PIN CONFLICT</div>}
-                                                        {isError && <div className="text-[8px] text-red-500 font-bold mt-0.5 ml-1 uppercase">Reserved Pin</div>}
+                                                        {isError && <div className="text-[8px] text-red-500 font-bold mt-0.5 ml-1 uppercase">Reserved Power</div>}
+                                                        {isReserved && !isConflict && <div className="text-[8px] text-orange-500 font-bold mt-0.5 ml-1 uppercase">System Restricted</div>}
                                                     </TableCell>
                                                     <TableCell className="px-3 py-2">
-                                                        <input
-                                                            className="bg-transparent border-none focus:ring-0 w-full text-sm font-medium"
-                                                            value={item.label}
-                                                            placeholder="Label"
-                                                            onChange={(e) => handleUpdatePin(globalIdx, 'label', e.target.value)}
-                                                        />
+                                                        <div className="flex items-center gap-2">
+                                                            <input
+                                                                className="bg-transparent border-none focus:ring-0 flex-1 text-sm font-medium"
+                                                                value={item.label}
+                                                                placeholder="Label"
+                                                                onChange={(e) => handleUpdatePin(globalIdx, 'label', e.target.value)}
+                                                            />
+                                                            {isInverted && (
+                                                                <span className="text-[10px] bg-orange-100 text-orange-600 dark:bg-orange-950/50 px-2 py-0.5 rounded-full font-bold animate-pulse flex items-center gap-1">
+                                                                    ⚠️ INTERFERENCE
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <div className="flex gap-2 mt-1">
                                                             <input
                                                                 className="bg-transparent border-none focus:ring-0 text-[10px] text-slate-400 w-1/2"
@@ -417,7 +436,7 @@ export function GpioPage() {
                                                                 </SelectTrigger>
                                                                 <SelectContent>
                                                                     <SelectItem value="OUT">OUT</SelectItem>
-                                                                    <SelectItem value="IN">IN</SelectItem>
+                                                                    <SelectItem value="IN">IN (Read Only)</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                         </div>

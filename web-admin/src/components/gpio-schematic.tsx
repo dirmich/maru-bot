@@ -10,24 +10,26 @@ export interface PinProps {
     type: 'power' | 'ground' | 'gpio' | 'special';
     name?: string;
     isConfigured?: boolean;
+    isSystemReserved?: boolean;
+    reservedFunction?: string;
 }
 
 export const pinData: PinProps[] = [
     // Left Side (Odd)
     { number: 1, label: "3.3V", type: 'power' },
-    { number: 3, label: "GPIO 2 (SDA)", type: 'gpio', name: "I2C SDA" },
-    { number: 5, label: "GPIO 3 (SCL)", type: 'gpio', name: "I2C SCL" },
+    { number: 3, label: "GPIO 2 (SDA)", type: 'gpio', name: "I2C SDA", isSystemReserved: true, reservedFunction: "I2C SDA" },
+    { number: 5, label: "GPIO 3 (SCL)", type: 'gpio', name: "I2C SCL", isSystemReserved: true, reservedFunction: "I2C SCL" },
     { number: 7, label: "GPIO 4", type: 'gpio' },
     { number: 9, label: "Ground", type: 'ground' },
     { number: 11, label: "GPIO 17", type: 'gpio' },
     { number: 13, label: "GPIO 27", type: 'gpio' },
     { number: 15, label: "GPIO 22", type: 'gpio' },
     { number: 17, label: "3.3V", type: 'power' },
-    { number: 19, label: "GPIO 10", type: 'gpio' },
-    { number: 21, label: "GPIO 9", type: 'gpio' },
-    { number: 23, label: "GPIO 11", type: 'gpio' },
+    { number: 19, label: "GPIO 10", type: 'gpio', isSystemReserved: true, reservedFunction: "SPI MOSI" },
+    { number: 21, label: "GPIO 9", type: 'gpio', isSystemReserved: true, reservedFunction: "SPI MISO" },
+    { number: 23, label: "GPIO 11", type: 'gpio', isSystemReserved: true, reservedFunction: "SPI CLK" },
     { number: 25, label: "Ground", type: 'ground' },
-    { number: 27, label: "ID_SD", type: 'special' },
+    { number: 27, label: "ID_SD", type: 'special', isSystemReserved: true, reservedFunction: "HAT ID EEPROM" },
     { number: 29, label: "GPIO 5", type: 'gpio' },
     { number: 31, label: "GPIO 6", type: 'gpio' },
     { number: 33, label: "GPIO 13", type: 'gpio' },
@@ -39,17 +41,17 @@ export const pinData: PinProps[] = [
     { number: 2, label: "5V", type: 'power' },
     { number: 4, label: "5V", type: 'power' },
     { number: 6, label: "Ground", type: 'ground' },
-    { number: 8, label: "GPIO 14", type: 'gpio' },
-    { number: 10, label: "GPIO 15", type: 'gpio' },
+    { number: 8, label: "GPIO 14", type: 'gpio', isSystemReserved: true, reservedFunction: "UART TX" },
+    { number: 10, label: "GPIO 15", type: 'gpio', isSystemReserved: true, reservedFunction: "UART RX" },
     { number: 12, label: "GPIO 18", type: 'gpio' },
     { number: 14, label: "Ground", type: 'ground' },
     { number: 16, label: "GPIO 23", type: 'gpio' },
     { number: 18, label: "GPIO 24", type: 'gpio' },
     { number: 20, label: "Ground", type: 'ground' },
     { number: 22, label: "GPIO 25", type: 'gpio' },
-    { number: 24, label: "GPIO 8", type: 'gpio' },
-    { number: 26, label: "GPIO 7", type: 'gpio' },
-    { number: 28, label: "ID_SC", type: 'special' },
+    { number: 24, label: "GPIO 8", type: 'gpio', isSystemReserved: true, reservedFunction: "SPI CE0" },
+    { number: 26, label: "GPIO 7", type: 'gpio', isSystemReserved: true, reservedFunction: "SPI CE1" },
+    { number: 28, label: "ID_SC", type: 'special', isSystemReserved: true, reservedFunction: "HAT ID EEPROM" },
     { number: 30, label: "Ground", type: 'ground' },
     { number: 32, label: "GPIO 12", type: 'gpio' },
     { number: 34, label: "Ground", type: 'ground' },
@@ -71,13 +73,14 @@ export function GpioSchematic({
     conflictingPins?: Set<number>,
     pinLevels?: Record<number, number>
 }) {
+    const Version = "0.9.2";
     const leftPins = pinData.filter(p => p.number % 2 !== 0).sort((a, b) => a.number - b.number);
     const rightPins = pinData.filter(p => p.number % 2 === 0).sort((a, b) => a.number - b.number);
 
     return (
         <Card className="p-8 bg-slate-900 border-slate-800 shadow-2xl overflow-hidden relative">
             <div className="absolute top-0 right-0 p-4 text-[10px] text-slate-500 font-mono italic">
-                Raspberry Pi 4/5 Pinout
+                Raspberry Pi 4/5 Pinout v{Version}
             </div>
 
             <div className="flex justify-center gap-1">
@@ -133,14 +136,14 @@ export function GpioSchematic({
             </div>
 
             <div className="mt-8 flex flex-wrap justify-between gap-y-4 gap-x-6 border-t border-slate-800/50 pt-6">
-                <LegendItem type="power" label="VCC" />
+                <LegendItem type="power" label="3.3V/5V" />
                 <LegendItem type="ground" label="GND" />
                 <LegendItem type="gpio" label="GPIO (Configured)" isActive={true} />
                 <LegendItem type="gpio" label="GPIO (Conflict)" isConflicting={true} />
-                <LegendItem type="special" label="Special" />
+                <LegendItem type="special" label="System Reserved" isReserved={true} />
                 <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]"></div>
-                    <span className="text-[10px] text-slate-500 uppercase font-bold">Active High</span>
+                    <span className="text-[10px] text-slate-500 uppercase font-bold text-emerald-500">Signal High</span>
                 </div>
             </div>
         </Card>
@@ -180,36 +183,51 @@ function PinItem({
                             colors[pin.type],
                             isActive ? "ring-2 ring-white ring-offset-2 ring-offset-slate-800 scale-105" : "",
                             isSelected ? "ring-4 ring-yellow-400 ring-offset-2 ring-offset-slate-900 scale-110 z-10" : "",
-                            isConflicting ? "animate-pulse ring-2 ring-red-500 ring-offset-2 ring-offset-red-900 bg-red-700" : ""
+                            isConflicting ? "animate-pulse ring-2 ring-red-500 ring-offset-2 ring-offset-red-900 bg-red-700" : "",
+                            pin.isSystemReserved && !isConflicting ? "ring-2 ring-orange-400 ring-offset-1 ring-offset-slate-800" : ""
                         )}>
                         {level === 1 && (
                             <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full border border-white shadow-[0_0_5px_rgba(34,197,94,1)] z-20"></div>
                         )}
+                        {pin.isSystemReserved && (
+                            <div className="absolute -bottom-1 -left-1 text-[6px] bg-orange-500 p-0.5 rounded-full border border-white">⚠️</div>
+                        )}
                         {pin.number}
                     </div>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="bg-slate-900 border-slate-700 text-white">
-                    <p className="font-bold">{pin.label}</p>
-                    <p className="text-xs text-slate-400">Pin {pin.number}</p>
-                    {isActive && <p className="text-xs text-emerald-400 mt-1 font-semibold">● Configured</p>}
-                    {isConflicting && <p className="text-xs text-red-500 mt-1 font-bold animate-pulse">!! CONFLICT DETECTED</p>}
-                    {level !== undefined && (
-                        <p className={`text-[10px] mt-1 font-mono ${level === 1 ? 'text-green-400' : 'text-slate-500'}`}>
-                            Current: {level === 1 ? 'HIGH (1)' : 'LOW (0)'}
-                        </p>
-                    )}
+                <TooltipContent side="right" className="bg-slate-900 border-slate-700 text-white max-w-[200px]">
+                    <div className="space-y-1">
+                        <p className="font-bold">{pin.label}</p>
+                        <p className="text-xs text-slate-400">Pin {pin.number} ({pin.type.toUpperCase()})</p>
+                        
+                        {pin.isSystemReserved && (
+                            <div className="mt-2 p-1.5 bg-orange-950/30 border border-orange-500/50 rounded text-[10px] text-orange-400">
+                                <p className="font-bold">⚠️ SYSTEM RESERVED</p>
+                                <p>Used for: <span className="text-white">{pin.reservedFunction}</span></p>
+                                <p className="mt-1 leading-tight opacity-80">May flicker or revert to system state if system functions are enabled.</p>
+                            </div>
+                        )}
+                        
+                        {isActive && <p className="text-xs text-emerald-400 mt-1 font-semibold">● Configured by User</p>}
+                        {isConflicting && <p className="text-xs text-red-500 mt-1 font-bold animate-pulse">!! LOGICAL CONFLICT</p>}
+                        {level !== undefined && (
+                            <p className={`text-[10px] mt-1 font-mono ${level === 1 ? 'text-green-400' : 'text-slate-500'}`}>
+                                Electrical: {level === 1 ? 'HIGH (1)' : 'LOW (0)'}
+                            </p>
+                        )}
+                    </div>
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
     );
 }
 
-function LegendItem({ type, label, isActive = true, isConflicting = false }: { type: PinProps['type'], label: string, isActive?: boolean, isConflicting?: boolean }) {
+function LegendItem({ type, label, isActive = true, isConflicting = false, isReserved = false }: { type: PinProps['type'], label: string, isActive?: boolean, isConflicting?: boolean, isReserved?: boolean }) {
     const colors = {
         power: "bg-red-600",
         ground: "bg-black border border-slate-700",
         gpio: isActive ? "bg-orange-500" : "bg-slate-400",
-        special: "bg-blue-600",
+        special: isReserved ? "bg-orange-600 ring-1 ring-orange-400" : "bg-blue-600",
     };
     return (
         <div className="flex items-center gap-3 min-w-fit">
