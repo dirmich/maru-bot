@@ -42,7 +42,7 @@ examples!
 
 ## Authors
 
-`periph` was initiated with ?�️�?and passion by [Marc-Antoine
+`periph` was initiated with ❤️️ and passion by [Marc-Antoine
 Ruel](https://github.com/maruel). The full list of contributors is in
 [AUTHORS](https://github.com/periph/host/blob/main/AUTHORS) and
 [CONTRIBUTORS](https://github.com/periph/host/blob/main/CONTRIBUTORS).

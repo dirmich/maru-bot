@@ -48,7 +48,7 @@ func main() {
 Using `go test` to print out available information.
 
 ```
-??go test -v -run Show
+➜ go test -v -run Show
 === RUN   Test_Show
     cpu_test.go:42: pCore Hz 3504000000
     cpu_test.go:43: eCore Hz 2424000000

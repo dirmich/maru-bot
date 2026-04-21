@@ -36,7 +36,7 @@ You can see the full documentation and list of examples at [pkg.go.dev](https://
   </a>
   <br/>
   <br/>
-  <b>Encore ??the platform for building Go-based cloud backends.</b>
+  <b>Encore – the platform for building Go-based cloud backends.</b>
   <br/>
 </p>
 
