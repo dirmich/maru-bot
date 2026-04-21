@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var Version = "0.7.3"
+const Version = "0.7.3"
 
 // CheckLatestVersion fetches the latest version from the remote repository
 func CheckLatestVersion() (string, error) {
@@ -81,5 +81,3 @@ func IsNewVersionAvailable(latest string) bool {
 
 	return len(lParts) > len(vParts)
 }
-
-// Cache Busting: 20260421111340
