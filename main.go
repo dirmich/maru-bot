@@ -244,13 +244,13 @@ func uninstallCmd() {
 
 	// 0. Remove Services and Kill Processes (Cross-platform)
 	if runtime.GOOS == "windows" {
-		logUninstall("--- Windows 언인스톨 시작 ---")
+		logUninstall("--- Windows ?�인?�톨 ?�작 ---")
 		// Clean up shortcuts
 		removeWindowsShortcuts()
 
 		// 1. Force kill all processes with 'marubot' in their path, EXCLUDING current PID
 		currentPid := os.Getpid()
-		logUninstall(fmt.Sprintf("관련 프로세스 종료 중 (현재 PID 제외: %d)...", currentPid))
+		logUninstall(fmt.Sprintf("관???�로?�스 종료 �?(?�재 PID ?�외: %d)...", currentPid))
 		killScript := fmt.Sprintf(`Get-Process | Where-Object { ($_.Path -like "*marubot*" -or $_.Name -like "*marubot*") -and ($_.Id -ne %d) } | ForEach-Object { try { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue; "Killed: $($_.Name) ($($_.Id))" } catch { "Failed to kill: $($_.Name) ($($_.Id))" } }`, currentPid)
 		killOut, _ := exec.Command("powershell", "-NoProfile", "-Command", killScript).CombinedOutput()
 		logUninstall(string(killOut))
@@ -309,9 +309,9 @@ func uninstallCmd() {
 			}
 
 			if isRemoved {
-				logUninstall(fmt.Sprintf("✓ 서비스 '%s'가 성공적으로 제거되었습니다.", svcName))
+				logUninstall(fmt.Sprintf("???�비??'%s'가 ?�공?�으�??�거?�었?�니??", svcName))
 			} else {
-				logUninstall(fmt.Sprintf("! 서비스 '%s' 제거 시간 초과.", svcName))
+				logUninstall(fmt.Sprintf("! ?�비??'%s' ?�거 ?�간 초과.", svcName))
 			}
 		}
 
@@ -319,7 +319,7 @@ func uninstallCmd() {
 		resourceDir := getResourceDir()
 		binDir := filepath.Join(resourceDir, "bin")
 		if _, err := os.Stat(binDir); err == nil {
-			logUninstall("바이너리 폴더 정리 중: " + binDir)
+			logUninstall("바이?�리 ?�더 ?�리 �? " + binDir)
 
 			// Get current executable path to avoid deleting self here
 			currentExe, _ := os.Executable()
@@ -332,10 +332,10 @@ func uninstallCmd() {
 				}
 				err := os.RemoveAll(filePath)
 				if err != nil {
-					logUninstall(fmt.Sprintf("! 파일 삭제 실패: %s (%v)", file.Name(), err))
+					logUninstall(fmt.Sprintf("! ?�일 ??�� ?�패: %s (%v)", file.Name(), err))
 				}
 			}
-			logUninstall("✓ 바이너리 폴더 정리 완료 (현재 실행 파일 제외)")
+			logUninstall("??바이?�리 ?�더 ?�리 ?�료 (?�재 ?�행 ?�일 ?�외)")
 		}
 	} else if runtime.GOOS == "linux" {
 		// Stop and disable systemd service if exists
@@ -380,7 +380,7 @@ func uninstallCmd() {
 			os.RemoveAll(filepath.Join(resourceDir, "tools"))
 			os.RemoveAll(filepath.Join(resourceDir, "web-admin"))
 			os.RemoveAll(filepath.Join(resourceDir, "bin"))
-			fmt.Printf("✓ System binaries and assets removed. User data (config, workspace, memory) preserved in: %s\n", resourceDir)
+			fmt.Printf("??System binaries and assets removed. User data (config, workspace, memory) preserved in: %s\n", resourceDir)
 		} else {
 			fmt.Println("Removing ALL MaruBot data including configuration and workspace...")
 			// Make sure we kill processes again just in case a lock is holding the folder
@@ -393,7 +393,7 @@ func uninstallCmd() {
 				fmt.Printf("Error removing %s: %v\n", resourceDir, err)
 				fmt.Println("  Please manually delete the folder after closing any related applications.")
 			} else {
-				fmt.Printf("✓ Entire MaruBot home directory (%s) removed successfully.\n", resourceDir)
+				fmt.Printf("??Entire MaruBot home directory (%s) removed successfully.\n", resourceDir)
 			}
 		}
 	}
@@ -409,9 +409,9 @@ func uninstallCmd() {
 		isInstalledBin := strings.HasPrefix(cleanExePath, cleanInstallDir)
 
 		if !isInstalledBin {
-			logUninstall("알림: 현재 실행 파일이 설치 경로에 있지 않으므로 삭제를 건너뜁니다 (설치 파일 보존).")
+			logUninstall("?�림: ?�재 ?�행 ?�일???�치 경로???��? ?�으므�???���?건너?�니??(?�치 ?�일 보존).")
 		} else {
-			fmt.Printf("설치 환경의 실행 파일을 제거합니다: %s\n", exePath)
+			fmt.Printf("?�치 ?�경???�행 ?�일???�거?�니?? %s\n", exePath)
 			if runtime.GOOS == "windows" {
 				// Windows cannot delete a running executable.
 				// Use a PowerShell trick to delete after exit with better path handling and retry.
@@ -434,15 +434,15 @@ for ($i=1; $i -le 10; $i++) {
 `, exePath, exePath)
 				cmd := exec.Command("powershell", "-NoProfile", "-Command", fmt.Sprintf("Start-Process powershell -ArgumentList \"-NoProfile -WindowStyle Hidden -Command \\\"%s\\\"\" -WindowStyle Hidden -WorkingDirectory '%s'", script, destDir))
 				if err := cmd.Start(); err != nil {
-					logUninstall(fmt.Sprintf("! 자가 삭제 예약 실패: %v", err))
+					logUninstall(fmt.Sprintf("! ?��? ??�� ?�약 ?�패: %v", err))
 				} else {
-					logUninstall("✓ 종료 후 실행 파일 삭제가 예약되었습니다.")
+					logUninstall("??종료 ???�행 ?�일 ??��가 ?�약?�었?�니??")
 				}
 			} else {
 				if err := os.Remove(exePath); err != nil {
-					logUninstall(fmt.Sprintf("! 실행 파일 삭제 실패: %v", err))
+					logUninstall(fmt.Sprintf("! ?�행 ?�일 ??�� ?�패: %v", err))
 				} else {
-					fmt.Println("✓ Executable removed")
+					fmt.Println("??Executable removed")
 				}
 			}
 		}
@@ -682,13 +682,13 @@ This document describes the tools available to marubot.
 		"IDENTITY.md": `# Identity
 
 ## Name
-MaruBot 🦞
+MaruBot ?��
 
 ## Description
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-0.7.3
+0.7.4
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
@@ -969,7 +969,7 @@ func gatewayCmd() {
 	if cfg.Admin.BackendURL != "" && cfg.Admin.UserID != "" {
 		adminClient := admin.NewAdminClient(cfg.Admin.BackendURL, cfg.Admin.UserID, Version, cfg.Language)
 		adminClient.StartReporting()
-		fmt.Println("✓ Admin reporting service started")
+		fmt.Println("??Admin reporting service started")
 	}
 
 	cronStorePath := filepath.Join(filepath.Dir(getConfigPath()), "cron", "jobs.json")
@@ -1012,12 +1012,12 @@ func gatewayCmd() {
 
 	enabledChannels := channelManager.GetEnabledChannels()
 	if len(enabledChannels) > 0 {
-		fmt.Printf("✓ Channels enabled: %s\n", enabledChannels)
+		fmt.Printf("??Channels enabled: %s\n", enabledChannels)
 	} else {
-		fmt.Println("⚠ Warning: No channels enabled")
+		fmt.Println("??Warning: No channels enabled")
 	}
 
-	fmt.Printf("✓ Gateway started on %s:%d\n", cfg.Gateway.Host, cfg.Gateway.Port)
+	fmt.Printf("??Gateway started on %s:%d\n", cfg.Gateway.Host, cfg.Gateway.Port)
 	fmt.Println("Press Ctrl+C to stop")
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -1026,12 +1026,12 @@ func gatewayCmd() {
 	if err := cronService.Start(); err != nil {
 		fmt.Printf("Error starting cron service: %v\n", err)
 	}
-	fmt.Println("✓ Cron service started")
+	fmt.Println("??Cron service started")
 
 	if err := heartbeatService.Start(); err != nil {
 		fmt.Printf("Error starting heartbeat service: %v\n", err)
 	}
-	fmt.Println("✓ Heartbeat service started")
+	fmt.Println("??Heartbeat service started")
 
 	if err := channelManager.StartAll(ctx); err != nil {
 		fmt.Printf("Error starting channels: %v\n", err)
@@ -1049,7 +1049,7 @@ func gatewayCmd() {
 	cronService.Stop()
 	agentLoop.Stop()
 	channelManager.StopAll(ctx)
-	fmt.Println("✓ Gateway stopped")
+	fmt.Println("??Gateway stopped")
 }
 
 func loadConfig() (*config.Config, error) {
@@ -1230,15 +1230,15 @@ func cronAddCmd(storePath string) {
 		return
 	}
 
-	fmt.Printf("✓ Added job '%s' (%s)\n", job.Name, job.ID)
+	fmt.Printf("??Added job '%s' (%s)\n", job.Name, job.ID)
 }
 
 func cronRemoveCmd(storePath, jobID string) {
 	cs := cron.NewCronService(storePath, nil)
 	if cs.RemoveJob(jobID) {
-		fmt.Printf("✓ Removed job %s\n", jobID)
+		fmt.Printf("??Removed job %s\n", jobID)
 	} else {
-		fmt.Printf("✗ Job %s not found\n", jobID)
+		fmt.Printf("??Job %s not found\n", jobID)
 	}
 }
 
@@ -1258,9 +1258,9 @@ func cronEnableCmd(storePath string, disable bool) {
 		if disable {
 			status = "disabled"
 		}
-		fmt.Printf("✓ Job '%s' %s\n", job.Name, status)
+		fmt.Printf("??Job '%s' %s\n", job.Name, status)
 	} else {
-		fmt.Printf("✗ Job %s not found\n", jobID)
+		fmt.Printf("??Job %s not found\n", jobID)
 	}
 }
 
@@ -1340,9 +1340,9 @@ func skillsListCmd(loader *skills.SkillsLoader) {
 	fmt.Println("\nInstalled Skills:")
 	fmt.Println("------------------")
 	for _, skill := range allSkills {
-		status := "✓"
+		status := "??
 		if !skill.Available {
-			status = "✗"
+			status = "??
 		}
 		fmt.Printf("  %s %s (%s)\n", status, skill.Name, skill.Source)
 		if skill.Description != "" {
@@ -1368,22 +1368,22 @@ func skillsInstallCmd(installer *skills.SkillInstaller) {
 	defer cancel()
 
 	if err := installer.InstallFromGitHub(ctx, repo); err != nil {
-		fmt.Printf("✗ Failed to install skill: %v\n", err)
+		fmt.Printf("??Failed to install skill: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("✓ Skill '%s' installed successfully!\n", filepath.Base(repo))
+	fmt.Printf("??Skill '%s' installed successfully!\n", filepath.Base(repo))
 }
 
 func skillsRemoveCmd(installer *skills.SkillInstaller, skillName string) {
 	fmt.Printf("Removing skill '%s'...\n", skillName)
 
 	if err := installer.Uninstall(skillName); err != nil {
-		fmt.Printf("✗ Failed to remove skill: %v\n", err)
+		fmt.Printf("??Failed to remove skill: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("✓ Skill '%s' removed successfully!\n", skillName)
+	fmt.Printf("??Skill '%s' removed successfully!\n", skillName)
 }
 
 func skillsInstallBuiltinCmd(workspace string) {
@@ -1409,21 +1409,21 @@ func skillsInstallBuiltinCmd(workspace string) {
 		workspacePath := filepath.Join(workspaceSkillsDir, skillName)
 
 		if _, err := os.Stat(builtinPath); err != nil {
-			fmt.Printf("⊘ Builtin skill '%s' not found: %v\n", skillName, err)
+			fmt.Printf("??Builtin skill '%s' not found: %v\n", skillName, err)
 			continue
 		}
 
 		if err := os.MkdirAll(workspacePath, 0755); err != nil {
-			fmt.Printf("✗ Failed to create directory for %s: %v\n", skillName, err)
+			fmt.Printf("??Failed to create directory for %s: %v\n", skillName, err)
 			continue
 		}
 
 		if err := copyDirectory(builtinPath, workspacePath); err != nil {
-			fmt.Printf("✗ Failed to copy %s: %v\n", skillName, err)
+			fmt.Printf("??Failed to copy %s: %v\n", skillName, err)
 		}
 	}
 
-	fmt.Println("\n✓ All builtin skills installed!")
+	fmt.Println("\n??All builtin skills installed!")
 	fmt.Println("Now you can use them in your workspace.")
 }
 
@@ -1465,7 +1465,7 @@ func skillsListBuiltinCmd() {
 					}
 				}
 			}
-			status := "✓"
+			status := "??
 			fmt.Printf("  %s  %s\n", status, entry.Name())
 			if description != "" {
 				fmt.Printf("     %s\n", description)
@@ -1482,7 +1482,7 @@ func skillsSearchCmd(installer *skills.SkillInstaller) {
 
 	availableSkills, err := installer.ListAvailableSkills(ctx)
 	if err != nil {
-		fmt.Printf("✗ Failed to fetch skills list: %v\n", err)
+		fmt.Printf("??Failed to fetch skills list: %v\n", err)
 		return
 	}
 
@@ -1494,7 +1494,7 @@ func skillsSearchCmd(installer *skills.SkillInstaller) {
 	fmt.Printf("\nAvailable Skills (%d):\n", len(availableSkills))
 	fmt.Println("--------------------")
 	for _, skill := range availableSkills {
-		fmt.Printf("  📦 %s\n", skill.Name)
+		fmt.Printf("  ?�� %s\n", skill.Name)
 		fmt.Printf("     %s\n", skill.Description)
 		fmt.Printf("     Repo: %s\n", skill.Repository)
 		if skill.Author != "" {
@@ -1510,11 +1510,11 @@ func skillsSearchCmd(installer *skills.SkillInstaller) {
 func skillsShowCmd(loader *skills.SkillsLoader, skillName string) {
 	content, ok := loader.LoadSkill(skillName)
 	if !ok {
-		fmt.Printf("✗ Skill '%s' not found\n", skillName)
+		fmt.Printf("??Skill '%s' not found\n", skillName)
 		return
 	}
 
-	fmt.Printf("\n📦 Skill: %s\n", skillName)
+	fmt.Printf("\n?�� Skill: %s\n", skillName)
 	fmt.Println("----------------------")
 	fmt.Println(content)
 }
@@ -1558,7 +1558,7 @@ func configCmd() {
 		} else if key == "language" {
 			cfg.Language = value
 		} else {
-			fmt.Printf("⚠️  Key '%s' update via CLI is limited. Please use Web Admin for advanced settings.\n", key)
+			fmt.Printf("?�️  Key '%s' update via CLI is limited. Please use Web Admin for advanced settings.\n", key)
 			return
 		}
 
@@ -1566,14 +1566,14 @@ func configCmd() {
 			fmt.Printf("Error saving config: %v\n", err)
 			return
 		}
-		fmt.Printf("✓ Saved '%s' = %s directly to %s\n", key, value, configPath)
+		fmt.Printf("??Saved '%s' = %s directly to %s\n", key, value, configPath)
 	case "reset":
 		fmt.Println("Resetting to default config...")
 		defaultCfg := config.DefaultConfig()
 		if err := config.SaveConfig(configPath, defaultCfg); err != nil {
 			fmt.Printf("Error resetting config: %v\n", err)
 		} else {
-			fmt.Println("✓ Configuration reset to defaults.")
+			fmt.Println("??Configuration reset to defaults.")
 		}
 	default:
 		configHelp()
@@ -1748,7 +1748,7 @@ func reloadCmd() {
 
 				daemonReload.Run()
 				if err := restart.Run(); err == nil {
-					fmt.Println("✓ Reloaded via systemd.")
+					fmt.Println("??Reloaded via systemd.")
 					return
 				}
 			}
@@ -1760,16 +1760,16 @@ func reloadCmd() {
 
 	exe, err := os.Executable()
 	if err != nil {
-		fmt.Printf("✗ Executable path error: %v\n", err)
+		fmt.Printf("??Executable path error: %v\n", err)
 		return
 	}
 
 	cmd := execHidden(exe, "start")
 	if err := cmd.Start(); err != nil {
-		fmt.Printf("✗ Failed to start during reload: %v\n", err)
+		fmt.Printf("??Failed to start during reload: %v\n", err)
 		return
 	}
-	fmt.Println("✓ Reload trigger sent.")
+	fmt.Println("??Reload trigger sent.")
 }
 
 func reloadInternal() {
@@ -1861,7 +1861,7 @@ func startCmd() {
 		if runtime.GOOS == "linux" {
 			err = installAndRunSystemdService(exe)
 			if err == nil {
-				fmt.Println("✨ MaruBot started as a systemd service.")
+				fmt.Println("??MaruBot started as a systemd service.")
 				fmt.Println("   URL: http://localhost:8080")
 				return
 			}
@@ -1889,7 +1889,7 @@ func startCmd() {
 		pidFile := getPidFilePath()
 		os.WriteFile(pidFile, []byte(fmt.Sprintf("%d", cmd.Process.Pid)), 0644)
 
-		fmt.Printf("✨ MaruBot Dashboard started in background (PID: %d)\n", cmd.Process.Pid)
+		fmt.Printf("??MaruBot Dashboard started in background (PID: %d)\n", cmd.Process.Pid)
 		fmt.Println("   URL: http://localhost:8080")
 		fmt.Println("   To stop: use 'marubot stop'")
 		fmt.Println("   To reload config: use 'marubot reload'")
@@ -1952,14 +1952,14 @@ func startCmd() {
 		}
 		dashAddr := fmt.Sprintf("0.0.0.0:%d", port)
 
-		// 💡 Fix: Properly initialize dummyAgent components to prevent Nil Pointer Panic
+		// ?�� Fix: Properly initialize dummyAgent components to prevent Nil Pointer Panic
 		// even in Setup Mode.
 		bus := bus.NewMessageBus()
 		dummyAgent := agent.NewAgentLoop(cfg, bus, nil, Version)
 		dashServer := dashboard.NewServer(dashAddr, dummyAgent, cfg, getConfigPath(), Version, reloadInternal)
 
 		if runForeground {
-			fmt.Printf("✓ Dashboard available at http://localhost:%d\n", port)
+			fmt.Printf("??Dashboard available at http://localhost:%d\n", port)
 			fmt.Println("  Please complete your configuration in the Web Admin.")
 		}
 
@@ -2041,12 +2041,12 @@ func startCmd() {
 			fmt.Printf("Error starting channels: %v\n", err)
 		}
 		if runForeground {
-			fmt.Println("✓ Background services started (Cron, Heartbeat, Channels)")
+			fmt.Println("??Background services started (Cron, Heartbeat, Channels)")
 		}
 	} else {
 		if runForeground {
 			fmt.Printf("Warning: Failed to initialize channel manager: %v\n", err)
-			fmt.Println("✓ Background services started (Cron, Heartbeat)")
+			fmt.Println("??Background services started (Cron, Heartbeat)")
 		}
 	}
 
@@ -2057,7 +2057,7 @@ func startCmd() {
 	if runForeground {
 		go func() {
 			time.Sleep(1 * time.Second)
-			fmt.Printf("✓ Dashboard available at http://localhost:%s\n", port)
+			fmt.Printf("??Dashboard available at http://localhost:%s\n", port)
 		}()
 	}
 
@@ -2121,7 +2121,7 @@ func stopCmd() {
 					cmd.Env = os.Environ()
 				}
 				if err := cmd.Run(); err == nil {
-					fmt.Println("✓ Stopped systemd service.")
+					fmt.Println("??Stopped systemd service.")
 					stoppedViaSystemd = true
 				}
 			}
@@ -2163,7 +2163,7 @@ func stopCmd() {
 	}
 
 	os.Remove(pidFile)
-	fmt.Println("✓ Stopped.")
+	fmt.Println("??Stopped.")
 }
 
 func upgradeCmd() {
@@ -2172,15 +2172,15 @@ func upgradeCmd() {
 		autoConfirm = true
 	}
 
-	fmt.Println("⚙️  Checking for updates...")
+	fmt.Println("?�️  Checking for updates...")
 
 	latest, err := config.CheckLatestVersion()
 	if err != nil {
-		fmt.Printf("⚠️  Failed to check latest Version: %v\n", err)
+		fmt.Printf("?�️  Failed to check latest Version: %v\n", err)
 		fmt.Println("Proceeding with forced upgrade...")
 	} else {
 		if !config.IsNewVersionAvailable(latest) && !autoConfirm {
-			fmt.Printf("✅ You are already using the latest Version (v%s).\n", config.Version)
+			fmt.Printf("??You are already using the latest Version (v%s).\n", config.Version)
 			fmt.Print("Do you want to reinstall anyway? [y/N]: ")
 			reader := bufio.NewReader(os.Stdin)
 			response, _ := reader.ReadString('\n')
@@ -2189,7 +2189,7 @@ func upgradeCmd() {
 				return
 			}
 		} else if config.IsNewVersionAvailable(latest) && !autoConfirm {
-			fmt.Printf("✨ New Version available: v%s (Current: v%s)\n", latest, config.Version)
+			fmt.Printf("??New Version available: v%s (Current: v%s)\n", latest, config.Version)
 			fmt.Print("Do you want to upgrade? [Y/n]: ")
 			reader := bufio.NewReader(os.Stdin)
 			response, _ := reader.ReadString('\n')
@@ -2204,26 +2204,26 @@ func upgradeCmd() {
 	stopCmd()
 
 	if runtime.GOOS == "windows" {
-		fmt.Println("🚀 Windows native upgrade in progress...")
+		fmt.Println("?? Windows native upgrade in progress...")
 		latest, err := config.CheckLatestVersion()
 		if err != nil {
-			fmt.Printf("❌ Failed to get latest Version: %v\n", err)
+			fmt.Printf("??Failed to get latest Version: %v\n", err)
 			return
 		}
 
 		// Use the correct public repo maru-bot
 		downloadUrl := fmt.Sprintf("https://github.com/dirmich/maru-bot/releases/download/v%s/marubot.exe", latest)
-		fmt.Printf("📥 Downloading from: %s\n", downloadUrl)
+		fmt.Printf("?�� Downloading from: %s\n", downloadUrl)
 
 		resp, err := http.Get(downloadUrl)
 		if err != nil {
-			fmt.Printf("❌ Download failed: %v\n", err)
+			fmt.Printf("??Download failed: %v\n", err)
 			return
 		}
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
-			fmt.Printf("❌ Download failed: HTTP %s\n", resp.Status)
+			fmt.Printf("??Download failed: HTTP %s\n", resp.Status)
 			return
 		}
 
@@ -2234,13 +2234,13 @@ func upgradeCmd() {
 		// Download to .new file first
 		out, err := os.Create(newExePath)
 		if err != nil {
-			fmt.Printf("❌ Failed to create temp file: %v\n", err)
+			fmt.Printf("??Failed to create temp file: %v\n", err)
 			return
 		}
 		_, err = io.Copy(out, resp.Body)
 		out.Close()
 		if err != nil {
-			fmt.Printf("❌ Download failed during copy: %v\n", err)
+			fmt.Printf("??Download failed during copy: %v\n", err)
 			return
 		}
 
@@ -2248,35 +2248,35 @@ func upgradeCmd() {
 		os.Remove(oldExePath) // Clean up any previous failed attempt
 		err = os.Rename(exePath, oldExePath)
 		if err != nil {
-			fmt.Printf("❌ Failed to rename current binary: %v\n", err)
+			fmt.Printf("??Failed to rename current binary: %v\n", err)
 			os.Remove(newExePath)
 			return
 		}
 
 		err = os.Rename(newExePath, exePath)
 		if err != nil {
-			fmt.Printf("❌ Failed to install new binary: %v\n", err)
+			fmt.Printf("??Failed to install new binary: %v\n", err)
 			// Try to restore old one
 			os.Rename(oldExePath, exePath)
 			return
 		}
 
-		fmt.Println("✨ Upgrade complete! Please restart MaruBot.")
+		fmt.Println("??Upgrade complete! Please restart MaruBot.")
 		// If running as service, it might be better to let the user or SCM restart it
 		return
 	}
 
 	// For UNIX-like systems, keep using the install.sh bash script
-	fmt.Println("🚀 Upgrading MaruBot to the latest Version...")
+	fmt.Println("?? Upgrading MaruBot to the latest Version...")
 	cmd := exec.Command("bash", "-c", "curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("❌ Upgrade failed: %v\n", err)
+		fmt.Printf("??Upgrade failed: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println("✨ Upgrade complete! Restarting MaruBot...")
+	fmt.Println("??Upgrade complete! Restarting MaruBot...")
 	reloadCmd()
 }
 func openBrowser(url string) {
@@ -2308,15 +2308,15 @@ func showGuideMessage(cfg *config.Config) {
 
 	messages := map[string]map[string]string{
 		"ko": {
-			"title":    "⚠️ 초기 설정이 필요합니다!",
-			"sec_body": "보안을 위해 관리자 비밀번호를 먼저 설정해야 합니다.",
-			"cfg_body": "MaruBot을 시작하려면 최소 하나의 AI 모델과 채널이 설정되어야 합니다.",
-			"gui":      "설정 페이지(Web-Admin)를 브라우저에 띄웁니다. 설정을 완료해 주세요.",
-			"cli":      "브라우저에서 아래 주소로 접속하여 설정을 완료해 주세요:",
-			"restart":  "설정 완료 후 앱을 재시작하면 서비스가 정상 기동됩니다.",
+			"title":    "?�️ 초기 ?�정???�요?�니??",
+			"sec_body": "보안???�해 관리자 비�?번호�?먼�? ?�정?�야 ?�니??",
+			"cfg_body": "MaruBot???�작?�려�?최소 ?�나??AI 모델�?채널???�정?�어???�니??",
+			"gui":      "?�정 ?�이지(Web-Admin)�?브라?��????�웁?�다. ?�정???�료??주세??",
+			"cli":      "브라?��??�서 ?�래 주소�??�속?�여 ?�정???�료??주세??",
+			"restart":  "?�정 ?�료 ???�을 ?�시?�하�??�비?��? ?�상 기동?�니??",
 		},
 		"en": {
-			"title":    "⚠️ Initial Configuration Required!",
+			"title":    "?�️ Initial Configuration Required!",
 			"sec_body": "For security, you must set an administrator password first.",
 			"cfg_body": "At least one AI model and one channel must be configured to start MaruBot.",
 			"gui":      "Opening configuration page (Web-Admin) in your browser. Please complete setup.",
@@ -2324,20 +2324,20 @@ func showGuideMessage(cfg *config.Config) {
 			"restart":  "After setup, restart the app to start the main service.",
 		},
 		"ja": {
-			"title":    "⚠️ 初期設定が必要です！",
-			"sec_body": "セキュリティのため、まず管理者のパスワードを設定する必要があります。",
-			"cfg_body": "MaruBotを開始するには、少なくとも1つのAIモデルとチャネルを設定する必要があります。",
-			"gui":      "ブラウザで設定ページ(Web-Admin)を開きます。設定を完了してください。",
-			"cli":      "ブラウザで以下のURLにアクセスして設定を完了してください：",
-			"restart":  "設定完了後、アプリを再起動するとサービスが開始されます。",
+			"title":    "?�️ ?�期�?��?�必要で?�！",
+			"sec_body": "?�キ?�リ?�ィ??��?�、ま?��??�者の?�ス??��?�を�?��?�る必要?�あ?�ま?��?,
+			"cfg_body": "MaruBot?�開始す?�に??��少?�く?�も1?�のAI?�デ?�と?�ャ?�ル?�設定す?�必要が?�り?�す??,
+			"gui":      "?�ラ?�ザ?�設定ペ?�ジ(Web-Admin)?�開?�ま?�。設定を完了?�て?�だ?�い??,
+			"cli":      "?�ラ?�ザ?�以下のURL?�ア??��?�し??��定を完了?�て?�だ?�い�?,
+			"restart":  "�?��完了後、ア?�リ?�再起動?�る?�サ?�ビ?�が?�始?�れ?�す??,
 		},
 		"zh": {
-			"title":    "⚠️ 需要初始配置！",
-			"sec_body": "出于安全考虑，您必须先设置管理员密码。",
-			"cfg_body": "启动 MaruBot 至少需要配置一个 AI 模型和一个频道。",
-			"gui":      "正在浏览器中打开配置页面 (Web-Admin)。请完成配置。",
-			"cli":      "请在浏览器中访问以下地址完成配置：",
-			"restart":  "配置完成后，请重启程序以启动主服务。",
+			"title":    "?�️ ?�要初始配�?��",
+			"sec_body": "?�于安全?�虑，您必须?��?�???�员密码??,
+			"cfg_body": "??�� MaruBot ?�少?�要配�??�?AI 模型?��?个频?��?,
+			"gui":      "正在浏览?�中?��??�置页面 (Web-Admin)?��?完成?�置??,
+			"cli":      "请在浏览?�中访问以下?��?完成?�置�?,
+			"restart":  "?�置完成?�，请重??��序以??��主服?��?,
 		},
 	}
 
@@ -2787,9 +2787,9 @@ func migratePathsCmd() {
 	})
 
 	if err != nil {
-		fmt.Printf("\n❌ Migration failed: %v\n", err)
+		fmt.Printf("\n??Migration failed: %v\n", err)
 	} else {
-		fmt.Printf("\n✅ Migration complete! Updated %d files.\n", count)
+		fmt.Printf("\n??Migration complete! Updated %d files.\n", count)
 		fmt.Println("Please restart MaruBot to apply changes.")
 	}
 }
