@@ -1,14 +1,14 @@
 module github.com/dirmich/marubot
 
-go 1.26
+go 1.24
 
 require (
 	github.com/adrianmo/go-nmea v1.10.0
 	github.com/bluenviron/gomavlib/v3 v3.3.0
 	github.com/bwmarrin/discordgo v0.28.1
 	github.com/caarlos0/env/v11 v11.3.1
-	github.com/chromedp/cdproto v0.0.0-20260321001828-e3e3800016bc
-	github.com/chromedp/chromedp v0.15.1
+	github.com/chromedp/cdproto v0.0.0-20250109193945-03fd93a5846a
+	github.com/chromedp/chromedp v0.11.1
 	github.com/chzyer/readline v1.5.1
 	github.com/getlantern/systray v1.2.2
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
