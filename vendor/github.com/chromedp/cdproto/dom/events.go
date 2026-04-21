@@ -15,15 +15,6 @@ type EventAttributeModified struct {
 	Value  string     `json:"value"`  // Attribute value.
 }
 
-// EventAdoptedStyleSheetsModified fired when Element's adoptedStyleSheets
-// are modified.
-//
-// See: https://chromedevtools.github.io/devtools-protocol/tot/DOM#event-adoptedStyleSheetsModified
-type EventAdoptedStyleSheetsModified struct {
-	NodeID             cdp.NodeID         `json:"nodeId"`             // Id of the node that has changed.
-	AdoptedStyleSheets []cdp.StyleSheetID `json:"adoptedStyleSheets"` // New adoptedStyleSheets array.
-}
-
 // EventAttributeRemoved fired when Element's attribute is removed.
 //
 // See: https://chromedevtools.github.io/devtools-protocol/tot/DOM#event-attributeRemoved
@@ -101,32 +92,6 @@ type EventPseudoElementAdded struct {
 //
 // See: https://chromedevtools.github.io/devtools-protocol/tot/DOM#event-topLayerElementsUpdated
 type EventTopLayerElementsUpdated struct{}
-
-// EventScrollableFlagUpdated fired when a node's scrollability state
-// changes.
-//
-// See: https://chromedevtools.github.io/devtools-protocol/tot/DOM#event-scrollableFlagUpdated
-type EventScrollableFlagUpdated struct {
-	NodeID       cdp.NodeID `json:"nodeId"`       // The id of the node.
-	IsScrollable bool       `json:"isScrollable"` // If the node is scrollable.
-}
-
-// EventAdRelatedStateUpdated fired when a node's ad related state changes.
-//
-// See: https://chromedevtools.github.io/devtools-protocol/tot/DOM#event-adRelatedStateUpdated
-type EventAdRelatedStateUpdated struct {
-	NodeID       cdp.NodeID        `json:"nodeId"`                          // The id of the node.
-	AdProvenance *cdp.AdProvenance `json:"adProvenance,omitempty,omitzero"` // The provenance of the ad related node, if it is ad related.
-}
-
-// EventAffectedByStartingStylesFlagUpdated fired when a node's starting
-// styles changes.
-//
-// See: https://chromedevtools.github.io/devtools-protocol/tot/DOM#event-affectedByStartingStylesFlagUpdated
-type EventAffectedByStartingStylesFlagUpdated struct {
-	NodeID                   cdp.NodeID `json:"nodeId"`                   // The id of the node.
-	AffectedByStartingStyles bool       `json:"affectedByStartingStyles"` // If the node has starting styles.
-}
 
 // EventPseudoElementRemoved called when a pseudo element is removed from an
 // element.

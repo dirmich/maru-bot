@@ -4,9 +4,11 @@ package autofill
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/chromedp/cdproto/cdp"
+	"github.com/mailru/easyjson"
+	"github.com/mailru/easyjson/jlexer"
+	"github.com/mailru/easyjson/jwriter"
 )
 
 // CreditCard [no description].
@@ -24,7 +26,7 @@ type CreditCard struct {
 //
 // See: https://chromedevtools.github.io/devtools-protocol/tot/Autofill#type-AddressField
 type AddressField struct {
-	Name  string `json:"name"`  // address field name, for example GIVEN_NAME. The full list of supported field names: https://source.chromium.org/chromium/chromium/src/+/main:components/autofill/core/browser/field_types.cc;l=38
+	Name  string `json:"name"`  // address field name, for example GIVEN_NAME.
 	Value string `json:"value"` // address field value, for example Jon Doe.
 }
 
@@ -72,20 +74,33 @@ const (
 	FillingStrategyAutofillInferred      FillingStrategy = "autofillInferred"
 )
 
-// UnmarshalJSON satisfies [json.Unmarshaler].
-func (t *FillingStrategy) UnmarshalJSON(buf []byte) error {
-	s := string(buf)
-	s = strings.TrimSuffix(strings.TrimPrefix(s, `"`), `"`)
+// MarshalEasyJSON satisfies easyjson.Marshaler.
+func (t FillingStrategy) MarshalEasyJSON(out *jwriter.Writer) {
+	out.String(string(t))
+}
 
-	switch FillingStrategy(s) {
+// MarshalJSON satisfies json.Marshaler.
+func (t FillingStrategy) MarshalJSON() ([]byte, error) {
+	return easyjson.Marshal(t)
+}
+
+// UnmarshalEasyJSON satisfies easyjson.Unmarshaler.
+func (t *FillingStrategy) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	v := in.String()
+	switch FillingStrategy(v) {
 	case FillingStrategyAutocompleteAttribute:
 		*t = FillingStrategyAutocompleteAttribute
 	case FillingStrategyAutofillInferred:
 		*t = FillingStrategyAutofillInferred
+
 	default:
-		return fmt.Errorf("unknown FillingStrategy value: %v", s)
+		in.AddError(fmt.Errorf("unknown FillingStrategy value: %v", v))
 	}
-	return nil
+}
+
+// UnmarshalJSON satisfies json.Unmarshaler.
+func (t *FillingStrategy) UnmarshalJSON(buf []byte) error {
+	return easyjson.Unmarshal(buf, t)
 }
 
 // FilledField [no description].

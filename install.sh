@@ -122,20 +122,24 @@ fi
 GO_REQUIRED="1.24"
 INSTALL_GO=false
 
-if command -v go >/dev/null 2>&1; then
-    DETECTED_GO=$(command -v go)
-elif [ -f "/usr/local/go/bin/go" ]; then
+# 1. Prioritize MaruBot-installed Go or current PATH
+if [ -f "/usr/local/go/bin/go" ]; then
     DETECTED_GO="/usr/local/go/bin/go"
+elif command -v go >/dev/null 2>&1; then
+    DETECTED_GO=$(command -v go)
 fi
 
 if [ ! -z "$DETECTED_GO" ]; then
     if ! "$DETECTED_GO" version >/dev/null 2>&1; then
-        echo -e "${YELLOW}[!] Existing Go installation is broken. Forcing reinstall...${NC}"
+        echo -e "${YELLOW}[!] Existing Go installation at $DETECTED_GO is broken. Forcing reinstall...${NC}"
         INSTALL_GO=true
     else
-        EXISTING_VERSION=$("$DETECTED_GO" version | awk '{print $3}' | sed 's/go//')
-        if [[ "$EXISTING_VERSION" == "$GO_REQUIRED"* ]] || [ "$(printf '%s\n%s' "$GO_REQUIRED" "$EXISTING_VERSION" | sort -V | head -n1)" = "$GO_REQUIRED" ]; then
-            echo -e "${GREEN}[v] Go $EXISTING_VERSION is already installed.${NC}"
+        EXISTING_VERSION=$("$DETECTED_GO" version | awk '{print $3}' | sed 's/go//' | cut -d. -f1-2)
+        REQUIRED_MAJOR_MINOR=$(echo $GO_REQUIRED | cut -d. -f1-2)
+        
+        # Simple string comparison for major.minor
+        if [ "$EXISTING_VERSION" = "$REQUIRED_MAJOR_MINOR" ] || [ "$(printf '%s\n%s' "$REQUIRED_MAJOR_MINOR" "$EXISTING_VERSION" | sort -V | head -n1)" = "$REQUIRED_MAJOR_MINOR" ]; then
+            echo -e "${GREEN}[v] Go $EXISTING_VERSION is already installed and sufficient.${NC}"
             INSTALL_GO=false
         else
             echo -e "${BLUE}[i] Upgrading Go from $EXISTING_VERSION to $GO_REQUIRED+...${NC}"

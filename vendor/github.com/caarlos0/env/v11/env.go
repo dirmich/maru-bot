@@ -195,20 +195,19 @@ func mergeOptions[T any](target, source *T) {
 
 	targetType := targetPtr.Type()
 	for i := 0; i < targetPtr.NumField(); i++ {
-		fieldName := targetType.Field(i).Name
 		targetField := targetPtr.Field(i)
-		sourceField := sourcePtr.FieldByName(fieldName)
+		sourceField := sourcePtr.FieldByName(targetType.Field(i).Name)
 
 		if targetField.CanSet() && !isZero(sourceField) {
-			// FuncMaps are being merged, while Environments must be overwritten
-			if fieldName == "FuncMap" {
+			switch targetField.Kind() {
+			case reflect.Map:
 				if !sourceField.IsZero() {
 					iter := sourceField.MapRange()
 					for iter.Next() {
 						targetField.SetMapIndex(iter.Key(), iter.Value())
 					}
 				}
-			} else {
+			default:
 				targetField.Set(sourceField)
 			}
 		}
