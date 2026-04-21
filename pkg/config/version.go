@@ -81,3 +81,5 @@ func IsNewVersionAvailable(latest string) bool {
 
 	return len(lParts) > len(vParts)
 }
+
+// Cache Busting: 20260421111340
