@@ -19,7 +19,32 @@ func (s *Server) isRPi() bool { return true }
 
 func (s *Server) registerGPIORoutes(mux *http.ServeMux) {
 	mux.Handle("/api/gpio", s.authMiddleware(http.HandlerFunc(s.handleGpio)))
+	mux.Handle("/api/gpio/status", s.authMiddleware(http.HandlerFunc(s.handleGpioStatus)))
 	mux.Handle("/api/gpio/toggle", s.authMiddleware(http.HandlerFunc(s.handleGpioToggle)))
+}
+
+func (s *Server) handleGpioStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	levels := make(map[int]int)
+	flatPins := config.FlattenPins(s.config.Hardware.GPIO.Pins)
+	
+	for _, pin := range flatPins {
+		p := gpioreg.ByName(fmt.Sprintf("%d", pin))
+		if p != nil {
+			level := 0
+			if p.Read() == gpio.High {
+				level = 1
+			}
+			levels[pin] = level
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(levels)
 }
 
 func (s *Server) handleGpio(w http.ResponseWriter, r *http.Request) {

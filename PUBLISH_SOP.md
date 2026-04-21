@@ -41,12 +41,14 @@
 - `git tag 0.x.x` -> `git push origin 0.x.x`
 
 ### [6단계] Build (바이너리 패키징)
-- **Windows**: PowerShell의 `Get-Date`를 활용하여 빌드 타임스탬프를 주입합니다.
-    - `$env:GOOS="windows"; $env:GOARCH="amd64"; go build -ldflags "-H windowsgui" -o build/marubot.exe ./cmd/marubot`
-- **Linux ARM**: 라즈베리 파이용 바이너리를 빌드합니다.
+- **Windows**: 다음 아키텍처별 명칭을 반드시 준수하여 빌드하십시오.
+    - `$env:GOOS="windows"; $env:GOARCH="amd64"; go build -o build/marubot-windows-amd64.exe ./cmd/marubot`
+    - `$env:GOOS="windows"; $env:GOARCH="386"; go build -o build/marubot-windows-386.exe ./cmd/marubot`
+- **Linux (Raspberry Pi)**: 별도의 바이너리를 릴리즈에 올리지 않습니다. (설치 스크립트가 현장에서 소스 빌드 수행)
 
 ### [7단계] Publish (최종 고시)
-- `gh release create 0.x.x` 명령어를 사용하여 공개 저장소에 릴리즈를 생성하고 빌드된 자산을 업로드합니다.
+- `gh release create 0.x.x` 또는 `gh release upload`를 수행합니다.
+- **업로드 자산**: 오직 `marubot-windows-amd64.exe`와 `marubot-windows-386.exe`만 포함하십시오.
 
 ---
 

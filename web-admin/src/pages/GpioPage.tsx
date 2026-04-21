@@ -26,9 +26,45 @@ export function GpioPage() {
     const [selectedPin, setSelectedPin] = useState<number | undefined>(undefined);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [pendingPin, setPendingPin] = useState<number | null>(null);
+    const [pinLevels, setPinLevels] = useState<Record<number, number>>({});
+    const [isPolling, setIsPolling] = useState(true);
+
+    // Conflict detection
+    const conflictingPins = useMemo(() => {
+        const counts: Record<number, number> = {};
+        configuredPins.forEach(p => {
+            if (p.pin > 0) counts[p.pin] = (counts[p.pin] || 0) + 1;
+        });
+        return new Set(Object.entries(counts).filter(([_, count]) => count > 1).map(([pin]) => parseInt(pin)));
+    }, [configuredPins]);
+
+    // Polling for pin levels
+    useEffect(() => {
+        if (!isPolling) return;
+        
+        const interval = setInterval(async () => {
+            try {
+                const res = await authenticatedFetch('/api/gpio/status');
+                if (res.ok) {
+                    const status = await res.json();
+                    setPinLevels(status);
+                    
+                    // Sync levels back to configuredPins for UI consistency
+                    setConfiguredPins(prev => prev.map(p => ({
+                        ...p,
+                        level: status[p.pin] ?? p.level
+                    })));
+                }
+            } catch (e) {
+                console.error("Failed to poll GPIO status", e);
+            }
+        }, 1500);
+
+        return () => clearInterval(interval);
+    }, [isPolling]);
 
     const handleAddPin = (group: string = "") => {
-        const newPin = { pin: 0, mode: 'OUT', label: 'New Device', group };
+        const newPin = { pin: 0, mode: 'OUT', label: `New Device ${configuredPins.length + 1}`, group };
         setConfiguredPins([...configuredPins, newPin]);
         setSelectedPin(undefined);
     };
@@ -111,6 +147,7 @@ export function GpioPage() {
     };
 
     const handleToggle = async (pin: number, label: string, group: string) => {
+        if (pin === 0) return;
         try {
             const res = await authenticatedFetch('/api/gpio/toggle', {
                 method: 'POST',
@@ -119,6 +156,7 @@ export function GpioPage() {
             });
             if (res.ok) {
                 const data = await res.json();
+                setPinLevels(prev => ({ ...prev, [pin]: data.level }));
                 setConfiguredPins(prev => prev.map(p => 
                     (p.pin === pin && p.label === label && p.group === group) ? { ...p, level: data.level } : p
                 ));
@@ -133,7 +171,6 @@ export function GpioPage() {
 
     const handleAddGroup = () => {
         const newGroupName = `Group_${Object.keys(groups).length + 1}`;
-        // To create a group, we need at least one pin or just a placeholder in UI
         handleAddPin(newGroupName);
     };
 
@@ -184,7 +221,6 @@ export function GpioPage() {
         }
     };
 
-    // Group pins by group name
     const groups = configuredPins.reduce((acc, pin) => {
         const groupName = pin.group || "Default";
         if (!acc[groupName]) acc[groupName] = [];
@@ -192,13 +228,25 @@ export function GpioPage() {
         return acc;
     }, {} as Record<string, PinConfig[]>);
 
+    const getPinUsage = (pinNum: number) => {
+        const assignments = configuredPins.filter(p => p.pin === pinNum);
+        if (assignments.length === 0) return null;
+        return assignments.map(a => a.label).join(", ");
+    };
+
     return (
         <div className="p-6 max-w-6xl mx-auto space-y-6">
-            <header className="mb-6">
-                <h1 className="text-2xl font-bold flex items-center gap-2">
-                    <Cpu className="text-orange-600" /> {t.gpio_title}
-                </h1>
-                <p className="text-sm text-slate-500">{t.gpio_desc}</p>
+            <header className="mb-6 flex justify-between items-start">
+                <div>
+                    <h1 className="text-2xl font-bold flex items-center gap-2">
+                        <Cpu className="text-orange-600" /> {t.gpio_title}
+                    </h1>
+                    <p className="text-sm text-slate-500">{t.gpio_desc}</p>
+                </div>
+                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">Live Monitor</span>
+                    <Switch checked={isPolling} onCheckedChange={setIsPolling} />
+                </div>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -213,11 +261,21 @@ export function GpioPage() {
                                 configuredPins={configuredPins.map(p => p.pin)}
                                 selectedPin={selectedPin}
                                 onPinClick={handlePinClick}
+                                conflictingPins={conflictingPins}
+                                pinLevels={pinLevels}
                             />
                         </CardContent>
-                        <CardFooter className="justify-end border-t pt-4">
+                        <CardFooter className="justify-end border-t pt-4 gap-2">
+                            <Button 
+                                onClick={fetchGpio}
+                                variant="outline"
+                                size="sm"
+                            >
+                                <RefreshCw className="w-4 h-4 mr-1" /> Reload
+                            </Button>
                             <Button 
                                 onClick={handleSave} 
+                                size="sm"
                                 className="bg-blue-600 hover:bg-blue-700 text-white"
                                 disabled={configuredPins.some(p => isInvalidPin(p.pin))}
                             >
@@ -287,56 +345,54 @@ export function GpioPage() {
                                         {pins.map((item, localIdx) => {
                                             const globalIdx = configuredPins.findIndex(p => p === item);
                                             const isError = isInvalidPin(item.pin);
+                                            const isConflict = conflictingPins.has(item.pin);
+                                            
                                             if (selectedPin !== undefined && item.pin !== selectedPin) return null;
+                                            
                                             return (
-                                                <TableRow key={`${groupName}-${localIdx}`} className={`border-b last:border-0 transition-colors ${isError ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30' : 'hover:bg-white dark:hover:bg-slate-800'}`}>
+                                                <TableRow key={`${groupName}-${localIdx}`} className={`border-b last:border-0 transition-all ${isConflict ? 'bg-red-50/50 dark:bg-red-900/10 ring-1 ring-inset ring-red-200 dark:ring-red-900/50' : isError ? 'bg-red-50 dark:bg-red-900/20' : 'hover:bg-white dark:hover:bg-slate-800'}`}>
                                                     <TableCell className="w-12 px-3 py-2 text-center">
                                                         {item.mode === 'OUT' ? (
                                                             <Switch
                                                                 checked={item.level === 1}
                                                                 onCheckedChange={() => handleToggle(item.pin, item.label, item.group)}
+                                                                className="data-[state=checked]:bg-emerald-500"
                                                             />
                                                         ) : (
-                                                            <div className="flex items-center justify-center gap-2">
-                                                                <span className={`w-3 h-3 rounded-full ${item.level === 1 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-slate-300'}`} />
-                                                                <Button 
-                                                                    variant="ghost" 
-                                                                    size="icon" 
-                                                                    className="h-7 w-7 text-slate-400 hover:text-blue-500"
-                                                                    onClick={() => handleToggle(item.pin, item.label, item.group)}
-                                                                >
-                                                                    <RefreshCw className="w-3.5 h-3.5" />
-                                                                </Button>
+                                                            <div className="flex items-center justify-center">
+                                                                <span className={`w-3.5 h-3.5 rounded-full transition-all duration-300 ${item.level === 1 ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)] scale-110' : 'bg-slate-300 dark:bg-slate-700'}`} />
                                                             </div>
                                                         )}
                                                     </TableCell>
-                                                    <TableCell className="w-20 px-3 py-2">
+                                                    <TableCell className="w-24 px-3 py-2">
                                                         <Select
                                                             value={item.pin.toString()}
                                                             onValueChange={(v) => handleUpdatePin(globalIdx, 'pin', parseInt(v))}
                                                         >
-                                                            <SelectTrigger className={`h-8 text-xs font-mono border-none shadow-none bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 ${isError ? 'text-red-500 font-bold' : ''}`}>
+                                                            <SelectTrigger className={`h-8 text-xs font-mono border-none shadow-none bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 ${isError || isConflict ? 'text-red-500 font-bold' : ''}`}>
                                                                 <SelectValue />
                                                             </SelectTrigger>
-                                                            <SelectContent>
-                                                                {pinData
-                                                                    // .filter(p => p.type !== 'power' && p.type !== 'ground') // Let them see it but mark error if they pick it, or just keep filtering. 
-                                                                    // Actually, the user asked to show error IF configured pin is VCC/GND. 
-                                                                    // If we filter them out from the select, they can't pick them anyway.
-                                                                    // But they might be there from a config migration Or the user might want to know WHY they can't pick them.
-                                                                    .sort((a, b) => a.number - b.number)
-                                                                    .map(p => (
+                                                            <SelectContent className="max-h-[300px]">
+                                                                {pinData.sort((a, b) => a.number - b.number).map(p => {
+                                                                    const usage = getPinUsage(p.number);
+                                                                    const isVccGnd = p.type === 'power' || p.type === 'ground';
+                                                                    return (
                                                                         <SelectItem 
                                                                             key={p.number} 
                                                                             value={p.number.toString()}
-                                                                            className={p.type === 'power' || p.type === 'ground' ? 'text-red-400 italic' : ''}
+                                                                            className={`${isVccGnd ? 'text-red-400 italic' : ''} ${usage && p.number !== item.pin ? 'bg-slate-50 dark:bg-slate-800/50' : ''}`}
                                                                         >
-                                                                            {p.number} {p.type === 'power' ? '(VCC)' : p.type === 'ground' ? '(GND)' : ''}
+                                                                            <span className="flex items-center justify-between w-full gap-4">
+                                                                                <span>{p.number} {p.type === 'power' ? '(VCC)' : p.type === 'ground' ? '(GND)' : ''}</span>
+                                                                                {usage && <span className="text-[10px] text-slate-400 font-normal">Used by: {usage}</span>}
+                                                                            </span>
                                                                         </SelectItem>
-                                                                    ))}
+                                                                    );
+                                                                })}
                                                             </SelectContent>
                                                         </Select>
-                                                        {isError && <div className="text-[9px] text-red-500 font-bold mt-0.5 ml-1">VCC/GND Error</div>}
+                                                        {isConflict && <div className="text-[8px] text-red-500 font-bold mt-0.5 ml-1 animate-pulse">PIN CONFLICT</div>}
+                                                        {isError && <div className="text-[8px] text-red-500 font-bold mt-0.5 ml-1 uppercase">Reserved Pin</div>}
                                                     </TableCell>
                                                     <TableCell className="px-3 py-2">
                                                         <input

@@ -194,11 +194,20 @@ fi
 INSTALL_DIR="$HOME/marubot"
 DOWNLOAD_ARCHIVE() {
     echo -e "${BLUE}[i] Downloading archive via curl/wget...${NC}"
+    # 선제적 Cleanup: 기존 잔여물이 있다면 삭제하여 무결성 확보 (사용자 피드백 반영)
+    if [ -d "$INSTALL_DIR" ]; then
+        rm -rf "$INSTALL_DIR"
+    fi
     mkdir -p "$INSTALL_DIR"
+    
+    # 0.9.0 배포 시 v0.9.0.tar.gz로 업데이트 예정 (현재는 최신 main을 지향하거나 특정 버전을 타겟팅)
+    # 안전하게 main 브랜치의 아카이브를 사용하도록 변경하여 CDN 지연 최소화
+    local ARCHIVE_URL="https://github.com/dirmich/maru-bot/archive/refs/heads/main.tar.gz"
+    
     if command -v curl >/dev/null 2>&1; then
-        curl -fsSL https://github.com/dirmich/maru-bot/archive/refs/tags/v0.7.3.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
+        curl -fsSL "$ARCHIVE_URL" | tar -xz -C "$INSTALL_DIR" --strip-components=1
     elif command -v wget >/dev/null 2>&1; then
-        wget -qO- https://github.com/dirmich/maru-bot/archive/refs/tags/v0.7.3.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
+        wget -qO- "$ARCHIVE_URL" | tar -xz -C "$INSTALL_DIR" --strip-components=1
     else
         echo -e "${RED}[x] Neither curl nor wget are available.${NC}"
         return 1

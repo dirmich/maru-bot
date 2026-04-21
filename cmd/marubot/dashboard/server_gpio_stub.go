@@ -26,14 +26,29 @@ func (s *Server) isRPi() bool {
 func (s *Server) registerGPIORoutes(mux *http.ServeMux) {
 	if s.config.Hardware.GPIOTestMode {
 		mux.Handle("/api/gpio", s.authMiddleware(http.HandlerFunc(s.handleGpioSim)))
+		mux.Handle("/api/gpio/status", s.authMiddleware(http.HandlerFunc(s.handleGpioStatusSim)))
 		mux.Handle("/api/gpio/toggle", s.authMiddleware(http.HandlerFunc(s.handleGpioToggleSim)))
 	} else {
 		notSupported := func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, `{"error":"GPIO not supported on this platform"}`, http.StatusNotImplemented)
 		}
 		mux.HandleFunc("/api/gpio", notSupported)
+		mux.HandleFunc("/api/gpio/status", notSupported)
 		mux.HandleFunc("/api/gpio/toggle", notSupported)
 	}
+}
+
+func (s *Server) handleGpioStatusSim(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	simMu.RLock()
+	defer simMu.RUnlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(simulatedPins)
 }
 
 func (s *Server) handleGpioSim(w http.ResponseWriter, r *http.Request) {
