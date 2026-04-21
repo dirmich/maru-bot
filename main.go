@@ -25,7 +25,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"unsafe"
 
 	"github.com/dirmich/marubot/cmd/marubot/dashboard"
 	"github.com/dirmich/marubot/pkg/admin"
@@ -2837,38 +2836,7 @@ func checkServiceUpgrade(s service.Service) bool {
 	return svcVer != currentVer && svcVer != ""
 }
 
-func showNativeConfirmDialog(title, message string) bool {
-	if runtime.GOOS == "darwin" {
-		// Escape double quotes in message
-		msg := strings.ReplaceAll(message, `"`, `\"`)
-		script := fmt.Sprintf(`display dialog "%s" with title "%s" buttons {"Cancel", "OK"} default button "OK" with icon caution`, msg, title)
-		cmd := exec.Command("osascript", "-e", script)
-		err := cmd.Run()
-		return err == nil
-	} else if runtime.GOOS == "windows" {
-		// Use native Win32 MessageBoxW for maximum reliability
-		// 0x00000004 = MB_YESNO, 0x00000020 = MB_ICONQUESTION, 0x00000100 = MB_DEFBUTTON1
-		ret := win32MessageBox(message, title, 0x00000004|0x00000020|0x00000100)
-		return ret == 6 // 6 = IDYES
-	}
-	return true
-}
 
-func showNativeMessageDialog(title, message string) {
-	if runtime.GOOS == "windows" {
-		// 0x00000000 = MB_OK, 0x00000040 = MB_ICONINFORMATION
-		win32MessageBox(message, title, 0x00000000|0x00000040)
-	}
-}
-
-func win32MessageBox(message, title string, style uint32) int {
-	user32 := syscall.NewLazyDLL("user32.dll")
-	proc := user32.NewProc("MessageBoxW")
-	lpCaption, _ := syscall.UTF16PtrFromString(title)
-	lpText, _ := syscall.UTF16PtrFromString(message)
-	ret, _, _ := proc.Call(0, uintptr(unsafe.Pointer(lpText)), uintptr(unsafe.Pointer(lpCaption)), uintptr(style))
-	return int(ret)
-}
 
 func removeWindowsShortcuts() {
 	if runtime.GOOS != "windows" {
