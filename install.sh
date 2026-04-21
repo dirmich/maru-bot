@@ -196,9 +196,9 @@ DOWNLOAD_ARCHIVE() {
     echo -e "${BLUE}[i] Downloading archive via curl/wget...${NC}"
     mkdir -p "$INSTALL_DIR"
     if command -v curl >/dev/null 2>&1; then
-        curl -fsSL https://github.com/dirmich/maru-bot/archive/refs/heads/main.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
+        curl -fsSL https://github.com/dirmich/maru-bot/archive/refs/tags/v0.7.2.2.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
     elif command -v wget >/dev/null 2>&1; then
-        wget -qO- https://github.com/dirmich/maru-bot/archive/refs/heads/main.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
+        wget -qO- https://github.com/dirmich/maru-bot/archive/refs/tags/v0.7.2.2.tar.gz | tar -xz -C "$INSTALL_DIR" --strip-components=1
     else
         echo -e "${RED}[x] Neither curl nor wget are available.${NC}"
         return 1
