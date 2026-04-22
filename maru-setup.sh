@@ -35,7 +35,7 @@ done
 echo "📝 Applying MaruBot configuration..."
 mkdir -p ~/.marubot
 # Use -n option to prevent overwriting existing configurations
-cp -n ./config/maru-config.json ~/.marubot/config.json
+cp -n ./config/maru-config.json.example ~/.marubot/config.json
 echo "✅ Setup complete! You can now communicate with MaruBot using 'marubot agent'."
 
 echo "🎉 MaruBot is ready!"

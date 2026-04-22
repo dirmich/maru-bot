@@ -1,0 +1,114 @@
+{
+  "language": "",
+  "admin_password": "",
+  "agents": {
+    "defaults": {
+      "workspace": "~/.marubot/workspace",
+      "provider": "",
+      "model": "",
+      "fallback_models": []
+    }
+  },
+  "channels": {
+    "whatsapp": {
+      "enabled": false,
+      "bridge_url": "",
+      "allow_from": [],
+      "api_key": ""
+    },
+    "telegram": {
+      "enabled": false,
+      "token": "",
+      "allow_from": []
+    },
+    "discord": {
+      "enabled": false,
+      "token": "",
+      "allow_from": []
+    },
+    "slack": {
+      "enabled": false,
+      "token": "",
+      "app_token": "",
+      "default_channel_id": "",
+      "allow_from": []
+    },
+    "webhook": {
+      "enabled": false,
+      "port": 0,
+      "path": "",
+      "secret": "",
+      "allow_from": []
+    }
+  },
+  "providers": {
+    "anthropic": {
+      "enabled": false,
+      "models": []
+    },
+    "openai": {
+      "enabled": false,
+      "models": []
+    },
+    "openrouter": {
+      "enabled": false,
+      "models": []
+    },
+    "groq": {
+      "enabled": false,
+      "models": []
+    },
+    "zhipu": {
+      "enabled": false,
+      "models": []
+    },
+    "vllm": {
+      "enabled": false,
+      "models": []
+    },
+    "gemini": {
+      "enabled": false,
+      "models": []
+    },
+    "llamacpp": {
+      "enabled": false,
+      "models": []
+    },
+    "ollama": []
+  },
+  "gateway": {
+    "host": "",
+    "port": 0
+  },
+  "tools": {
+    "web": {
+      "search": {
+        "api_key": "",
+        "max_results": 5
+      }
+    }
+  },
+  "hardware": {
+    "gpio_test_mode": false,
+    "gpio": {
+      "enabled": false,
+      "pins": {},
+      "actions": {}
+    }
+  },
+  "drone": {
+    "enabled": false,
+    "connection": "",
+    "sysid": 0,
+    "compid": 0
+  },
+  "gps": {
+    "enabled": false,
+    "device": "",
+    "baud": 0
+  },
+  "admin": {
+    "backend_url": "",
+    "user_id": ""
+  }
+}

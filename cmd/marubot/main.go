@@ -2683,7 +2683,7 @@ func setupWorkspace() error {
 	}
 
 	// Double check IDENTITY or initial config if needed
-	configPath := filepath.Join(baseDir, "config", "maru-config.json")
+	configPath := filepath.Join(baseDir, "config", "maru-config.json.example")
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		// If not exists, we'll let LoadConfig handle it or we could copy a default here
 		// For now, at least the folders are there
