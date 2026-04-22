@@ -80,7 +80,7 @@ sync-ui:
 	@echo "Checking web-admin assets..."
 	@if [ -d "web-admin" ]; then \
 		echo "Building UI (Clean build)..."; \
-		(cd web-admin && npm run build); \
+		(cd web-admin && bun install && bun run build); \
 		echo "Syncing web-admin assets..."; \
 		rm -rf cmd/marubot/dashboard/dist; \
 		mkdir -p cmd/marubot/dashboard/dist; \
@@ -92,6 +92,11 @@ sync-ui:
 			exit 1; \
 		fi; \
 		echo "✓ Pre-built assets found in dashboard/dist"; \
+	fi
+	@echo "Checking landing assets..."
+	@if [ -d "landing" ]; then \
+		echo "Building Landing (Clean build)..."; \
+		(cd landing && bun install && bun run build); \
 	fi
 
 ## build: Build the marubot binary for current platform

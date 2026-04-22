@@ -22,8 +22,10 @@ func getPlatformStats() map[string]interface{} {
 	if hInfo != nil {
 		stats["uptime"] = hInfo.Uptime
 		stats["os"] = fmt.Sprintf("%s %s", hInfo.OS, hInfo.PlatformVersion)
+		stats["hw_model"] = fmt.Sprintf("%s (%s)", hInfo.Hostname, hInfo.KernelArch)
 	} else {
 		stats["os"] = "Windows"
+		stats["hw_model"] = "Windows PC"
 	}
 
 	// 2. CPU
@@ -98,6 +100,7 @@ func getPlatformStats() map[string]interface{} {
 		}
 	}
 	stats["disk_detail"] = diskDetails
+	stats["is_raspberry_pi"] = false
 
 	return stats
 }

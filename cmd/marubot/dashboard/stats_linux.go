@@ -65,10 +65,25 @@ func getPlatformStats() map[string]interface{} {
 		}
 	}
 
+	// 5. OS 상세 정보 (PRETTY_NAME 추출)
 	stats["os"] = "Linux"
+	if osData, err := os.ReadFile("/etc/os-release"); err == nil {
+		lines := strings.Split(string(osData), "\n")
+		for _, line := range lines {
+			if strings.HasPrefix(line, "PRETTY_NAME=") {
+				prettyName := strings.Trim(strings.TrimPrefix(line, "PRETTY_NAME="), "\"")
+				stats["os"] = prettyName
+				break
+			}
+		}
+	}
 	stats["is_raspberry_pi"] = false
+	stats["hw_model"] = "Generic Linux Device"
+	
 	if dt, err := os.ReadFile("/proc/device-tree/model"); err == nil {
-		if strings.Contains(string(dt), "Raspberry Pi") {
+		model := strings.Trim(string(dt), "\x00\n\r\t ")
+		stats["hw_model"] = model
+		if strings.Contains(model, "Raspberry Pi") {
 			stats["is_raspberry_pi"] = true
 		}
 	}
