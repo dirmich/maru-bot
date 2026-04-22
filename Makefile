@@ -75,12 +75,25 @@ endif
 
 BINARY_PATH=$(BUILD_DIR)/$(BINARY_NAME)-$(PLATFORM)-$(ARCH)
 
+build-landing:
+	@echo "Checking landing assets..."
+	@if [ -d "landing" ]; then \
+		echo "Building landing page..."; \
+		if command -v bun >/dev/null 2>&1; then \
+			(cd landing && bun run build); \
+		else \
+			(cd landing && npm run build); \
+		fi; \
+	else \
+		echo "Skipping landing build (source not found)."; \
+	fi
+
 # internal helper to sync UI assets
 sync-ui:
 	@echo "Checking web-admin assets..."
 	@if [ -d "web-admin" ]; then \
 		echo "Building UI (Clean build)..."; \
-		(cd web-admin && bun install && bun run build); \
+		(cd web-admin && npm run build); \
 		echo "Syncing web-admin assets..."; \
 		rm -rf cmd/marubot/dashboard/dist; \
 		mkdir -p cmd/marubot/dashboard/dist; \
@@ -93,17 +106,22 @@ sync-ui:
 		fi; \
 		echo "✓ Pre-built assets found in dashboard/dist"; \
 	fi
-	@echo "Checking landing assets..."
-	@if [ -d "landing" ]; then \
-		echo "Building Landing (Clean build)..."; \
-		(cd landing && bun install && bun run build); \
-	fi
 
 ## build: Build the marubot binary for current platform
 build: sync-ui
 	@echo "Building $(BINARY_NAME) for $(PLATFORM)/$(ARCH)..."
 	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=0 $(GO) build -mod=vendor $(GOFLAGS) $(LDFLAGS_CONSOLE) -o $(BINARY_PATH) ./$(CMD_DIR)
+	@set -e; \
+	if [ -f "vendor/modules.txt" ]; then \
+		echo "Using vendored Go modules..."; \
+		if ! CGO_ENABLED=$(CGO_ENABLED) $(GO) build -mod=vendor $(GOFLAGS) $(LDFLAGS_CONSOLE) -o $(BINARY_PATH) ./$(CMD_DIR); then \
+			echo "Vendored modules are out of sync. Retrying with module download mode..."; \
+			CGO_ENABLED=$(CGO_ENABLED) $(GO) build -mod=mod $(GOFLAGS) $(LDFLAGS_CONSOLE) -o $(BINARY_PATH) ./$(CMD_DIR); \
+		fi; \
+	else \
+		echo "vendor/modules.txt not found. Using module download mode..."; \
+		CGO_ENABLED=$(CGO_ENABLED) $(GO) build -mod=mod $(GOFLAGS) $(LDFLAGS_CONSOLE) -o $(BINARY_PATH) ./$(CMD_DIR); \
+	fi
 	@echo "Build complete: $(BINARY_PATH)"
 	@ln -sf $(BINARY_NAME)-$(PLATFORM)-$(ARCH) $(BUILD_DIR)/$(BINARY_NAME)
 
@@ -175,7 +193,7 @@ install-skills:
 	@echo "Skills installation complete!"
 
 ## public: Sync public files to ../marubot (for public repo maintenance)
-public: package-win package-dmg
+public: build-landing package-win package-dmg
 	@echo "🚀 Syncing to public repository (Windows: EXE only, macOS: DMG only)..."
 	@chmod +x scripts/publish.sh
 	@./scripts/publish.sh
