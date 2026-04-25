@@ -354,8 +354,9 @@ func uninstallCmd() {
 		// Kill any remaining marubot processes
 		exec.Command("pkill", "-9", "marubot").Run()
 	} else if runtime.GOOS == "darwin" {
-		// For macOS, just pkill for now (can expand to launchctl if needed)
-		exec.Command("pkill", "-9", "marubot").Run()
+		// For macOS, pkill all other instances except the current one
+		currentPid := os.Getpid()
+		exec.Command("sh", "-c", fmt.Sprintf("pgrep -i marubot | grep -v ^%d$ | xargs kill -9 2>/dev/null", currentPid)).Run()
 	}
 
 	// Ask for data deletion using native dialog on GUI-capable platforms

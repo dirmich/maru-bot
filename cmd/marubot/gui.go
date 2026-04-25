@@ -269,6 +269,12 @@ func onTrayReady(targetExe string) {
 			case <-mUninstall.ClickedCh:
 				if runtime.GOOS == "windows" {
 					runAsAdminAction("uninstall --yes")
+				} else if runtime.GOOS == "darwin" {
+					go func() {
+						uninstallCmd()
+						systray.Quit()
+						os.Exit(0)
+					}()
 				} else {
 					fmt.Println("Uninstall aborted by user.")
 				}
