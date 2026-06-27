@@ -191,7 +191,7 @@ func logUninstall(message string) {
 	logDir := filepath.Join(home, ".marubot", "logs")
 	os.MkdirAll(logDir, 0755)
 	logPath := filepath.Join(logDir, "uninstall-"+time.Now().Format("2006-01-02")+".log")
-	
+
 	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err == nil {
 		defer f.Close()
@@ -354,9 +354,8 @@ func uninstallCmd() {
 		// Kill any remaining marubot processes
 		exec.Command("pkill", "-9", "marubot").Run()
 	} else if runtime.GOOS == "darwin" {
-		// For macOS, pkill all other instances except the current one
-		currentPid := os.Getpid()
-		exec.Command("sh", "-c", fmt.Sprintf("pgrep -i marubot | grep -v ^%d$ | xargs kill -9 2>/dev/null", currentPid)).Run()
+		// For macOS, just pkill for now (can expand to launchctl if needed)
+		exec.Command("pkill", "-9", "marubot").Run()
 	}
 
 	// Ask for data deletion using native dialog on GUI-capable platforms
@@ -689,7 +688,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-0.7.3
+0.9.6
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
@@ -983,7 +982,7 @@ func gatewayCmd() {
 		func(msg string) (string, error) {
 			return agentLoop.ProcessDirect(context.Background(), msg, "heartbeat")
 		},
-		30 * 60,
+		30*60,
 		true,
 	)
 
@@ -1399,6 +1398,7 @@ func skillsInstallBuiltinCmd(workspace string) {
 	fmt.Printf("Copying builtin skills from %s to workspace...\n", builtinSkillsDir)
 
 	skillsToInstall := []string{
+		"gpio",
 		"weather",
 		"news",
 		"stock",
@@ -1814,7 +1814,7 @@ func reloadInternal() {
 
 	// 5. Restart services
 	backgroundCtx, backgroundCancel = context.WithCancel(context.Background())
-	
+
 	// Re-init channels with new config
 	if currentAgentLoop != nil {
 		newChanManager, err := channels.NewManager(cfg, currentAgentLoop.GetBus())
@@ -2573,7 +2573,7 @@ func checkAndFixPort(cfg *config.Config) bool {
 			promptScript = fmt.Sprintf(`
 Add-Type -AssemblyName System.Windows.Forms
 $title = "MaruBot Port Conflict"
-$msg = "MaruBot is already running on port %d.` + "`n" + `Would you like to terminate the existing process and continue?"
+$msg = "MaruBot is already running on port %d.`+"`n"+`Would you like to terminate the existing process and continue?"
 $result = [System.Windows.Forms.MessageBox]::Show($msg, $title, "YesNo", "Warning")
 if ($result -eq "Yes") { "kill" } else { "exit" }
 `, port)
@@ -2581,7 +2581,7 @@ if ($result -eq "Yes") { "kill" } else { "exit" }
 			promptScript = fmt.Sprintf(`
 Add-Type -AssemblyName System.Windows.Forms
 $title = "MaruBot Port Conflict"
-$msg = "Port %d is being used by '%s'.` + "`n" + `Would you like to use a different port?"
+$msg = "Port %d is being used by '%s'.`+"`n"+`Would you like to use a different port?"
 $result = [System.Windows.Forms.MessageBox]::Show($msg, $title, "YesNo", "Question")
 if ($result -eq "Yes") { "newport" } else { "exit" }
 `, port, ownerName)
@@ -2836,8 +2836,6 @@ func checkServiceUpgrade(s service.Service) bool {
 	// Simple string compare for now
 	return svcVer != currentVer && svcVer != ""
 }
-
-
 
 func removeWindowsShortcuts() {
 	if runtime.GOOS != "windows" {

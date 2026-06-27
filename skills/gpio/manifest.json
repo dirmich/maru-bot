@@ -1,0 +1,4 @@
+{
+  "name": "gpio",
+  "description": "Use GPIO tools correctly on Raspberry Pi hardware."
+}

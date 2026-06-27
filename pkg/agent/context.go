@@ -153,7 +153,7 @@ You have the power to expand your own capabilities via 'create_tool' and 'create
 
 Always be helpful, accurate, and concise. When using tools, explain what you're doing.
 When remembering something, write to %s/memory/MEMORY.md`,
-		cb.version, platformType, cb.webhookInfo, cb.gpioInfo, langContext, cb.version, cb.version, platformType, platformType, 
+		cb.version, platformType, cb.webhookInfo, cb.gpioInfo, langContext, cb.version, cb.version, platformType, platformType,
 		mandatoryCommands, now, platformType, usefulCommands, workspacePath, workspacePath, workspacePath, workspacePath, workspacePath)
 }
 
@@ -235,6 +235,9 @@ func (cb *ContextBuilder) AddAssistantMessage(messages []providers.Message, cont
 
 func (cb *ContextBuilder) loadSkills() string {
 	alwaysSkills := cb.skillsLoader.GetAlwaysSkills()
+	if strings.HasPrefix(cb.gpioInfo, "GPIO: Enabled") && !containsSkill(alwaysSkills, "gpio") {
+		alwaysSkills = append(alwaysSkills, "gpio")
+	}
 	if len(alwaysSkills) == 0 {
 		return ""
 	}
@@ -245,4 +248,13 @@ func (cb *ContextBuilder) loadSkills() string {
 	}
 
 	return "# Skill Definitions\n\n" + content
+}
+
+func containsSkill(skills []string, name string) bool {
+	for _, skill := range skills {
+		if skill == name {
+			return true
+		}
+	}
+	return false
 }

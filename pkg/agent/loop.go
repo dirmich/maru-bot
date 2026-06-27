@@ -130,7 +130,7 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 		config:         cfg,
 		running:        false,
 	}
-	
+
 	// Set initial values from model config if possible
 	if mCfg := al.findCurrentModelConfig(); mCfg != nil {
 		if mCfg.MaxToolIterations > 0 {
@@ -154,7 +154,7 @@ func (al *AgentLoop) SetChannelManager(m bus.ChannelManager) {
 	al.mu.Lock()
 	defer al.mu.Unlock()
 	al.channelManager = m
-	
+
 	// Register channel-related tools once we have the manager
 	if al.tools != nil {
 		al.tools.Register(tools.NewChannelTool(m))
@@ -210,8 +210,8 @@ func (al *AgentLoop) Run(ctx context.Context) error {
 					}
 				}
 				logger.InfoCF("agent", "Publishing outbound message", map[string]interface{}{
-					"channel": outMsg.Channel,
-					"chatID":  outMsg.ChatID,
+					"channel":     outMsg.Channel,
+					"chatID":      outMsg.ChatID,
 					"content_len": len(outMsg.Content),
 				})
 				al.bus.PublishOutbound(outMsg)
@@ -255,7 +255,7 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 
 	// 🧵 2. STM (Short-term Memory): Get recent 20 messages
 	history := al.sessions.GetHistory(msg.SessionKey)
-	
+
 	// 📚 3. LTM (Long-term Memory): Search past context for relevant info
 	relevantContent := ""
 	relevantMsgs := al.sessions.SearchRelevant(msg.Content, 5)
@@ -339,7 +339,7 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 		// Find model config for parameters
 		maxTokens := 8192
 		temperature := 0.7
-		
+
 		// Search in the designated provider first
 		mCfg := al.findCurrentModelConfig()
 		if mCfg != nil {
@@ -459,13 +459,20 @@ func (al *AgentLoop) findCurrentModelConfig() *config.ModelConfig {
 	if providerName != "" {
 		var p config.ProviderConfig
 		switch strings.ToLower(providerName) {
-		case "anthropic": p = al.config.Providers.Anthropic
-		case "openai": p = al.config.Providers.OpenAI
-		case "openrouter": p = al.config.Providers.OpenRouter
-		case "groq": p = al.config.Providers.Groq
-		case "zhipu": p = al.config.Providers.Zhipu
-		case "vllm": p = al.config.Providers.VLLM
-		case "gemini": p = al.config.Providers.Gemini
+		case "anthropic":
+			p = al.config.Providers.Anthropic
+		case "openai":
+			p = al.config.Providers.OpenAI
+		case "openrouter":
+			p = al.config.Providers.OpenRouter
+		case "groq":
+			p = al.config.Providers.Groq
+		case "zhipu":
+			p = al.config.Providers.Zhipu
+		case "vllm":
+			p = al.config.Providers.VLLM
+		case "gemini":
+			p = al.config.Providers.Gemini
 		}
 		if cfg := getInProvider(p); cfg != nil {
 			return cfg
@@ -493,7 +500,15 @@ func (al *AgentLoop) findCurrentModelConfig() *config.ModelConfig {
 
 func (al *AgentLoop) tryParseToolCallFromContent(content string) *providers.ToolCall {
 	content = strings.TrimSpace(content)
-	
+
+	if strings.Contains(content, `"hardware.gpio.pins.`) && strings.Contains(content, `"action"`) && strings.Contains(content, `"get"`) {
+		return &providers.ToolCall{
+			ID:        fmt.Sprintf("call_%d", time.Now().UnixNano()),
+			Name:      "gpio_control",
+			Arguments: map[string]interface{}{"action": "status"},
+		}
+	}
+
 	// Fast path for pure JSON
 	if strings.HasPrefix(content, "{") && strings.HasSuffix(content, "}") {
 		return al.parseJSONToolCall(content)

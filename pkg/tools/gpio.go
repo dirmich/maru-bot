@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -31,7 +32,7 @@ func (t *GPIOTool) Name() string {
 }
 
 func (t *GPIOTool) Description() string {
-	return "Control GPIO pins for reading/writing values and executing grouped actions (e.g., controlling motors/wings)"
+	return "Control GPIO pins for reading/writing values, checking current GPIO status, and executing grouped actions"
 }
 
 func (t *GPIOTool) Parameters() map[string]interface{} {
@@ -40,8 +41,8 @@ func (t *GPIOTool) Parameters() map[string]interface{} {
 		"properties": map[string]interface{}{
 			"action": map[string]interface{}{
 				"type":        "string",
-				"description": "Operation to perform: 'read', 'write', 'execute_action'",
-				"enum":        []string{"read", "write", "execute_action"},
+				"description": "Operation to perform: 'status', 'read', 'write', 'execute_action'",
+				"enum":        []string{"status", "read", "write", "execute_action"},
 			},
 			"pin": map[string]interface{}{
 				"type":        "string",
@@ -65,6 +66,8 @@ func (t *GPIOTool) Execute(ctx context.Context, args map[string]interface{}) (st
 	action, _ := args["action"].(string)
 
 	switch action {
+	case "status":
+		return t.status()
 	case "read":
 		pinName, ok := args["pin"].(string)
 		if !ok {
@@ -111,6 +114,48 @@ func (t *GPIOTool) resolvePin(pinIdentifier string) gpio.PinIO {
 	}
 	// 2. Try direct lookup (e.g. "GPIO18", "18")
 	return gpioreg.ByName(pinIdentifier)
+}
+
+func (t *GPIOTool) status() (string, error) {
+	if !t.cfg.Hardware.GPIO.Enabled {
+		return "GPIO is disabled.", nil
+	}
+
+	flatPins := config.FlattenPins(t.cfg.Hardware.GPIO.Pins)
+	if len(flatPins) == 0 {
+		return "GPIO is enabled, but no pins are configured.", nil
+	}
+
+	names := make([]string, 0, len(flatPins))
+	for name := range flatPins {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	lines := []string{"| Name | Pin | Direction | Level |", "|---|---:|---|---|"}
+	for _, name := range names {
+		pinNumber := flatPins[name]
+		p := gpioreg.ByName(fmt.Sprintf("%d", pinNumber))
+		if p == nil {
+			lines = append(lines, fmt.Sprintf("| %s | %d | %s | unavailable |", name, pinNumber, gpioDirection(name)))
+			continue
+		}
+
+		direction := gpioDirection(name)
+		if direction == "input" {
+			_ = p.In(gpio.PullUp, gpio.NoEdge)
+		}
+		lines = append(lines, fmt.Sprintf("| %s | %d | %s | %v |", name, pinNumber, direction, p.Read()))
+	}
+
+	return strings.Join(lines, "\n"), nil
+}
+
+func gpioDirection(name string) string {
+	if config.IsInputPin(name) {
+		return "input"
+	}
+	return "output"
 }
 
 func (t *GPIOTool) readPin(pinIdentifier string) (string, error) {
