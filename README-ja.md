@@ -1,7 +1,7 @@
-# 🦞 MaruBot - 超軽量 AI エージェント (v0.9.7)
+# 🦞 MaruBot - 超軽量 AI エージェント (v0.9.8)
 
 [![Official Website](https://img.shields.io/badge/Official-Website-blue?style=for-the-badge&logo=googlechrome&logoColor=white)](https://dirmich.github.io/maru-bot/)
-[![GitHub Release](https://img.shields.io/badge/Release-v0.9.7-emerald?style=for-the-badge)](https://github.com/dirmich/maru-bot/releases)
+[![GitHub Release](https://img.shields.io/badge/Release-v0.9.8-emerald?style=for-the-badge)](https://github.com/dirmich/maru-bot/releases)
 
 > **"知性と実体が交차する場所 — MaruBot"**
 > 

@@ -30,7 +30,9 @@ echo "2) Korean (ko)"
 echo "3) Japanese (ja)"
 
 # Check if running interactively or verify /dev/tty availability
-if [ -c /dev/tty ]; then
+if [ "$MARUBOT_NONINTERACTIVE" = "1" ]; then
+    LANG_CHOICE=1
+elif [ -c /dev/tty ]; then
     read -p "Select (1-3) [Default: 1]: " LANG_CHOICE < /dev/tty
 else
     if [ -t 0 ]; then
@@ -65,7 +67,9 @@ fi
 
 PROMPT_PWD="Set Admin Password for Web Dashboard$PROMPT_PWD_SUFFIX: "
 
-if [ -c /dev/tty ]; then
+if [ "$MARUBOT_NONINTERACTIVE" = "1" ]; then
+    MARUBOT_PWD=""
+elif [ -c /dev/tty ]; then
     read -p "$PROMPT_PWD" MARUBOT_PWD < /dev/tty
 else
     if [ -t 0 ]; then

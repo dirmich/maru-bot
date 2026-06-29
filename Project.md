@@ -1,6 +1,10 @@
 ﻿# MaruBot 프로젝트 이력
 
 ## 2026-06-27
+### 0.9.8
+- **WebAdmin 업그레이드 복구**: Linux/RPi 업그레이드 중 실행 중인 user systemd 서비스를 먼저 중지해 설치가 끊기던 문제를 수정.
+- **비대화형 설치 지원**: 대시보드/AI 업그레이드에서 `install.sh`가 `/dev/tty` 입력을 기다리지 않도록 `MARUBOT_NONINTERACTIVE=1` 경로를 추가.
+
 ### 0.9.7
 - **GPIO 텍스트 호출 실행 보정**: 모델이 `call:gpio_control{action: "status"}` 형식으로 응답해도 실제 `gpio_control status` 도구 호출로 변환하도록 수정.
 - **GPIO 기본 스킬 내장 fallback**: 바이너리 업그레이드 환경에서 `skills/gpio` 파일이 누락돼도 기본 `gpio` 스킬이 로드되도록 보강.

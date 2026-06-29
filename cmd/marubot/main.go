@@ -688,7 +688,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-0.9.7
+0.9.8
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
@@ -2201,10 +2201,9 @@ func upgradeCmd() {
 		}
 	}
 
-	// Stop existing process if running
-	stopCmd()
-
 	if runtime.GOOS == "windows" {
+		// Windows cannot replace a running executable reliably.
+		stopCmd()
 		fmt.Println("🚀 Windows native upgrade in progress...")
 		latest, err := config.CheckLatestVersion()
 		if err != nil {
@@ -2270,6 +2269,7 @@ func upgradeCmd() {
 	// For UNIX-like systems, keep using the install.sh bash script
 	fmt.Println("🚀 Upgrading MaruBot to the latest Version...")
 	cmd := exec.Command("bash", "-c", "curl -fsSL https://raw.githubusercontent.com/dirmich/maru-bot/main/install.sh | bash")
+	cmd.Env = append(os.Environ(), "MARUBOT_NONINTERACTIVE=1")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
