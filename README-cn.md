@@ -1,7 +1,7 @@
-# 🦞 MaruBot - 超轻量级 AI 助手 (v0.9.9)
+# 🦞 MaruBot - 超轻量级 AI 助手 (v0.9.10)
 
 [![Official Website](https://img.shields.io/badge/Official-Website-blue?style=for-the-badge&logo=googlechrome&logoColor=white)](https://dirmich.github.io/maru-bot/)
-[![GitHub Release](https://img.shields.io/badge/Release-v0.9.9-emerald?style=for-the-badge)](https://github.com/dirmich/maru-bot/releases)
+[![GitHub Release](https://img.shields.io/badge/Release-v0.9.10-emerald?style=for-the-badge)](https://github.com/dirmich/maru-bot/releases)
 
 > **"当智能触碰现实 — MaruBot"**
 > 
@@ -26,6 +26,8 @@
 ### 3. 🧠 硬件原生控制 (Hardware Native)
 - **GPIO 控制面板:** 实时监测和控制树莓派的引脚状态。
 - **技能引擎 (Skill Engine):** 自动执行连接系统命令与硬件操作的自主技能。
+- **已验证系统状态:** 系统状态请求会先运行 `shell` 工具获取实测输出，并只基于该验证结果回答。
+- **语言锁定响应:** Web Admin 的语言设置会规范化为真实语言名，工具和 harness 响应也会保持所选语言。
 
 ---
 

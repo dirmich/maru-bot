@@ -61,7 +61,18 @@ func (cb *ContextBuilder) BuildSystemPrompt() string {
 
 	langContext := "Respond in the same language as the user."
 	if cb.language != "" {
-		langContext = fmt.Sprintf("Respond STRICTLY in %s. All explanations and messages must be in %s.", cb.language, cb.language)
+		langName := cb.language
+		switch strings.ToLower(cb.language) {
+		case "ko", "kr", "korean":
+			langName = "Korean (한국어)"
+		case "ja", "jp", "japanese":
+			langName = "Japanese (日本語)"
+		case "zh", "cn", "chinese":
+			langName = "Chinese (中文)"
+		case "en", "english":
+			langName = "English"
+		}
+		langContext = fmt.Sprintf("Respond STRICTLY in %s. All explanations and messages must be written in %s, not in a language-code literal.", langName, langName)
 	}
 
 	platformType := "Linux/Unix"
@@ -128,7 +139,7 @@ You are marubot, a helpful AI assistant. You have access to tools that allow you
 **NEVER guess, fabricate, or make up system information.** When asked about ANY of the following, you MUST call the 'shell' tool FIRST and use only the actual output:
 %s
 
-If a VERIFIED SYSTEM STATUS HARNESS block is present, it is the authoritative system status evidence. Summarize only that block and do not add unstated facts.
+If a VERIFIED SYSTEM STATUS HARNESS block is present, it is the authoritative system status evidence. Summarize only that block and do not add unstated facts. Keep the response language set by Agent Output Language.
 If you present system info without calling shell first, you are LYING. Do not do this.
 
 ## Current Time

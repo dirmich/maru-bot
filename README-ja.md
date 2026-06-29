@@ -1,7 +1,7 @@
-# 🦞 MaruBot - 超軽量 AI エージェント (v0.9.9)
+# 🦞 MaruBot - 超軽量 AI エージェント (v0.9.10)
 
 [![Official Website](https://img.shields.io/badge/Official-Website-blue?style=for-the-badge&logo=googlechrome&logoColor=white)](https://dirmich.github.io/maru-bot/)
-[![GitHub Release](https://img.shields.io/badge/Release-v0.9.9-emerald?style=for-the-badge)](https://github.com/dirmich/maru-bot/releases)
+[![GitHub Release](https://img.shields.io/badge/Release-v0.9.10-emerald?style=for-the-badge)](https://github.com/dirmich/maru-bot/releases)
 
 > **"知性と実体が交차する場所 — MaruBot"**
 > 
@@ -26,6 +26,8 @@
 ### 3. 🧠 ハードウェアネイティブ制御 (Hardware Native)
 - **GPIO ダッシュボード:** Raspberry Pi のピン状態をリアルタイムで監視・制御。
 - **スキルエンジン (Skill Engine):** システムコマンドとハードウェア動作を連携させる自律的なスキル実行。
+- **検証済みシステム状態:** システム状態の質問では先に `shell` ツールで実測値を取得し、検証済み出力だけを根拠に回答します。
+- **言語固定応答:** Web Admin の言語設定を実際の言語名に正規化し、ツールや harness の応答も選択言語に保ちます。
 
 ---
 

@@ -1,7 +1,7 @@
-# 🦞 MaruBot (마루봇) - Ultra-light AI Agent (v0.9.9)
+# 🦞 MaruBot (마루봇) - Ultra-light AI Agent (v0.9.10)
 
 [![Official Website](https://img.shields.io/badge/Official-Website-blue?style=for-the-badge&logo=googlechrome&logoColor=white)](https://dirmich.github.io/maru-bot/)
-[![GitHub Release](https://img.shields.io/badge/Release-v0.9.9-emerald?style=for-the-badge)](https://github.com/dirmich/maru-bot/releases)
+[![GitHub Release](https://img.shields.io/badge/Release-v0.9.10-emerald?style=for-the-badge)](https://github.com/dirmich/maru-bot/releases)
 
 > **"지능과 실체가 만나는 곳 — 마루봇"**
 > 
@@ -26,6 +26,8 @@
 ### 3. 🧠 하드웨어 네이티브 제어 (Hardware Native)
 - **GPIO Dashboard:** 라즈베리 파이의 핀 상태를 실시간으로 모니터링하고 제어합니다.
 - **Skill Engine:** 시스템 명령과 하드웨어 동작을 연계한 자율적인 스킬 실행.
+- **Verified System Status:** 시스템 현황 질문은 실제 `shell` 확인 결과를 먼저 수집한 뒤 그 검증된 출력만 근거로 답변합니다.
+- **Language-Locked Responses:** Web Admin에서 설정한 응답 언어를 실제 언어명으로 고정해 도구/harness 응답도 같은 언어로 유지합니다.
 
 ---
 

@@ -1,7 +1,7 @@
-# 🦞 MaruBot - Ultra-light AI Agent (v0.9.9)
+# 🦞 MaruBot - Ultra-light AI Agent (v0.9.10)
 
 [![Official Website](https://img.shields.io/badge/Official-Website-blue?style=for-the-badge&logo=googlechrome&logoColor=white)](https://dirmich.github.io/maru-bot/)
-[![GitHub Release](https://img.shields.io/badge/Release-v0.9.9-emerald?style=for-the-badge)](https://github.com/dirmich/maru-bot/releases)
+[![GitHub Release](https://img.shields.io/badge/Release-v0.9.10-emerald?style=for-the-badge)](https://github.com/dirmich/maru-bot/releases)
 
 > **"Where Intelligence Touches Reality — MaruBot"**
 > 
@@ -26,6 +26,8 @@
 ### 3. 🧠 Hardware Native
 - **GPIO Dashboard:** Real-time monitoring and control of Raspberry Pi pin states.
 - **Skill Engine:** Autonomous skill execution linking system commands and hardware actions.
+- **Verified System Status:** System-status requests run the `shell` tool first and answer only from verified command output.
+- **Language-Locked Responses:** The Web Admin language setting is normalized to a real language name so tool and harness responses stay in the selected language.
 
 ---
 
