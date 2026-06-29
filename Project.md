@@ -1,6 +1,9 @@
 ﻿# MaruBot 프로젝트 이력
 
 ## 2026-06-27
+### 0.9.12
+- **Web Admin 언어 설정 동기화 수정**: 설정 화면 진입 시 서버 `config.language`를 UI language store에 반영해 localStorage 기본값(`en`)이 저장 시 서버 언어를 덮어쓰지 않도록 수정.
+
 ### 0.9.11
 - **설정 언어 hot-reload 보강**: Web Admin에서 언어를 저장하면 실행 중인 AgentLoop의 시스템 프롬프트 컨텍스트도 즉시 재생성해 다음 응답부터 선택 언어를 반영.
 
