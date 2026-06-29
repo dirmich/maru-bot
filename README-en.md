@@ -1,7 +1,7 @@
-# 🦞 MaruBot - Ultra-light AI Agent (v0.9.8)
+# 🦞 MaruBot - Ultra-light AI Agent (v0.9.9)
 
 [![Official Website](https://img.shields.io/badge/Official-Website-blue?style=for-the-badge&logo=googlechrome&logoColor=white)](https://dirmich.github.io/maru-bot/)
-[![GitHub Release](https://img.shields.io/badge/Release-v0.9.8-emerald?style=for-the-badge)](https://github.com/dirmich/maru-bot/releases)
+[![GitHub Release](https://img.shields.io/badge/Release-v0.9.9-emerald?style=for-the-badge)](https://github.com/dirmich/maru-bot/releases)
 
 > **"Where Intelligence Touches Reality — MaruBot"**
 > 

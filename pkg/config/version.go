@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const Version = "0.9.8"
+const Version = "0.9.9"
 
 // CheckLatestVersion fetches the latest version from the remote repository
 func CheckLatestVersion() (string, error) {

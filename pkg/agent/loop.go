@@ -238,6 +238,51 @@ func (al *AgentLoop) ProcessDirect(ctx context.Context, content, sessionKey stri
 	return al.processMessage(ctx, msg)
 }
 
+func (al *AgentLoop) buildStatusHarness(ctx context.Context, content string) string {
+	if !isSystemStatusRequest(content) {
+		return ""
+	}
+
+	command := "hostname; uptime -p; uname -a; cat /etc/os-release; free -m; df -h /; lscpu"
+	if runtime.GOOS == "windows" {
+		command = "hostname && ver && wmic cpu get Name,NumberOfCores && wmic computersystem get TotalPhysicalMemory && wmic logicaldisk get Caption,Size,FreeSpace"
+	}
+
+	result, err := al.tools.Execute(ctx, "shell", map[string]interface{}{"command": command})
+	if err != nil {
+		result = fmt.Sprintf("system status harness failed: %v", err)
+	}
+
+	return "\n\n### VERIFIED SYSTEM STATUS HARNESS\n" +
+		"The user asked for system status. Use ONLY the verified command output below for host/system facts. " +
+		"If a field is missing, say it was not available instead of guessing.\n\n" + result + "\n"
+}
+
+func isSystemStatusRequest(content string) bool {
+	text := strings.ToLower(content)
+	if strings.Contains(text, "gpio") || strings.Contains(text, "핀") {
+		return false
+	}
+
+	triggers := []string{
+		"시스템 현황",
+		"시스템 상태",
+		"서버 현황",
+		"서버 상태",
+		"현재 상태",
+		"현황 알려",
+		"상태 알려",
+		"system status",
+		"server status",
+	}
+	for _, trigger := range triggers {
+		if strings.Contains(text, trigger) {
+			return true
+		}
+	}
+	return false
+}
+
 func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage) (string, error) {
 	ctx = context.WithValue(ctx, tools.CtxKeyChannel, msg.Channel)
 	ctx = context.WithValue(ctx, tools.CtxKeyChatID, msg.ChatID)
@@ -284,6 +329,7 @@ func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage)
 	}
 
 	// Build messages with current history + injected Facts + LTM
+	relevantContent += al.buildStatusHarness(ctx, msg.Content)
 	messages := al.contextBuilder.BuildMessages(
 		history,
 		msg.Content+factsContent+relevantContent,

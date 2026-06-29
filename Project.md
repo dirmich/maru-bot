@@ -1,6 +1,10 @@
 ﻿# MaruBot 프로젝트 이력
 
 ## 2026-06-27
+### 0.9.9
+- **시스템 현황 검증 harness 추가**: 시스템/서버 현황 질문에서는 LLM 호출 전 실제 `shell` 명령을 실행해 검증된 상태 출력을 컨텍스트에 주입.
+- **거짓 시스템 정보 방지 프롬프트 강화**: `VERIFIED SYSTEM STATUS HARNESS`가 있으면 해당 출력만 근거로 답하도록 시스템 프롬프트 보강.
+
 ### 0.9.8
 - **WebAdmin 업그레이드 복구**: Linux/RPi 업그레이드 중 실행 중인 user systemd 서비스를 먼저 중지해 설치가 끊기던 문제를 수정.
 - **비대화형 설치 지원**: 대시보드/AI 업그레이드에서 `install.sh`가 `/dev/tty` 입력을 기다리지 않도록 `MARUBOT_NONINTERACTIVE=1` 경로를 추가.
