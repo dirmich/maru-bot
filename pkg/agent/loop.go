@@ -150,6 +150,12 @@ func (al *AgentLoop) SetProvider(p providers.LLMProvider) {
 	al.provider = p
 }
 
+func (al *AgentLoop) ReloadContext() {
+	al.mu.Lock()
+	defer al.mu.Unlock()
+	al.contextBuilder = NewContextBuilder(al.workspace, al.version, al.config)
+}
+
 func (al *AgentLoop) SetChannelManager(m bus.ChannelManager) {
 	al.mu.Lock()
 	defer al.mu.Unlock()

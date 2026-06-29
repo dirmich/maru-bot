@@ -371,6 +371,7 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 			if p, err := providers.CreateProvider(s.config); err == nil {
 				s.agent.SetProvider(p)
 			}
+			s.agent.ReloadContext()
 		}
 
 		// Save to config.json for persistence
