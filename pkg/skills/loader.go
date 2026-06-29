@@ -37,6 +37,30 @@ type SkillsLoader struct {
 	builtinSkills   string
 }
 
+const embeddedGPIOSkillPath = "embedded:gpio"
+
+const embeddedGPIOSkillContent = `# GPIO Skill
+
+Use this skill when the user asks about Raspberry Pi GPIO pins or hardware pin state.
+
+For current GPIO state, call the GPIO tool directly:
+
+` + "```json" + `
+{"action":"status"}
+` + "```" + `
+
+Do not answer with tool-call text. Execute the ` + "`gpio_control`" + ` tool and summarize the returned table.
+
+Use ` + "`read`" + ` only for a single named pin. Use the config tool only for saved configuration, not live GPIO levels.
+`
+
+var embeddedSkillMetadata = map[string]SkillMetadata{
+	"gpio": {
+		Name:        "gpio",
+		Description: "Use GPIO tools correctly on Raspberry Pi hardware.",
+	},
+}
+
 func NewSkillsLoader(workspace string, builtinSkills string) *SkillsLoader {
 	return &SkillsLoader{
 		workspace:       workspace,
@@ -110,6 +134,8 @@ func (sl *SkillsLoader) ListSkills(filterUnavailable bool) []SkillInfo {
 		}
 	}
 
+	sl.addEmbeddedSkills(skillMap)
+
 	result := make([]SkillInfo, 0, len(skillMap))
 	for _, s := range skillMap {
 		if filterUnavailable && !s.Available {
@@ -134,6 +160,10 @@ func (sl *SkillsLoader) LoadSkill(name string) (string, bool) {
 		if content, err := os.ReadFile(skillFile); err == nil {
 			return sl.stripFrontmatter(string(content)), true
 		}
+	}
+
+	if name == "gpio" {
+		return embeddedGPIOSkillContent, true
 	}
 
 	return "", false
@@ -191,6 +221,14 @@ func (sl *SkillsLoader) GetAlwaysSkills() []string {
 }
 
 func (sl *SkillsLoader) getSkillMetadata(skillPath string) *SkillMetadata {
+	if strings.HasPrefix(skillPath, "embedded:") {
+		name := strings.TrimPrefix(skillPath, "embedded:")
+		if metadata, ok := embeddedSkillMetadata[name]; ok {
+			return &metadata
+		}
+		return &SkillMetadata{Name: name}
+	}
+
 	manifestPath := filepath.Join(filepath.Dir(skillPath), "manifest.json")
 	content, err := os.ReadFile(manifestPath)
 	if err != nil {
@@ -262,6 +300,20 @@ func (sl *SkillsLoader) getMissingRequirements(requires *SkillRequirements) stri
 	}
 
 	return strings.Join(missing, ", ")
+}
+
+func (sl *SkillsLoader) addEmbeddedSkills(skillMap map[string]SkillInfo) {
+	if _, exists := skillMap["gpio"]; exists {
+		return
+	}
+	metadata := embeddedSkillMetadata["gpio"]
+	skillMap["gpio"] = SkillInfo{
+		Name:        metadata.Name,
+		Path:        embeddedGPIOSkillPath,
+		Source:      "builtin",
+		Description: metadata.Description,
+		Available:   true,
+	}
 }
 
 func escapeXML(s string) string {

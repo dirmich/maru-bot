@@ -688,7 +688,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-0.9.6
+0.9.7
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
@@ -2620,7 +2620,7 @@ if ($newPort) { $newPort } else { exit 1 }
 				if newPort > 0 {
 					cfg.Gateway.Port = newPort
 					if err := config.SaveConfig(getConfigPath(), cfg); err != nil {
-						fmt.Printf("Error saving config: %%v\n", err)
+						fmt.Printf("Error saving config: %v\n", err)
 					}
 					return true
 				}

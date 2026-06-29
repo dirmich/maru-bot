@@ -41,13 +41,16 @@ type Server struct {
 
 // NewServer creates a new dashboard server instance
 func NewServer(addr string, agent *agent.AgentLoop, cfg *config.Config, configPath string, version string, onRestart func()) *Server {
+	workspace := cfg.WorkspacePath()
+	builtinSkillsDir := filepath.Join(filepath.Dir(workspace), "skills")
+
 	return &Server{
 		addr:       addr,
 		agent:      agent,
 		config:     cfg,
 		configPath: configPath,
-		skillMgr:   skills.NewSkillInstaller(cfg.WorkspacePath()),
-		skillLoad:  skills.NewSkillsLoader(cfg.WorkspacePath(), ""),
+		skillMgr:   skills.NewSkillInstaller(workspace),
+		skillLoad:  skills.NewSkillsLoader(workspace, builtinSkillsDir),
 		historyMgr: history.NewChatHistoryManager(filepath.Dir(configPath)), // ~/.marubot base
 		version:    version,
 		onRestart:  onRestart,
@@ -76,11 +79,11 @@ func (s *Server) Start() error {
 	s.registerGPIORoutes(mux)
 	mux.Handle("/api/logs", s.authMiddleware(http.HandlerFunc(s.handleLogs)))
 	mux.Handle("/api/logs/list", s.authMiddleware(http.HandlerFunc(s.handleLogList)))
-	
+
 	// Chat History
 	mux.Handle("/api/history/chat/days", s.authMiddleware(http.HandlerFunc(s.handleChatHistoryDays)))
 	mux.Handle("/api/history/chat/day", s.authMiddleware(http.HandlerFunc(s.handleChatHistoryDay)))
-	
+
 	mux.Handle("/api/system/stats", s.authMiddleware(http.HandlerFunc(s.handleSystemStats)))
 	mux.Handle("/api/upgrade", s.authMiddleware(http.HandlerFunc(s.handleUpgrade)))
 
@@ -324,7 +327,7 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 		}
 
 		fmt.Println("[Debug] Chat successful, sending response.")
-		
+
 		// Save to history
 		timestamp := time.Now().Format(time.RFC3339)
 		s.historyMgr.SaveMessage(history.Message{
@@ -447,7 +450,7 @@ func (s *Server) handleLogs(w http.ResponseWriter, r *http.Request) {
 		home, _ = os.UserHomeDir()
 	}
 	logDir := filepath.Join(home, ".marubot", "logs")
-	
+
 	// Check if specific file is requested
 	requestedFile := r.URL.Query().Get("file")
 	targetLog := ""

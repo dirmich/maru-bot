@@ -509,6 +509,10 @@ func (al *AgentLoop) tryParseToolCallFromContent(content string) *providers.Tool
 		}
 	}
 
+	if tc := al.parseCallStyleToolCall(content); tc != nil {
+		return tc
+	}
+
 	// Fast path for pure JSON
 	if strings.HasPrefix(content, "{") && strings.HasSuffix(content, "}") {
 		return al.parseJSONToolCall(content)
@@ -535,6 +539,31 @@ func (al *AgentLoop) tryParseToolCallFromContent(content string) *providers.Tool
 	}
 
 	return nil
+}
+
+func (al *AgentLoop) parseCallStyleToolCall(content string) *providers.ToolCall {
+	re := regexp.MustCompile(`(?s)call:([A-Za-z0-9_]+)\s*\{(.*?)\}`)
+	match := re.FindStringSubmatch(content)
+	if len(match) < 3 {
+		return nil
+	}
+
+	args := make(map[string]interface{})
+	pairRe := regexp.MustCompile(`([A-Za-z_][A-Za-z0-9_]*)\s*:\s*("([^"]*)"|'([^']*)'|[^,\s}]+)`)
+	for _, pair := range pairRe.FindAllStringSubmatch(match[2], -1) {
+		if len(pair) < 3 {
+			continue
+		}
+		value := strings.TrimSpace(pair[2])
+		value = strings.Trim(value, `"'`)
+		args[pair[1]] = value
+	}
+
+	return &providers.ToolCall{
+		ID:        fmt.Sprintf("call_%d", time.Now().UnixNano()),
+		Name:      match[1],
+		Arguments: args,
+	}
 }
 
 func (al *AgentLoop) parseJSONToolCall(content string) *providers.ToolCall {
