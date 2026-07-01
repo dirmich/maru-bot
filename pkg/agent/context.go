@@ -56,7 +56,7 @@ func NewContextBuilder(workspace, version string, cfg *config.Config) *ContextBu
 }
 
 func (cb *ContextBuilder) BuildSystemPrompt() string {
-	now := time.Now().Format("2006-01-02 15:04 (Monday)")
+	now := time.Now().Format("2006-01-02 15:04:05 MST (Monday)")
 	workspacePath, _ := filepath.Abs(filepath.Join(cb.workspace))
 
 	langContext := "Respond in the same language as the user."
@@ -80,7 +80,8 @@ func (cb *ContextBuilder) BuildSystemPrompt() string {
 		platformType = "Windows"
 	}
 
-	mandatoryCommands := `- Hostname: 'hostname'
+	mandatoryCommands := `- Date/time: 'date'
+- Hostname: 'hostname'
 - IP Address: 'hostname -I'
 - OS version: 'cat /etc/os-release'
 - CPU info: 'lscpu'
@@ -88,7 +89,8 @@ func (cb *ContextBuilder) BuildSystemPrompt() string {
 - Storage: 'df -h'`
 
 	if cb.platform == "windows" {
-		mandatoryCommands = `- Hostname: 'hostname'
+		mandatoryCommands = `- Date/time: 'echo %DATE% %TIME% && tzutil /g'
+- Hostname: 'hostname'
 - IP Address: 'ipconfig'
 - OS version: 'ver'
 - CPU info: 'wmic cpu get Name'
@@ -96,14 +98,16 @@ func (cb *ContextBuilder) BuildSystemPrompt() string {
 - Storage: 'wmic logicaldisk get Caption,Size,FreeSpace'`
 	}
 
-	usefulCommands := `* IP Address: 'hostname -I' (LAN), 'curl -s ifconfig.me' (WAN)
+	usefulCommands := `* Date/time: 'date', 'timedatectl'
+* IP Address: 'hostname -I' (LAN), 'curl -s ifconfig.me' (WAN)
 * OS/Kernel: 'cat /etc/os-release', 'uname -a'
 * CPU: 'lscpu'
 * Memory: 'free -m'
 * Disk: 'df -h /'`
 
 	if cb.platform == "windows" {
-		usefulCommands = `* IP Address: 'ipconfig' (LAN), 'curl -s ifconfig.me' (WAN)
+		usefulCommands = `* Date/time: 'echo %DATE% %TIME%', 'tzutil /g'
+* IP Address: 'ipconfig' (LAN), 'curl -s ifconfig.me' (WAN)
 * OS/Kernel: 'ver'
 * Memory: 'wmic computersystem get TotalPhysicalMemory'
 * Disk: 'wmic logicaldisk get Caption,Size,FreeSpace'`

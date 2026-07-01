@@ -249,9 +249,9 @@ func (al *AgentLoop) buildStatusHarness(ctx context.Context, content string) str
 		return ""
 	}
 
-	command := "hostname; uptime -p; uname -a; cat /etc/os-release; free -m; df -h /; lscpu"
+	command := "date '+local_time=%Y-%m-%d %H:%M:%S %Z (%A)'; date -u '+utc_time=%Y-%m-%d %H:%M:%S UTC (%A)'; timedatectl 2>/dev/null || true; hostname; uptime -p; uname -a; cat /etc/os-release; free -m; df -h /; lscpu"
 	if runtime.GOOS == "windows" {
-		command = "hostname && ver && wmic cpu get Name,NumberOfCores && wmic computersystem get TotalPhysicalMemory && wmic logicaldisk get Caption,Size,FreeSpace"
+		command = "echo local_time=%DATE% %TIME% && tzutil /g && hostname && ver && wmic cpu get Name,NumberOfCores && wmic computersystem get TotalPhysicalMemory && wmic logicaldisk get Caption,Size,FreeSpace"
 	}
 
 	result, err := al.tools.Execute(ctx, "shell", map[string]interface{}{"command": command})
@@ -276,8 +276,18 @@ func isSystemStatusRequest(content string) bool {
 		"서버 현황",
 		"서버 상태",
 		"현재 상태",
+		"오늘 날짜",
+		"현재 날짜",
+		"날짜",
+		"현재 시간",
+		"지금 시간",
 		"현황 알려",
 		"상태 알려",
+		"today's date",
+		"current date",
+		"current time",
+		"what time",
+		"what date",
 		"system status",
 		"server status",
 	}

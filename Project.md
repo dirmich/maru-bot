@@ -1,6 +1,9 @@
 ﻿# MaruBot 프로젝트 이력
 
 ## 2026-06-27
+### 0.9.13
+- **날짜/시간 검증 harness 보강**: 시스템 현황 및 날짜/시간 질문에 실제 `date`/`timedatectl` 출력과 UTC 시간을 포함해 모델이 현재 날짜/시간을 추정하지 않도록 수정.
+
 ### 0.9.12
 - **Web Admin 언어 설정 동기화 수정**: 설정 화면 진입 시 서버 `config.language`를 UI language store에 반영해 localStorage 기본값(`en`)이 저장 시 서버 언어를 덮어쓰지 않도록 수정.
 
