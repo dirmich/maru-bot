@@ -127,6 +127,8 @@ func main() {
 	}
 
 	switch command {
+	case "mesh-worker":
+		meshWorkerCmd()
 	case "onboard":
 		onboard()
 	case "agent":
@@ -688,7 +690,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-0.9.14
+0.9.15
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage
