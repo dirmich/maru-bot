@@ -269,6 +269,20 @@ func (s *Store) PruneMemories() error {
 	return nil
 }
 func (s *Store) MemoryHistory(id string) ([]Memory, error) {
+	var current []byte
+	if err := s.db.QueryRow(`SELECT data FROM memory WHERE id=?`, id).Scan(&current); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []Memory{}, nil
+		}
+		return nil, err
+	}
+	var latest Memory
+	if err := json.Unmarshal(current, &latest); err != nil {
+		return nil, err
+	}
+	if latest.ExpiresAt != nil && !latest.ExpiresAt.After(time.Now()) {
+		return []Memory{}, nil
+	}
 	rows, err := s.db.Query(`SELECT data FROM memory_history WHERE id=? ORDER BY revision DESC`, id)
 	if err != nil {
 		return nil, err

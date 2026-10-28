@@ -17,19 +17,21 @@ type Executor interface {
 	Execute(context.Context, Node, Invocation) (Result, error)
 }
 type Engine struct {
-	Store    *Store
-	executor Executor
-	mu       sync.Mutex
-	active   map[string]context.CancelFunc
-	limit    int
-	wake     chan struct{}
+	Stopped    chan struct{}
+	executions sync.WaitGroup
+	Store      *Store
+	executor   Executor
+	mu         sync.Mutex
+	active     map[string]context.CancelFunc
+	limit      int
+	wake       chan struct{}
 }
 
 func NewEngine(s *Store, x Executor, limit int) (*Engine, error) {
 	if limit < 1 || limit > 32 {
 		limit = 4
 	}
-	e := &Engine{Store: s, executor: x, limit: limit, active: map[string]context.CancelFunc{}, wake: make(chan struct{}, 1)}
+	e := &Engine{Stopped: make(chan struct{}), Store: s, executor: x, limit: limit, active: map[string]context.CancelFunc{}, wake: make(chan struct{}, 1)}
 	var runs []Run
 	if err := s.List("run", &runs); err != nil {
 		return nil, err
@@ -37,7 +39,7 @@ func NewEngine(s *Store, x Executor, limit int) (*Engine, error) {
 	for _, r := range runs {
 		changed := false
 		for i := range r.Tasks {
-			if r.Tasks[i].Status == "running" {
+			if r.Tasks[i].Status == "running" || r.Tasks[i].Status == "cancelling" {
 				r.Tasks[i].Status = "unknown"
 				r.Tasks[i].Error = "프로세스가 재시작되었습니다. 실제 장비의 실행 결과를 확인하세요"
 				changed = true
@@ -60,6 +62,7 @@ func (e *Engine) notify() {
 	}
 }
 func (e *Engine) Serve(ctx context.Context) {
+	defer close(e.Stopped)
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
 	cleanup := time.NewTicker(time.Hour)
@@ -387,6 +390,14 @@ func (e *Engine) schedule(ctx context.Context) {
 	}
 	nodes, _ := e.Nodes()
 	sort.Slice(nodes, func(i, j int) bool { return nodes[i].ID < nodes[j].ID })
+	loads := map[string]int{}
+	for _, run := range runs {
+		for _, task := range run.Tasks {
+			if task.Status == "running" || task.Status == "cancelling" {
+				loads[task.NodeID]++
+			}
+		}
+	}
 	for _, r := range runs {
 		changed := false
 		for i := range r.Tasks {
@@ -417,17 +428,22 @@ func (e *Engine) schedule(ctx context.Context) {
 				continue
 			}
 			var selected *Node
+			bestScore := 1e12
 			for j := range nodes {
 				n := &nodes[j]
 				if n.Online && Contains(n.Tools, t.Tool) && (t.NodeID == "" || t.NodeID == n.ID) {
-					selected = n
-					break
+					score := float64(loads[n.ID])*100 + n.CPU + n.Memory*.1
+					if score < bestScore {
+						selected = n
+						bestScore = score
+					}
 				}
 			}
 			if selected == nil {
 				continue
 			}
 			t.NodeID = selected.ID
+			loads[selected.ID]++
 			t.Status = "running"
 			now := time.Now().UTC()
 			t.StartedAt = &now
@@ -436,7 +452,8 @@ func (e *Engine) schedule(ctx context.Context) {
 			key := r.ID + "/" + t.ID
 			e.active[key] = cancel
 			call := Invocation{Protocol: Protocol, OwnerID: e.Store.Owner, RunID: r.ID, Task: *t, Deadline: r.Deadline, IdempotencyKey: key}
-			go e.execute(taskCtx, *selected, call)
+			e.executions.Add(1)
+			go func(n Node, c Invocation) { defer e.executions.Done(); e.execute(taskCtx, n, c) }(*selected, call)
 		}
 		if changed {
 			aggregate(&r)
@@ -451,6 +468,8 @@ func (e *Engine) schedule(ctx context.Context) {
 		}
 	}
 }
+
+func (e *Engine) Wait() { <-e.Stopped; e.executions.Wait() }
 func (e *Engine) execute(ctx context.Context, node Node, call Invocation) {
 	// schedule의 저장이 끝난 후 원격 실행을 시작한다.
 	e.mu.Lock()
@@ -492,6 +511,13 @@ func (e *Engine) execute(ctx context.Context, node Node, call Invocation) {
 		now := time.Now().UTC()
 		t.FinishedAt = &now
 		e.Store.Event(r.ID, t.ID, "task."+t.Status, t.Status+" @ "+node.ID)
+		if t.Status == "succeeded" && t.Output != "" {
+			content := t.Output
+			if len(content) > 16000 {
+				content = content[:16000]
+			}
+			e.Store.SaveMemory(Memory{Title: r.Title + " · " + t.ID, Content: content, Kind: "short", Visibility: "private", NodeID: node.ID, Source: "run:" + r.ID + "/" + t.ID})
+		}
 	}
 	aggregate(&r)
 	e.Store.Put("run", r.ID, r)

@@ -14,3 +14,13 @@
 - 단기 기억 만료, 장기/Wiki 검토 승격, private/shared 범위, revision 충돌과 삭제 시 이력 삭제를 구현했다.
 - 검증: go test ./pkg/orchestration 통과. 두 작업 동시 실행·의존성·승인 재사용 방지·사용자 격리·재시작 unknown 상태를 확인했다. 실제 장비 연결은 미검증이다.
 - 기본 기한을 생성하면서 요청 객체를 변경해 중복 요청 해시가 달라지는 문제를 테스트로 발견하고 깊은 복사로 수정했다.
+
+## 0.9.16 — Admin backend와 worker 연결
+
+- Google OAuth state·PKCE·nonce와 RS256/JWKS 검증, 12시간 HttpOnly 세션, CSRF 검증을 구현했다.
+- 장비 토큰은 해시로 인증하고 backend에 필요한 원문은 AES-GCM으로 암호화했다. 90일 만료·개별 갱신·폐기와 15초 heartbeat를 구현했다.
+- HTTPS worker, Tailscale 주소 제한, workspace 경로 정책, 원격 재위임 금지와 대화용 위임·기억 도구를 연결했다.
+- 사용자별 Admin API·영속 SSE·기억 검토·작업 승인·unknown 작업의 장비 기록 재조회, 자연어 계획 생성을 추가했다.
+- 전체 시스템 Admin frontend와 backend를 단일 Go 실행파일에 임베드했다. 화면 사용성 검증은 다음 checkpoint에서 수행한다.
+- 검증: go test ./... 통과, Admin과 marubot Windows 바이너리 빌드 통과. 두 실제 HTTPS 테스트 worker의 동시 실행 및 사용자 간 작업·이벤트·기억·장비 접근 차단을 검증했다.
+- 실제 Google 자격 자료와 운영 장비 배포는 수행하지 않았다.

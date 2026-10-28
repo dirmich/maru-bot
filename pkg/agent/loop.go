@@ -52,6 +52,10 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 	}
 
 	toolsRegistry := tools.NewToolRegistry()
+	toolsRegistry.Register(&tools.SystemStatusTool{})
+	if controlClient, err := tools.NewControlClientFromEnv(); err == nil && controlClient != nil {
+		tools.RegisterControlTools(toolsRegistry, controlClient)
+	}
 	toolsRegistry.Register(&tools.ReadFileTool{})
 	toolsRegistry.Register(&tools.WriteFileTool{})
 	toolsRegistry.Register(&tools.ListDirTool{})
@@ -142,6 +146,20 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 
 func (al *AgentLoop) GetBus() *bus.MessageBus {
 	return al.bus
+}
+
+// ExecuteRemoteTool은 요청 범위의 정책을 기존 도구 실행 앞에 적용한다.
+func (al *AgentLoop) ExecuteRemoteTool(ctx context.Context, name string, args map[string]interface{}, allow []string) (string, error) {
+	return al.tools.Execute(tools.WithRemotePolicy(ctx, tools.RemotePolicy{Tools: allow, Workspace: al.workspace}), name, args)
+}
+
+func (al *AgentLoop) ToolNames() []string {
+	defs := al.tools.GetDefinitions()
+	names := []string{}
+	for _, def := range defs {
+		names = append(names, def["function"].(map[string]interface{})["name"].(string))
+	}
+	return names
 }
 
 func (al *AgentLoop) SetProvider(p providers.LLMProvider) {

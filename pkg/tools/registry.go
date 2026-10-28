@@ -31,6 +31,9 @@ func (r *ToolRegistry) Get(name string) (Tool, bool) {
 }
 
 func (r *ToolRegistry) Execute(ctx context.Context, name string, args map[string]interface{}) (string, error) {
+	if err := checkRemotePolicy(ctx, name, args); err != nil {
+		return "", err
+	}
 	tool, ok := r.Get(name)
 	if !ok {
 		return "", fmt.Errorf("tool '%s' not found", name)
