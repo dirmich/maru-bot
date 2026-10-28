@@ -38,3 +38,11 @@ web-admin/dist/
 
 # Temporary files
 tmp/
+
+.omx/
+admin-data/
+*.sqlite
+*.sqlite-*
+*.pem
+*.key
+!.env.example
