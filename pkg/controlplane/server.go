@@ -202,6 +202,8 @@ func (s *Server) Handler() http.Handler {
 	api.HandleFunc("POST /api/nodes/heartbeat", s.heartbeat)
 	api.HandleFunc("POST /api/nodes/{id}/revoke", s.revokeNode)
 	api.HandleFunc("POST /api/nodes/{id}/rotate", s.rotateNode)
+	api.HandleFunc("PATCH /api/nodes/{id}", s.editNode)
+	api.HandleFunc("POST /api/nodes/{id}/pause", s.pauseNode)
 	api.HandleFunc("GET /api/runs", s.runs)
 	api.HandleFunc("POST /api/runs", s.submit)
 	api.HandleFunc("POST /api/plan", s.plan)
@@ -241,6 +243,70 @@ func (s *Server) Handler() http.Handler {
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 		mux.ServeHTTP(w, r)
 	})
+}
+
+func (s *Server) editNode(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Name string `json:"name"`
+		URL  string `json:"url"`
+	}
+	if err := decode(w, r, &input); err != nil {
+		handleErr(w, err)
+		return
+	}
+	if input.Name == "" || len(input.Name) > 200 {
+		handleErr(w, errors.New("장비 이름을 입력하세요"))
+		return
+	}
+	if err := orchestration.ValidateNodeURL(input.URL); err != nil {
+		handleErr(w, err)
+		return
+	}
+	e := s.getEngine(w, r)
+	if e == nil {
+		return
+	}
+	var n orchestration.Node
+	if err := e.Store.Get("node", r.PathValue("id"), &n); err != nil {
+		handleErr(w, err)
+		return
+	}
+	n.Name = input.Name
+	if n.URL != strings.TrimRight(input.URL, "/") {
+		n.URL = strings.TrimRight(input.URL, "/")
+		n.LastSeen = time.Time{}
+	}
+	if err := e.SaveNode(n); err != nil {
+		handleErr(w, err)
+		return
+	}
+	e.Store.Event("", "", "node.updated", n.ID)
+	writeJSON(w, 200, n)
+}
+func (s *Server) pauseNode(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Paused bool `json:"paused"`
+	}
+	if err := decode(w, r, &input); err != nil {
+		handleErr(w, err)
+		return
+	}
+	e := s.getEngine(w, r)
+	if e == nil {
+		return
+	}
+	var n orchestration.Node
+	if err := e.Store.Get("node", r.PathValue("id"), &n); err != nil {
+		handleErr(w, err)
+		return
+	}
+	n.Paused = input.Paused
+	if err := e.SaveNode(n); err != nil {
+		handleErr(w, err)
+		return
+	}
+	e.Store.Event("", "", "node.paused", fmt.Sprintf("%s: %t", n.ID, n.Paused))
+	writeJSON(w, 200, n)
 }
 
 func (s *Server) proposeMemory(w http.ResponseWriter, r *http.Request) {
@@ -293,7 +359,7 @@ func (s *Server) overview(w http.ResponseWriter, r *http.Request) {
 		handleErr(w, err)
 		return
 	}
-	memories, err := e.Store.Memories("", "", "", false)
+	memoryCount, err := e.Store.MemoryCount()
 	if err != nil {
 		handleErr(w, err)
 		return
@@ -314,7 +380,7 @@ func (s *Server) overview(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	writeJSON(w, 200, map[string]interface{}{"nodes": nodes, "runs": runs, "online": online, "running": running, "pending": pending, "memory_count": len(memories), "updated_at": time.Now().UTC()})
+	writeJSON(w, 200, map[string]interface{}{"nodes": nodes, "runs": runs, "online": online, "running": running, "pending": pending, "memory_count": memoryCount, "updated_at": time.Now().UTC()})
 }
 func (s *Server) nodes(w http.ResponseWriter, r *http.Request) {
 	e := s.getEngine(w, r)
@@ -649,6 +715,9 @@ func (s *Server) events(w http.ResponseWriter, r *http.Request) {
 	}
 	if !strings.Contains(r.Header.Get("Accept"), "text/event-stream") {
 		items, err := e.Store.Events(after, runID)
+		if runID == "" && r.URL.Query().Get("after") == "" && r.Header.Get("Last-Event-ID") == "" {
+			items, err = e.Store.RecentEvents()
+		}
 		if err != nil {
 			handleErr(w, err)
 			return

@@ -19,6 +19,7 @@ type Node struct {
 	Tools    []string  `json:"tools"`
 	LastSeen time.Time `json:"last_seen"`
 	Disabled bool      `json:"disabled"`
+	Paused   bool      `json:"paused"`
 	Online   bool      `json:"online"`
 	CPU      float64   `json:"cpu"`
 	Memory   float64   `json:"memory"`

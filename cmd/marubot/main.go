@@ -463,6 +463,7 @@ func printHelp() {
 	fmt.Println("Usage: marubot <command>")
 	fmt.Println("Commands:")
 	fmt.Println("  agent       Interact with the agent directly")
+	fmt.Println("  mesh-worker TLS로 인증된 분산 작업 worker 실행 (설정: docs/ENVIRONMENT.md)")
 	fmt.Println("  config      Manage hardware/system configuration")
 	fmt.Println("  cron        Manage scheduled tasks")
 	fmt.Println("  gateway     Start marubot gateway")
@@ -690,7 +691,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-0.9.16
+0.9.17
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage

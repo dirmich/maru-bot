@@ -41,7 +41,9 @@ Google redirect URI는 정확히 `<MARUBOT_ADMIN_PUBLIC_URL>/auth/google/callbac
 
 ## 대화에서 위임하기
 
-Admin에서 역할을 `orchestrator`로 등록한 장비의 `MARUBOT_CONTROL_URL`, `MARUBOT_NODE_TOKEN`, 선택 CA를 기존 `marubot agent` 또는 서비스 환경에 설정한다. 이때 `orchestration_status`, `orchestration_submit`, `shared_memory` 도구가 추가된다. LLM은 실제 장비와 도구를 조회한 후 DAG를 제출하며 사용자에게 run ID와 결과를 보고한다. 승인은 Admin 로그인 사용자만 수행한다.
+Admin에서 역할을 `orchestrator`로 등록한 장비의 `MARUBOT_CONTROL_URL`, `MARUBOT_NODE_TOKEN`, 선택 CA를 기존 `marubot agent` 또는 서비스 환경에 설정한다. 이때 `orchestration_status`, `orchestration_submit`, `shared_memory`, `memory_propose` 도구가 추가된다. LLM은 실제 장비와 도구를 조회한 후 DAG를 제출하며 사용자에게 run ID와 결과를 보고한다. 승인은 Admin 로그인 사용자만 수행한다.
+
+분산 연결이 활성화된 프로세스에서 Telegram·Discord·Slack·WhatsApp·Webhook 입력을 받으려면 해당 채널의 `allow_from`에 소유자의 발신자 ID를 명시해야 한다. 빈 목록의 공개 입력은 LLM 실행 전에 거부한다. CLI 및 비밀번호로 인증된 기존 Web Admin의 직접 대화는 사용할 수 있다. Google 계정별 backend 데이터와 외부 채널 ID의 연결은 해당 사용자의 장비 설정으로 관리한다.
 
 ## 주소 구분과 검증
 

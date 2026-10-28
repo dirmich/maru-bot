@@ -53,7 +53,9 @@ func NewAgentLoop(cfg *config.Config, bus *bus.MessageBus, provider providers.LL
 
 	toolsRegistry := tools.NewToolRegistry()
 	toolsRegistry.Register(&tools.SystemStatusTool{})
-	if controlClient, err := tools.NewControlClientFromEnv(); err == nil && controlClient != nil {
+	if controlClient, err := tools.NewControlClientFromEnv(); err != nil {
+		fmt.Fprintln(os.Stderr, "Admin 연결 설정을 확인하세요. 분산 위임 도구를 활성화하지 못했습니다.")
+	} else if controlClient != nil {
 		tools.RegisterControlTools(toolsRegistry, controlClient)
 	}
 	toolsRegistry.Register(&tools.ReadFileTool{})
@@ -318,6 +320,9 @@ func isSystemStatusRequest(content string) bool {
 }
 
 func (al *AgentLoop) processMessage(ctx context.Context, msg bus.InboundMessage) (string, error) {
+	if os.Getenv("MARUBOT_CONTROL_URL") != "" && !controlSenderAllowed(al.config, msg.Channel, msg.SenderID) {
+		return "", fmt.Errorf("분산 연결이 활성화된 채널은 소유자의 allow_from 설정이 필요합니다")
+	}
 	ctx = context.WithValue(ctx, tools.CtxKeyChannel, msg.Channel)
 	ctx = context.WithValue(ctx, tools.CtxKeyChatID, msg.ChatID)
 

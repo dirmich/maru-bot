@@ -89,7 +89,7 @@ func allowedAddress(ip net.IP) bool {
 }
 func ValidateNodeURL(raw string) error {
 	u, err := url.Parse(raw)
-	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
+	if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
 		return errors.New("장비 주소는 경로 없는 HTTPS 주소여야 합니다")
 	}
 	return nil
@@ -109,7 +109,7 @@ func NewPrivateClient(caFile string) (*http.Client, error) {
 		}
 	}
 	dialer := &net.Dialer{Timeout: 8 * time.Second}
-	transport := &http.Transport{TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: roots}, ResponseHeaderTimeout: 65 * time.Second, MaxIdleConnsPerHost: 8, DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+	transport := &http.Transport{TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: roots}, TLSHandshakeTimeout: 8 * time.Second, IdleConnTimeout: 90 * time.Second, MaxIdleConns: 64, MaxIdleConnsPerHost: 8, DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
 		host, port, err := net.SplitHostPort(address)
 		if err != nil {
 			return nil, err

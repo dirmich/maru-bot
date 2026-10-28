@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -39,6 +42,9 @@ func runMeshWorker() error {
 	cert, key := os.Getenv("MARUBOT_WORKER_CERT"), os.Getenv("MARUBOT_WORKER_KEY")
 	if cert == "" || key == "" {
 		return fmt.Errorf("worker TLS 인증서와 키를 설정하세요")
+	}
+	if _, err := tls.LoadX509KeyPair(cert, key); err != nil {
+		return fmt.Errorf("worker TLS 인증서와 키를 확인하세요: %w", err)
 	}
 	owner, node := os.Getenv("MARUBOT_OWNER_ID"), os.Getenv("MARUBOT_NODE_ID")
 	token := os.Getenv("MARUBOT_NODE_TOKEN")
@@ -78,7 +84,14 @@ func runMeshWorker() error {
 			return "", fmt.Errorf("backend 장비 인증이 만료되었습니다")
 		}
 		output, err := loop.ExecuteRemoteTool(ctx, t.Tool, t.Args, allow)
-		return redactWorkerOutput(output), err
+		if err == nil && t.Tool == "shell" && strings.HasPrefix(output, "Error:") {
+			err = errors.New(output)
+			output = ""
+		}
+		if err != nil {
+			err = errors.New(redactConfigOutput(redactWorkerOutput(err.Error()), cfg))
+		}
+		return redactConfigOutput(redactWorkerOutput(output), cfg), err
 	})
 	if err != nil {
 		return err
@@ -128,6 +141,35 @@ func runMeshWorker() error {
 		return nil
 	}
 	return err
+}
+
+func redactConfigOutput(output string, cfg *config.Config) string {
+	b, err := json.Marshal(cfg)
+	if err != nil {
+		return output
+	}
+	var data interface{}
+	if json.Unmarshal(b, &data) != nil {
+		return output
+	}
+	var walk func(interface{})
+	walk = func(value interface{}) {
+		switch item := value.(type) {
+		case map[string]interface{}:
+			for key, val := range item {
+				if text, ok := val.(string); ok && len(text) >= 8 && (strings.Contains(key, "token") || strings.Contains(key, "password") || strings.Contains(key, "secret") || strings.Contains(key, "api_key")) {
+					output = strings.ReplaceAll(output, text, "[비밀 마스킹]")
+				}
+				walk(val)
+			}
+		case []interface{}:
+			for _, val := range item {
+				walk(val)
+			}
+		}
+	}
+	walk(data)
+	return output
 }
 func redactWorkerOutput(output string) string {
 	for _, env := range os.Environ() {

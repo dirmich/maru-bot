@@ -35,7 +35,7 @@ func Planner(provider providers.LLMProvider, model string) func(context.Context,
 		for _, task := range run.Tasks {
 			found := false
 			for _, node := range nodes {
-				if node.ID == task.NodeID && node.Online && orchestration.Contains(node.Tools, task.Tool) {
+				if node.ID == task.NodeID && node.Online && !node.Paused && orchestration.Contains(node.Tools, task.Tool) {
 					found = true
 				}
 			}

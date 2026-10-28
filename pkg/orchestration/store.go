@@ -50,6 +50,38 @@ func OpenStore(root, owner string) (*Store, error) {
 	return s, nil
 }
 func (s *Store) Close() error { return s.db.Close() }
+
+func (s *Store) ActiveRuns() ([]Run, error) {
+	return s.readRuns(`SELECT data FROM records WHERE kind='run' AND json_extract(data,'$.status') IN ('queued','running','need-approval') ORDER BY rowid`)
+}
+func (s *Store) RecentRuns() ([]Run, error) {
+	return s.readRuns(`SELECT json_set(r.data,'$.tasks',json((SELECT json_group_array(json_remove(value,'$.output')) FROM json_each(r.data,'$.tasks')))) FROM records r WHERE r.kind='run' AND (json_extract(r.data,'$.status') IN ('queued','running','need-approval') OR r.rowid IN(SELECT rowid FROM records WHERE kind='run' ORDER BY rowid DESC LIMIT 100)) ORDER BY r.rowid DESC`)
+}
+func (s *Store) readRuns(query string) ([]Run, error) {
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []Run{}
+	for rows.Next() {
+		var b []byte
+		var r Run
+		if err = rows.Scan(&b); err != nil {
+			return nil, err
+		}
+		if err = json.Unmarshal(b, &r); err != nil {
+			return nil, err
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+func (s *Store) MemoryCount() (int, error) {
+	var count int
+	err := s.db.QueryRow(`SELECT count(*) FROM memory WHERE json_extract(data,'$.expires_at') IS NULL OR julianday(json_extract(data,'$.expires_at'))>julianday('now')`).Scan(&count)
+	return count, err
+}
 func (s *Store) Put(kind, id string, v interface{}) error {
 	b, err := json.Marshal(v)
 	if err != nil {
@@ -110,6 +142,14 @@ func (s *Store) Events(after int64, run string) ([]Event, error) {
 		items = append(items, e)
 	}
 	return items, rows.Err()
+}
+
+func (s *Store) RecentEvents() ([]Event, error) {
+	var after int64
+	if err := s.db.QueryRow(`SELECT COALESCE(MAX(id)-500,0) FROM events`).Scan(&after); err != nil {
+		return nil, err
+	}
+	return s.Events(after, "")
 }
 
 func (s *Store) SaveMemory(m Memory) (Memory, error) {

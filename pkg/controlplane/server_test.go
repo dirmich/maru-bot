@@ -104,6 +104,23 @@ func TestUserIsolationCSRFAndWorkerPermissions(t *testing.T) {
 		Token string             `json:"token"`
 	}
 	json.Unmarshal(w.Body.Bytes(), &provision)
+	w = request(t, s, b, "PATCH", "/api/nodes/"+provision.Node.ID, map[string]string{"name": "침범", "url": "https://100.100.0.2:8443"})
+	if w.Code != 404 {
+		t.Fatal("다른 사용자의 장비 수정 허용")
+	}
+	w = request(t, s, a, "PATCH", "/api/nodes/"+provision.Node.ID, map[string]string{"name": "수정된 장비", "url": "https://100.100.0.2:8443"})
+	if w.Code != 200 {
+		t.Fatal(w.Body.String())
+	}
+	w = request(t, s, a, "POST", "/api/nodes/"+provision.Node.ID+"/pause", map[string]bool{"paused": true})
+	if w.Code != 200 {
+		t.Fatal(w.Body.String())
+	}
+	var paused orchestration.Node
+	json.Unmarshal(w.Body.Bytes(), &paused)
+	if !paused.Paused {
+		t.Fatal("일시중지 상태 저장 실패")
+	}
 	w = bearer(t, s, provision.Token, "POST", "/api/runs", nil)
 	if w.Code != 403 {
 		t.Fatal("worker가 작업 제출")

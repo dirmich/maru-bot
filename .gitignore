@@ -40,9 +40,12 @@ web-admin/dist/
 tmp/
 
 .omx/
+.run/
+__pycache__/
+*.pyc
 admin-data/
 *.sqlite
 *.sqlite-*
 *.pem
 *.key
-!.env.example
+!/.env.example

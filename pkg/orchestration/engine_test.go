@@ -157,7 +157,7 @@ func TestRecoveryCycleAndUnknown(t *testing.T) {
 	if err == nil {
 		t.Fatal("순환 허용")
 	}
-	s.Put("run", "recover", Run{ID: "recover", Tasks: []Task{{ID: "a", Status: "running"}}})
+	s.Put("run", "recover", Run{ID: "recover", Status: "running", Tasks: []Task{{ID: "a", Status: "running"}}})
 	e, err = NewEngine(s, nil, 1)
 	if err != nil {
 		t.Fatal(err)
@@ -186,5 +186,69 @@ func TestOfflinePinnedNodeAndDeniedApproval(t *testing.T) {
 	time.Sleep(80 * time.Millisecond)
 	if calls.Load() != 0 {
 		t.Fatal("지명 노드 대체 또는 거부 작업 실행")
+	}
+}
+
+func TestAutoRoutingBalancesAndSkipsPaused(t *testing.T) {
+	s := testStore(t, "owner")
+	seen := make(chan string, 2)
+	gate := make(chan struct{})
+	e, _ := NewEngine(s, execFunc(func(ctx context.Context, n Node, i Invocation) (Result, error) {
+		seen <- n.ID
+		select {
+		case <-gate:
+		case <-ctx.Done():
+		}
+		return Result{Status: "succeeded"}, nil
+	}), 4)
+	for _, id := range []string{"one", "two", "paused"} {
+		e.SaveNode(Node{ID: id, Tools: []string{"system_status"}, Protocol: Protocol, LastSeen: time.Now(), Paused: id == "paused"})
+	}
+	run, err := e.Submit(Run{Title: "분산", IdempotencyKey: "spread", Tasks: []Task{{ID: "a", Tool: "system_status", ApprovalLevel: "read-only"}, {ID: "b", Tool: "system_status", ApprovalLevel: "read-only"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer func() { cancel(); e.Wait() }()
+	go e.Serve(ctx)
+	ids := map[string]bool{}
+	for i := 0; i < 2; i++ {
+		select {
+		case id := <-seen:
+			ids[id] = true
+		case <-time.After(5 * time.Second):
+			t.Fatal("분산 실행 실패")
+		}
+	}
+	close(gate)
+	if !ids["one"] || !ids["two"] || ids["paused"] {
+		t.Fatalf("자동 분산 또는 일시중지 실패: %v", ids)
+	}
+	waitRun(t, e, run.ID, "succeeded")
+}
+
+func TestRunSummariesAndMemoryCount(t *testing.T) {
+	s := testStore(t, "owner")
+	s.Put("run", "detail", Run{ID: "detail", Status: "succeeded", Tasks: []Task{{ID: "one", Status: "succeeded", Output: "큰 결과 원문"}}})
+	e, err := NewEngine(s, nil, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runs, err := e.Runs()
+	if err != nil || len(runs) != 1 || runs[0].Tasks[0].Output != "" {
+		t.Fatal("목록에 원본 결과 포함", err)
+	}
+	detail, err := e.Run("detail")
+	if err != nil || detail.Tasks[0].Output != "큰 결과 원문" {
+		t.Fatal("상세 결과 손실", err)
+	}
+	for i := 0; i < 3; i++ {
+		if _, err = s.SaveMemory(Memory{Title: "기억", Content: "내용", Kind: "long", Visibility: "shared"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	count, err := s.MemoryCount()
+	if err != nil || count != 3 {
+		t.Fatal("기억 집계 실패", count, err)
 	}
 }

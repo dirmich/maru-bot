@@ -11,7 +11,7 @@ if not re.fullmatch(r'\d+\.\d+\.\d+', new):
     raise SystemExit('올바른 버전을 입력하세요')
 for file in [version_file, root/'cmd/marubot/main.go', *root.glob('README*.md')]:
     content = file.read_text(encoding='utf-8')
-    file.write_text(content.replace(old, new), encoding='utf-8', newline='\n')
+    file.write_text((re.sub(r'(?<=v)\d+\.\d+\.\d+', new, content) if file.name.startswith('README') else content.replace(old, new)), encoding='utf-8', newline='\n')
 frontend = root/'admin/frontend/version.js'
 frontend.parent.mkdir(parents=True, exist_ok=True)
 frontend.write_text(f'export const version = "{new}";\n', encoding='utf-8')

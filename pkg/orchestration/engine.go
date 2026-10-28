@@ -32,8 +32,8 @@ func NewEngine(s *Store, x Executor, limit int) (*Engine, error) {
 		limit = 4
 	}
 	e := &Engine{Stopped: make(chan struct{}), Store: s, executor: x, limit: limit, active: map[string]context.CancelFunc{}, wake: make(chan struct{}, 1)}
-	var runs []Run
-	if err := s.List("run", &runs); err != nil {
+	runs, err := s.ActiveRuns()
+	if err != nil {
 		return nil, err
 	}
 	for _, r := range runs {
@@ -197,6 +197,13 @@ func (e *Engine) Submit(r Run) (Run, error) {
 	if err = json.Unmarshal(b, &r); err != nil {
 		return r, err
 	}
+	active, err := e.Store.ActiveRuns()
+	if err != nil {
+		return r, err
+	}
+	if len(active) >= 64 {
+		return r, errors.New("동시에 대기·실행할 수 있는 작업 묶음은 64개입니다")
+	}
 	if err = validateRun(&r); err != nil {
 		return r, err
 	}
@@ -229,9 +236,7 @@ func (e *Engine) Submit(r Run) (Run, error) {
 func (e *Engine) Runs() ([]Run, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	var rs []Run
-	err := e.Store.List("run", &rs)
-	return rs, err
+	return e.Store.RecentRuns()
 }
 func (e *Engine) Run(id string) (Run, error) {
 	e.mu.Lock()
@@ -384,8 +389,8 @@ func aggregate(r *Run) {
 func (e *Engine) schedule(ctx context.Context) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	var runs []Run
-	if err := e.Store.List("run", &runs); err != nil {
+	runs, err := e.Store.ActiveRuns()
+	if err != nil {
 		return
 	}
 	nodes, _ := e.Nodes()
@@ -431,7 +436,7 @@ func (e *Engine) schedule(ctx context.Context) {
 			bestScore := 1e12
 			for j := range nodes {
 				n := &nodes[j]
-				if n.Online && Contains(n.Tools, t.Tool) && (t.NodeID == "" || t.NodeID == n.ID) {
+				if n.Online && !n.Paused && Contains(n.Tools, t.Tool) && (t.NodeID == "" || t.NodeID == n.ID) {
 					score := float64(loads[n.ID])*100 + n.CPU + n.Memory*.1
 					if score < bestScore {
 						selected = n
@@ -516,7 +521,13 @@ func (e *Engine) execute(ctx context.Context, node Node, call Invocation) {
 			if len(content) > 16000 {
 				content = content[:16000]
 			}
-			e.Store.SaveMemory(Memory{Title: r.Title + " · " + t.ID, Content: content, Kind: "short", Visibility: "private", NodeID: node.ID, Source: "run:" + r.ID + "/" + t.ID})
+			title := r.Title + " · " + t.ID
+			if len(title) > 280 {
+				title = title[:280]
+			}
+			if _, err := e.Store.SaveMemory(Memory{Title: title, Content: content, Kind: "short", Visibility: "private", NodeID: node.ID, Source: "run:" + r.ID + "/" + t.ID}); err != nil {
+				e.Store.Event(r.ID, t.ID, "memory.failed", "단기 기억 저장 실패")
+			}
 		}
 	}
 	aggregate(&r)
