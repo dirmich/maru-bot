@@ -1,5 +1,13 @@
 # 변경과 검증 기록
 
+## 0.9.18 — 공개 GitHub Release 준비
+
+- 공개 배포 marubot 실행 파일에 `admin-server` 진입점을 추가해 별도 Admin 파일 없이 사용자별 Wiki·장비·작업 관리 화면을 실행할 수 있게 했다.
+- standalone Admin과 marubot은 같은 pkg/adminruntime을 사용한다. 기존 localhost:8000 설정과 환경 로딩은 보존한다.
+- 릴리스 실행 파일 검증에서 발견한 토큰 화면 닫기 이벤트의 비동기 지연을 수정해 닫기·Escape 시 토큰을 즉시 제거한다.
+- 릴리스 자산은 기존 배포 규칙에 따라 Windows amd64·386 실행 파일이다. 현재 Windows 환경에서 macOS DMG는 생성하지 않는다.
+- 검증: 전체 Go 테스트·build·vet, Windows amd64/386 GUI 실행 파일 빌드와 버전 확인, 두 아키텍처 실행 파일의 admin-server Chrome UI smoke를 통과했다.
+
 ## 0.9.14 — 상세 기획
 
 - 분산 실행과 사용자별 backend Wiki 요구를 PRD·PLAN·TASKS에 구체화했다.

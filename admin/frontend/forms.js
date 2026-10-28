@@ -141,19 +141,37 @@ function provision(data) {
     "토큰은 한 번만 표시됩니다. 안전한 로컬 환경에 보관하세요.",
     `<div class="notice">만료: ${date(data.expires_at)}. 갱신 후에는 장비 설정도 바꿔야 합니다.</div><label>인증 토큰<input id="token" type="password" readonly value="${esc(data.token)}" autocomplete="off"></label><button id="copy-token" class="secondary">토큰 복사</button>${data.node ? `<label>장비 ID<input readonly value="${data.node.id}"></label><label>소유자 ID<input readonly value="${esc(data.owner_id)}"></label>` : ""}<p>실행 방법: <code>docs/ENVIRONMENT.md</code>와 <code>docs/DISTRIBUTION.md</code>를 참고하세요.</p>`,
   );
-  $("#copy-token").onclick = async () => {
+  const dialog = $("#editor");
+  const tokenField = $("#token");
+  const copyButton = $("#copy-token");
+  copyButton.onclick = async () => {
     try {
       await navigator.clipboard.writeText(data.token);
-      $("#copy-token").textContent = "복사했습니다";
+      if (copyButton.isConnected) copyButton.textContent = "복사했습니다";
     } catch {
-      $("#token").type = "text";
-      $("#token").select();
-      $("#copy-token").textContent = "선택된 토큰을 복사하세요";
+      if (!tokenField.isConnected) return;
+      tokenField.type = "text";
+      tokenField.select();
+      copyButton.textContent = "선택된 토큰을 복사하세요";
     }
   };
-  $("#editor").addEventListener(
+  const clearToken = () => {
+    tokenField.value = "";
+    tokenField.remove();
+    data.token = "";
+    dialog.removeEventListener("cancel", clearToken);
+  };
+  $("#close-editor").onclick = () => {
+    clearToken();
+    dialog.close();
+  };
+  dialog.addEventListener("cancel", clearToken, { once: true });
+  dialog.addEventListener(
     "close",
-    () => $("#editor-body").replaceChildren(),
+    () => {
+      clearToken();
+      if (!dialog.open) $("#editor-body").replaceChildren();
+    },
     { once: true },
   );
 }

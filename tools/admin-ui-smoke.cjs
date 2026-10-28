@@ -10,12 +10,13 @@ const assert = require("node:assert/strict");
   const root = path.resolve(__dirname, "..");
   const data = fs.mkdtempSync(path.join(os.tmpdir(), "marubot-ui-"));
   const child = spawn(
-    path.join(
-      root,
-      "build",
-      process.platform === "win32" ? "maru-admin.exe" : "maru-admin",
-    ),
-    [],
+    process.env.MARUBOT_UI_BINARY ||
+      path.join(
+        root,
+        "build",
+        process.platform === "win32" ? "maru-admin.exe" : "maru-admin",
+      ),
+    process.env.MARUBOT_UI_COMMAND ? [process.env.MARUBOT_UI_COMMAND] : [],
     {
       cwd: root,
       windowsHide: true,
@@ -244,7 +245,7 @@ const assert = require("node:assert/strict");
       .getByRole("heading", { name: "모든 장비, 하나의 흐름." })
       .waitFor();
     fs.mkdirSync(path.join(root, "docs", "qa"), { recursive: true });
-    await page.screenshot({
+    if (!process.env.MARUBOT_UI_SKIP_SCREENSHOTS) await page.screenshot({
       path: path.join(root, "docs/qa/admin-overview-desktop.png"),
       fullPage: true,
     });
@@ -321,7 +322,7 @@ const assert = require("node:assert/strict");
       .waitFor();
     await page.getByRole("button", { name: "전체 현황", exact: true }).click();
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.screenshot({
+    if (!process.env.MARUBOT_UI_SKIP_SCREENSHOTS) await page.screenshot({
       path: path.join(root, "docs/qa/admin-overview-mobile.png"),
       fullPage: true,
     });

@@ -28,6 +28,7 @@ import (
 
 	"github.com/dirmich/marubot/cmd/marubot/dashboard"
 	"github.com/dirmich/marubot/pkg/admin"
+	"github.com/dirmich/marubot/pkg/adminruntime"
 	"github.com/dirmich/marubot/pkg/agent"
 	"github.com/dirmich/marubot/pkg/bus"
 	"github.com/dirmich/marubot/pkg/channels"
@@ -127,6 +128,11 @@ func main() {
 	}
 
 	switch command {
+	case "admin-server":
+		if err := adminruntime.Run(); err != nil {
+			fmt.Fprintln(os.Stderr, "Admin 시작 실패:", err)
+			os.Exit(1)
+		}
 	case "mesh-worker":
 		meshWorkerCmd()
 	case "onboard":
@@ -463,6 +469,7 @@ func printHelp() {
 	fmt.Println("Usage: marubot <command>")
 	fmt.Println("Commands:")
 	fmt.Println("  agent       Interact with the agent directly")
+	fmt.Println("  admin-server 사용자별 Wiki와 전체 장비를 관리하는 Admin 실행")
 	fmt.Println("  mesh-worker TLS로 인증된 분산 작업 worker 실행 (설정: docs/ENVIRONMENT.md)")
 	fmt.Println("  config      Manage hardware/system configuration")
 	fmt.Println("  cron        Manage scheduled tasks")
@@ -691,7 +698,7 @@ MaruBot 🦞
 Ultra-lightweight personal AI assistant written in Go, inspired by nanobot.
 
 ## Version
-0.9.17
+0.9.18
 
 ## Purpose
 - Provide intelligent AI assistance with minimal resource usage

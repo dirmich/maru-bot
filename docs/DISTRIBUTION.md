@@ -12,6 +12,8 @@ go build -o build/marubot.exe ./cmd/marubot
 
 frontend는 별도 npm 설치나 빌드 없이 Admin 바이너리에 포함된다. 소스는 `admin/frontend/`, backend 진입점은 `admin/backend/`다. 기존 `cmd/marubot/dashboard/dist` 산출물은 덮어쓰지 않는다.
 
+GitHub Release에서 받은 marubot 실행 파일은 `marubot admin-server` 명령으로 동일한 Admin backend/frontend를 실행한다. 별도 maru-admin 빌드는 선택 사항이다. worker는 같은 실행 파일의 `mesh-worker` 명령을 사용한다.
+
 ## 처음 연결하기
 
 1. docs/ENVIRONMENT.md에 따라 Google OAuth·Admin HTTPS·데이터 경로를 설정한다.

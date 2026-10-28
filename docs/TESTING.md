@@ -33,6 +33,10 @@ Playwright와 로컬 Chrome이 필요하다. Playwright 모듈 경로를 `PLAYWR
 node tools/admin-ui-smoke.cjs
 ```
 
+릴리스 단일 실행 파일의 Admin 진입점은 `MARUBOT_UI_BINARY`에 해당 파일의 절대 경로, `MARUBOT_UI_COMMAND=admin-server`를 지정해 동일한 테스트로 확인한다.
+
+검증된 릴리스 파일을 다시 검사하면서 문서 이미지를 변경하지 않으려면 `MARUBOT_UI_SKIP_SCREENSHOTS=1`을 사용한다.
+
 빌드된 Admin을 임시 데이터 디렉터리와 18180 포트로 실행한다. 로그인 설정 상태와 미인증 API 차단은 실제 backend에서 확인한다. 인증 후 화면 조작은 브라우저에서 테스트용 응답을 주입한다. 운영 API에 로그인 우회나 가상 장비 데이터를 추가하지 않는다.
 
 현황·개별 승인·기억 저장·장비 수정·일시중지/재개·등록·일회 토큰 닫기 후 제거·자연어 2단계 계획 제출·모바일 가로 넘침·브라우저 JavaScript 오류를 검사한다.
